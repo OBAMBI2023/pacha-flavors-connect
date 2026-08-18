@@ -23,14 +23,14 @@ export const FALLBACK_IMAGES: Record<string, string> = {
 export type MenuItem = {
   id: string;
   name: string;
-  subtitle?: string;
+  subtitle?: string | undefined;
   description: string;
   /** null = prix non communiqué -> « Prix sur demande » */
   price: number | null;
-  image?: string;
+  image?: string | undefined;
   category: Category;
   available: boolean;
-  daily?: boolean;
+  daily?: boolean | undefined;
 };
 
 export const CATEGORIES: { id: Category | "tous"; label: string }[] = [
