@@ -6,14 +6,19 @@ import grillades from "@/assets/grillades.jpg";
 import poisson from "@/assets/poisson.jpg";
 import poulet from "@/assets/poulet.jpg";
 
-export type Category =
-  | "plats"
-  | "poulet"
-  | "poisson"
-  | "grillades"
-  | "accompagnements"
-  | "boissons"
-  | "desserts";
+export type Category = string;
+
+/** Images livrées avec le site, utilisées tant qu'aucune photo n'a été téléversée. */
+export const FALLBACK_IMAGES: Record<string, string> = {
+  tchep,
+  "alloco-poulet-poisson": alloco,
+  "placali-kope": placali,
+  "foutou-graine": foutou,
+  "poulet-braise": poulet,
+  "poisson-braise": poisson,
+  brochettes: grillades,
+  "alloco-simple": alloco,
+};
 
 export type MenuItem = {
   id: string;
