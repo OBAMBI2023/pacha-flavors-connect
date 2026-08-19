@@ -64,16 +64,28 @@ function AdminPage() {
           Votre compte ({user.email}) n'a pas encore les droits d'administration. Demandez
           l'ajout du rôle « admin » pour gérer la carte.
         </p>
-        <Button
-          variant="outline"
-          className="mt-6"
-          onClick={async () => {
-            await supabase.auth.signOut();
-            navigate({ to: "/auth", replace: true });
-          }}
-        >
-          Se déconnecter
-        </Button>
+        <div className="mt-6 flex flex-wrap justify-center gap-2">
+          <Button
+            onClick={async () => {
+              const { data, error } = await supabase.rpc("claim_admin");
+              if (error) toast.error(error.message);
+              else if (data) window.location.reload();
+              else toast.error("Un administrateur existe déjà pour ce site.");
+            }}
+          >
+            Devenir administrateur (premier compte)
+          </Button>
+          <Button
+            variant="outline"
+            onClick={async () => {
+              await supabase.auth.signOut();
+              navigate({ to: "/auth", replace: true });
+            }}
+          >
+            Se déconnecter
+          </Button>
+        </div>
+        <Toaster />
       </main>
     );
   }
