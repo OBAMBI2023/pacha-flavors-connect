@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { Toaster } from "@/components/ui/sonner";
 
 type SuperAdminProfile = {
   id: string;
@@ -72,6 +73,7 @@ function SuperAdminLayout() {
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.16),_transparent_30%),linear-gradient(180deg,#08111f_0%,#0b1220_45%,#f8fafc_45%,#f8fafc_100%)] px-4 py-6 text-slate-900 sm:px-6 lg:px-8">
+      <Toaster />
       <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
         <aside className="rounded-3xl border border-white/10 bg-slate-950/95 p-5 text-slate-100 shadow-2xl shadow-black/25">
           <div>

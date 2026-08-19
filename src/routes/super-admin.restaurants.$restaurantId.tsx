@@ -71,11 +71,12 @@ function RestaurantDetailPage() {
         if (!cancelled) setAllowed(false);
         return;
       }
-      const [{ data: restaurantData }, { data: membershipData }] = await Promise.all([
+      const [{ data: restaurantData }, { data: membershipData, error: membershipError }] = await Promise.all([
         supabase.from("restaurants").select("id,name,slug,phone,whatsapp_phone,email,address,commune,city,status,trial_ends_at,is_public,created_at").eq("id", restaurantId).maybeSingle(),
-        supabase.rpc("super_admin_list_restaurant_members", { restaurant_id: restaurantId }),
+        supabase.rpc("super_admin_list_restaurant_members", { _restaurant_id: restaurantId }),
       ]);
       if (cancelled) return;
+      if (membershipError) toast.error(membershipError.message);
       setAllowed(true);
       setRestaurant((restaurantData as Restaurant | null) ?? null);
       setMembers(
@@ -111,29 +112,40 @@ function RestaurantDetailPage() {
 
   async function addMember() {
     const email = memberEmail.trim();
-    if (!email) return;
-    const { error } = await supabase.rpc("super_admin_add_restaurant_member", {
-      _restaurant_id: restaurant.id,
-      _email: email,
-      _role: memberRole,
-    });
-    if (error) {
-      toast.error(error.message);
+    if (!email) {
+      toast.error("Renseignez un e-mail.");
       return;
     }
-    toast.success("Membre ajoute");
-    setMemberEmail("");
-    const { data } = await supabase.rpc("super_admin_list_restaurant_members", { _restaurant_id: restaurant.id });
-    setMembers(
-      (data ?? []).map((item) => ({
-        id: `${item.user_id}:${item.role}`,
-        user_id: item.user_id,
-        restaurant_id: item.restaurant_id,
-        role: item.role,
-        status: item.status,
-        email: item.email,
-      })),
-    );
+    try {
+      const { error } = await supabase.rpc("super_admin_add_restaurant_member", {
+        _restaurant_id: restaurant.id,
+        _email: email,
+        _role: memberRole,
+      });
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      toast.success("Membre ajoute (ou mis a jour) pour ce restaurant");
+      setMemberEmail("");
+      const { data, error: listError } = await supabase.rpc("super_admin_list_restaurant_members", { _restaurant_id: restaurant.id });
+      if (listError) {
+        toast.error(listError.message);
+        return;
+      }
+      setMembers(
+        (data ?? []).map((item) => ({
+          id: `${item.user_id}:${item.role}`,
+          user_id: item.user_id,
+          restaurant_id: item.restaurant_id,
+          role: item.role,
+          status: item.status,
+          email: item.email,
+        })),
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erreur inattendue lors de l'ajout du membre.");
+    }
   }
 
   return (
