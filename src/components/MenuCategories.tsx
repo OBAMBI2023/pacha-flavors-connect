@@ -1,10 +1,20 @@
 import { useState } from "react";
-import { CATEGORIES, MENU, type Category } from "@/data/menu";
+import { useMenuData } from "@/lib/menu-db";
 import { MenuCard } from "./MenuCard";
 
+function slugify(value: string) {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
 export function MenuCategories() {
-  const [active, setActive] = useState<Category | "tous">("tous");
-  const items = active === "tous" ? MENU : MENU.filter((i) => i.category === active);
+  const [active, setActive] = useState<string>("tous");
+  const { data, isLoading } = useMenuData();
+  const all = data?.items ?? [];
+  const tabs = [
+    { id: "tous", label: "Tous" },
+    ...(data?.categories ?? []).map((c) => ({ id: slugify(c.label), label: c.label })),
+  ];
+  const items = active === "tous" ? all : all.filter((i) => i.category === active);
 
   return (
     <section id="carte" className="section-pad bg-secondary/40">
@@ -22,7 +32,7 @@ export function MenuCategories() {
 
         <div className="-mx-4 mt-8 overflow-x-auto px-4 pb-2">
           <div className="flex w-max gap-2">
-            {CATEGORIES.map((c) => (
+            {tabs.map((c) => (
               <button
                 key={c.id}
                 onClick={() => setActive(c.id)}
@@ -39,6 +49,9 @@ export function MenuCategories() {
         </div>
 
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {isLoading && (
+            <p className="text-sm text-muted-foreground">Chargement de la carte…</p>
+          )}
           {items.map((item) => (
             <MenuCard key={item.id} item={item} />
           ))}

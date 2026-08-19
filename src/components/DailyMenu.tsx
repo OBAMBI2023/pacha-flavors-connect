@@ -1,7 +1,12 @@
-import { DAILY_MENU } from "@/data/menu";
+import { useMenuData } from "@/lib/menu-db";
 import { MenuCard } from "./MenuCard";
 
 export function DailyMenu() {
+  const { data } = useMenuData();
+  const daily = (data?.items ?? []).filter((item) => item.daily);
+
+  if (daily.length === 0) return null;
+
   return (
     <section id="menu-du-jour" className="section-pad bg-background">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
@@ -10,7 +15,7 @@ export function DailyMenu() {
         </p>
         <h2 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">Menu du jour</h2>
         <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {DAILY_MENU.map((item) => (
+          {daily.map((item) => (
             <MenuCard key={item.id} item={item} />
           ))}
         </div>

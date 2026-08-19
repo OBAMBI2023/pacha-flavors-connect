@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { SITE } from "@/data/site";
 
 export function Footer() {
@@ -28,8 +29,11 @@ export function Footer() {
           </a>
         </div>
       </div>
-      <div className="mx-auto mt-10 max-w-7xl px-4 text-xs text-cocoa-foreground/50 sm:px-6">
-        © {new Date().getFullYear()} Le Pacha Restaurant — Abidjan, Côte d'Ivoire.
+      <div className="mx-auto mt-10 flex max-w-7xl flex-wrap items-center justify-between gap-2 px-4 text-xs text-cocoa-foreground/50 sm:px-6">
+        <span>© {new Date().getFullYear()} Le Pacha Restaurant — Abidjan, Côte d'Ivoire.</span>
+        <Link to="/admin" className="hover:text-gold">
+          Espace gérant
+        </Link>
       </div>
     </footer>
   );
