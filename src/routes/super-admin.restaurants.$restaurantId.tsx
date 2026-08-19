@@ -66,7 +66,7 @@ function RestaurantDetailPage() {
     let cancelled = false;
     async function load() {
       if (!user) return;
-      const { data: profile } = await supabase.from("profiles").select("id,is_super_admin,email").eq("id", user.id).maybeSingle();
+      const { data: profile } = await supabase.from("profiles").select("id,is_super_admin").eq("id", user.id).maybeSingle();
       if (!profile?.is_super_admin) {
         if (!cancelled) setAllowed(false);
         return;
