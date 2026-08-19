@@ -1,8 +1,8 @@
 import { useMenuData } from "@/lib/menu-db";
 import { MenuCard } from "./MenuCard";
 
-export function DailyMenu() {
-  const { data } = useMenuData();
+export function DailyMenu({ slug }: { slug: string }) {
+  const { data } = useMenuData(slug);
   const daily = (data?.items ?? []).filter((item) => item.daily);
 
   if (daily.length === 0) return null;

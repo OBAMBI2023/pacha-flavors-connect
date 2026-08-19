@@ -62,8 +62,8 @@ function Index() {
         <Header />
         <main>
           <Hero />
-          <DailyMenu />
-          <MenuCategories />
+          <DailyMenu slug="le-pacha" />
+          <MenuCategories slug="le-pacha" />
           <DeliverySection />
           <ReservationSection />
           <AboutSection />

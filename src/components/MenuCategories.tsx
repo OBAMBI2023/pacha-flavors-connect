@@ -6,9 +6,9 @@ function slugify(value: string) {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
-export function MenuCategories() {
+export function MenuCategories({ slug }: { slug: string }) {
   const [active, setActive] = useState<string>("tous");
-  const { data, isLoading } = useMenuData();
+  const { data, isLoading } = useMenuData(slug);
   const all = data?.items ?? [];
   const tabs = [
     { id: "tous", label: "Tous" },

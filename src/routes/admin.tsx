@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -42,6 +42,10 @@ function AdminPage() {
   const queryClient = useQueryClient();
   const { data } = useAdminMenuData(restaurantId);
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["admin-menu-data", restaurantId] });
+  const publicSiteHref =
+    data?.restaurant?.slug && data.restaurant.slug !== "le-pacha"
+      ? `/r/${data.restaurant.slug}`
+      : "/";
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
@@ -82,9 +86,14 @@ function AdminPage() {
           catégories et les plats.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <Link to="/" className="inline-flex items-center rounded-full border border-border px-4 py-2 text-sm">
+          <a
+            href={publicSiteHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center rounded-full border border-border px-4 py-2 text-sm"
+          >
             Voir le site
-          </Link>
+          </a>
           <Button
             variant="outline"
             onClick={async () => {
@@ -111,9 +120,14 @@ function AdminPage() {
           <h1 className="mt-2 font-display text-4xl font-semibold">Gestion de la carte</h1>
         </div>
         <div className="flex gap-2">
-          <Link to="/" className="inline-flex items-center rounded-full border border-border px-4 py-2 text-sm">
+          <a
+            href={publicSiteHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center rounded-full border border-border px-4 py-2 text-sm"
+          >
             Voir le site
-          </Link>
+          </a>
           <Button
             variant="outline"
             onClick={async () => {

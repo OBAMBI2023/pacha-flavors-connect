@@ -22,7 +22,35 @@ export type DbMenuItem = {
   position: number;
 };
 
+export type PublicRestaurant = {
+  id: string;
+  name: string;
+  slug: string;
+  phone: string | null;
+  whatsapp_phone: string | null;
+  email: string | null;
+  address: string | null;
+  commune: string | null;
+  city: string | null;
+  country_code: string | null;
+  currency: string | null;
+  timezone: string | null;
+  logo_url: string | null;
+  cover_url: string | null;
+};
+
+export type PublicRestaurantSettings = {
+  description: string | null;
+  delivery_enabled: boolean | null;
+  pickup_enabled: boolean | null;
+  dine_in_enabled: boolean | null;
+  reservation_enabled: boolean | null;
+  whatsapp_message_template: string | null;
+};
+
 export type MenuData = {
+  restaurant: PublicRestaurant | null;
+  settings: PublicRestaurantSettings | null;
   categories: DbCategory[];
   rows: DbMenuItem[];
   items: MenuItem[];
@@ -35,6 +63,8 @@ function slugify(value: string) {
 }
 
 type PublicMenuRow = {
+  restaurant: PublicRestaurant | null;
+  settings: PublicRestaurantSettings | null;
   categories: Array<{
     id: string;
     name: string;
@@ -60,8 +90,13 @@ type PublicMenuRow = {
   }>;
 };
 
-export async function fetchMenuData(): Promise<MenuData> {
-  const { data, error } = await supabase.rpc("get_public_menu", { p_slug: "le-pacha" });
+/**
+ * Fetches the public menu for a single restaurant, identified by its slug.
+ * `slug` is required on purpose: this is shared multi-tenant logic and must
+ * never silently fall back to a specific tenant (e.g. "le-pacha").
+ */
+export async function fetchMenuData(slug: string): Promise<MenuData> {
+  const { data, error } = await supabase.rpc("get_public_menu", { p_slug: slug });
   if (error) throw error;
   const payload = data as PublicMenuRow | null;
   const cats = (payload?.categories ?? []).map((cat) => ({
@@ -88,16 +123,28 @@ export async function fetchMenuData(): Promise<MenuData> {
     daily: row.daily,
   }));
 
-  return { categories: cats, rows: list, items };
+  return {
+    restaurant: payload?.restaurant ?? null,
+    settings: payload?.settings ?? null,
+    categories: cats,
+    rows: list,
+    items,
+  };
 }
 
-export function useMenuData() {
-  return useQuery({ queryKey: ["menu-data"], queryFn: fetchMenuData, staleTime: 60_000 });
+export function useMenuData(slug: string) {
+  return useQuery({
+    queryKey: ["menu-data", slug],
+    queryFn: () => fetchMenuData(slug),
+    staleTime: 60_000,
+    enabled: Boolean(slug),
+  });
 }
 
 export type DbRestaurant = {
   id: string;
   name: string;
+  slug: string;
 };
 
 export type AdminMenuData = {
@@ -109,7 +156,7 @@ export type AdminMenuData = {
 export async function fetchAdminMenuData(restaurantId: string): Promise<AdminMenuData> {
   const [{ data: restaurant, error: restaurantError }, { data: categoriesData, error: categoriesError }, { data: productsData, error: productsError }] =
     await Promise.all([
-      supabase.from("restaurants").select("id,name").eq("id", restaurantId).maybeSingle(),
+      supabase.from("restaurants").select("id,name,slug").eq("id", restaurantId).maybeSingle(),
       supabase
         .from("restaurant_categories")
         .select("id,name,sort_order")
