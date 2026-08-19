@@ -4,7 +4,6 @@ import { FALLBACK_IMAGES, type MenuItem } from "@/data/menu";
 
 export type DbCategory = {
   id: string;
-  slug: string;
   label: string;
   position: number;
 };
@@ -31,33 +30,51 @@ export type MenuData = {
 
 export const MENU_BUCKET = "menu-images";
 
-async function signImages(paths: string[]): Promise<Record<string, string>> {
-  if (paths.length === 0) return {};
-  const { data } = await supabase.storage.from(MENU_BUCKET).createSignedUrls(paths, 60 * 60 * 24);
-  const map: Record<string, string> = {};
-  for (const entry of data ?? []) {
-    if (entry.path && entry.signedUrl) map[entry.path] = entry.signedUrl;
-  }
-  return map;
+function slugify(value: string) {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
+type PublicMenuRow = {
+  categories: Array<{
+    id: string;
+    name: string;
+    label: string;
+    sort_order: number | null;
+    position?: number | null;
+  }>;
+  products: Array<{
+    id: string;
+    slug: string;
+    category_id: string | null;
+    name: string;
+    subtitle: string | null;
+    description: string;
+    price: number | null;
+    image_path: string | null;
+    is_available: boolean;
+    available?: boolean | null;
+    is_daily_menu: boolean;
+    daily?: boolean | null;
+    sort_order: number | null;
+    position?: number | null;
+  }>;
+};
+
 export async function fetchMenuData(): Promise<MenuData> {
-  const [{ data: categories, error: catError }, { data: rows, error: itemError }] =
-    await Promise.all([
-      supabase.from("categories").select("*").order("position"),
-      supabase.from("menu_items").select("*").order("position"),
-    ]);
-
-  if (catError) throw catError;
-  if (itemError) throw itemError;
-
-  const cats = (categories ?? []) as DbCategory[];
-  const list = (rows ?? []) as DbMenuItem[];
-  const signed = await signImages(
-    list.map((r) => r.image_path).filter((p): p is string => Boolean(p)),
-  );
-
-  const bySlug = new Map(cats.map((c) => [c.id, c.slug] as const));
+  const { data, error } = await supabase.rpc("get_public_menu", { p_slug: "le-pacha" });
+  if (error) throw error;
+  const payload = data as PublicMenuRow | null;
+  const cats = (payload?.categories ?? []).map((cat) => ({
+    id: cat.id,
+    label: cat.label ?? cat.name,
+    position: cat.position ?? cat.sort_order ?? 0,
+  }));
+  const list = (payload?.products ?? []).map((row) => ({
+    ...row,
+    available: row.available ?? row.is_available,
+    daily: row.daily ?? row.is_daily_menu,
+    position: row.position ?? row.sort_order ?? 0,
+  })) as DbMenuItem[];
 
   const items: MenuItem[] = list.map((row) => ({
     id: row.id,
@@ -65,8 +82,8 @@ export async function fetchMenuData(): Promise<MenuData> {
     subtitle: row.subtitle ?? undefined,
     description: row.description,
     price: row.price === null ? null : Number(row.price),
-    image: (row.image_path ? signed[row.image_path] : undefined) ?? FALLBACK_IMAGES[row.slug],
-    category: (row.category_id ? bySlug.get(row.category_id) : undefined) ?? "plats",
+    image: row.image_path ? supabase.storage.from(MENU_BUCKET).getPublicUrl(row.image_path).data.publicUrl : FALLBACK_IMAGES[row.slug],
+    category: slugify(cats.find((c) => c.id === row.category_id)?.label ?? "plats"),
     available: row.available,
     daily: row.daily,
   }));

@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 
 const TITLE = "Administration de la carte | Le Pacha Restaurant";
 const DESCRIPTION =
-  "Gérez la carte du Pacha Restaurant : photos des plats, prix, catégories et menu du jour.";
+  "Gerez la carte du Pacha Restaurant : photos des plats, prix, categories et menu du jour.";
 
 export const Route = createFileRoute("/admin")({
   ssr: false,
@@ -33,18 +33,12 @@ export const Route = createFileRoute("/admin")({
 });
 
 function slugify(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "")
-    .slice(0, 60);
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 60);
 }
 
 function AdminPage() {
   const navigate = useNavigate();
-  const { user, isAdmin, loading } = useAuth();
+  const { user, loading, canManageMenu, restaurantId } = useAuth();
   const queryClient = useQueryClient();
   const { data } = useMenuData();
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["menu-data"] });
@@ -53,28 +47,44 @@ function AdminPage() {
     if (!loading && !user) navigate({ to: "/auth" });
   }, [loading, user, navigate]);
 
-  if (loading) return <p className="p-10 text-sm text-muted-foreground">Chargement…</p>;
+  if (loading) return <p className="p-10 text-sm text-muted-foreground">Chargement...</p>;
   if (!user) return null;
 
-  if (!isAdmin) {
+  if (!restaurantId) {
     return (
       <main className="mx-auto max-w-xl px-4 py-20 text-center">
         <h1 className="font-display text-3xl font-semibold">Accès réservé</h1>
         <p className="mt-3 text-sm text-muted-foreground">
-          Votre compte ({user.email}) n'a pas encore les droits d'administration. Demandez
-          l'ajout du rôle « admin » pour gérer la carte.
+          Votre compte ({user.email}) n&apos;est pas encore rattaché à un restaurant.
         </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
+        <div className="mt-6 flex justify-center gap-2">
           <Button
+            variant="outline"
             onClick={async () => {
-              const { data, error } = await supabase.rpc("claim_admin");
-              if (error) toast.error(error.message);
-              else if (data) window.location.reload();
-              else toast.error("Un administrateur existe déjà pour ce site.");
+              await supabase.auth.signOut();
+              navigate({ to: "/auth", replace: true });
             }}
           >
-            Devenir administrateur (premier compte)
+            Se déconnecter
           </Button>
+        </div>
+        <Toaster />
+      </main>
+    );
+  }
+
+  if (!canManageMenu) {
+    return (
+      <main className="mx-auto max-w-xl px-4 py-20 text-center">
+        <h1 className="font-display text-3xl font-semibold">Accès réservé</h1>
+        <p className="mt-3 text-sm text-muted-foreground">
+          Votre rôle ne permet pas de modifier le menu. Seuls owner et manager peuvent gérer les
+          catégories et les plats.
+        </p>
+        <div className="mt-6 flex flex-wrap justify-center gap-2">
+          <Link to="/" className="inline-flex items-center rounded-full border border-border px-4 py-2 text-sm">
+            Voir le site
+          </Link>
           <Button
             variant="outline"
             onClick={async () => {
@@ -95,16 +105,11 @@ function AdminPage() {
       <Toaster />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-primary">
-            Le Pacha
-          </p>
+          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-primary">Le Pacha</p>
           <h1 className="mt-2 font-display text-4xl font-semibold">Gestion de la carte</h1>
         </div>
         <div className="flex gap-2">
-          <Link
-            to="/"
-            className="inline-flex items-center rounded-full border border-border px-4 py-2 text-sm"
-          >
+          <Link to="/" className="inline-flex items-center rounded-full border border-border px-4 py-2 text-sm">
             Voir le site
           </Link>
           <Button
@@ -119,59 +124,36 @@ function AdminPage() {
         </div>
       </div>
 
-      <CategoriesPanel
-        categories={data?.categories ?? []}
-        onChange={refresh}
-      />
-
-      <ItemsPanel
-        rows={data?.rows ?? []}
-        categories={data?.categories ?? []}
-        onChange={refresh}
-      />
+      <CategoriesPanel restaurantId={restaurantId} categories={data?.categories ?? []} onChange={refresh} />
+      <ItemsPanel restaurantId={restaurantId} rows={data?.rows ?? []} categories={data?.categories ?? []} onChange={refresh} />
     </main>
   );
 }
 
-type Cat = { id: string; slug: string; label: string; position: number };
+type Cat = { id: string; label: string; position: number };
 
-function CategoriesPanel({
-  categories,
-  onChange,
-}: {
-  categories: Cat[];
-  onChange: () => void;
-}) {
+function CategoriesPanel({ restaurantId, categories, onChange }: { restaurantId: string; categories: Cat[]; onChange: () => void; }) {
   const [label, setLabel] = useState("");
 
   async function addCategory() {
     if (!label.trim()) return;
-    const { error } = await supabase.from("categories").insert({
-      label: label.trim(),
-      slug: slugify(label),
-      position: categories.length + 1,
+    const { error } = await supabase.from("restaurant_categories").insert({
+      restaurant_id: restaurantId,
+      name: label.trim(),
+      sort_order: categories.length + 1,
     });
     if (error) toast.error(error.message);
-    else {
-      toast.success("Catégorie ajoutée");
-      setLabel("");
-      onChange();
-    }
+    else { toast.success("Catégorie ajoutée"); setLabel(""); onChange(); }
   }
 
   async function rename(cat: Cat, value: string) {
-    const { error } = await supabase.from("categories").update({ label: value }).eq("id", cat.id);
-    if (error) toast.error(error.message);
-    else onChange();
+    const { error } = await supabase.from("restaurant_categories").update({ name: value }).eq("id", cat.id).eq("restaurant_id", restaurantId);
+    if (error) toast.error(error.message); else onChange();
   }
 
   async function removeCategory(cat: Cat) {
-    const { error } = await supabase.from("categories").delete().eq("id", cat.id);
-    if (error) toast.error(error.message);
-    else {
-      toast.success("Catégorie supprimée");
-      onChange();
-    }
+    const { error } = await supabase.from("restaurant_categories").delete().eq("id", cat.id).eq("restaurant_id", restaurantId);
+    if (error) toast.error(error.message); else { toast.success("Catégorie supprimée"); onChange(); }
   }
 
   return (
@@ -180,56 +162,33 @@ function CategoriesPanel({
       <div className="mt-4 space-y-3">
         {categories.map((cat) => (
           <div key={cat.id} className="flex flex-wrap items-center gap-2">
-            <Input
-              defaultValue={cat.label}
-              onBlur={(e) => {
-                if (e.target.value !== cat.label) rename(cat, e.target.value);
-              }}
-              className="max-w-xs"
-            />
-            <span className="text-xs text-muted-foreground">{cat.slug}</span>
-            <Button variant="ghost" size="sm" onClick={() => removeCategory(cat)}>
-              Supprimer
-            </Button>
+            <Input defaultValue={cat.label} onBlur={(e) => { if (e.target.value !== cat.label) rename(cat, e.target.value); }} className="max-w-xs" />
+            <Button variant="ghost" size="sm" onClick={() => removeCategory(cat)}>Supprimer</Button>
           </div>
         ))}
       </div>
       <div className="mt-5 flex flex-wrap gap-2">
-        <Input
-          placeholder="Nouvelle catégorie"
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          className="max-w-xs"
-        />
+        <Input placeholder="Nouvelle catégorie" value={label} onChange={(e) => setLabel(e.target.value)} className="max-w-xs" />
         <Button onClick={addCategory}>Ajouter</Button>
       </div>
     </section>
   );
 }
 
-function ItemsPanel({
-  rows,
-  categories,
-  onChange,
-}: {
-  rows: DbMenuItem[];
-  categories: Cat[];
-  onChange: () => void;
-}) {
+function ItemsPanel({ restaurantId, rows, categories, onChange }: { restaurantId: string; rows: DbMenuItem[]; categories: Cat[]; onChange: () => void; }) {
   async function addItem() {
     const name = "Nouveau plat";
-    const { error } = await supabase.from("menu_items").insert({
+    const { error } = await supabase.from("restaurant_products").insert({
+      restaurant_id: restaurantId,
       name,
       slug: `${slugify(name)}-${Date.now().toString(36)}`,
       description: "",
       category_id: categories[0]?.id ?? null,
-      position: rows.length + 1,
+      sort_order: rows.length + 1,
+      is_available: true,
+      is_daily_menu: false,
     });
-    if (error) toast.error(error.message);
-    else {
-      toast.success("Plat ajouté");
-      onChange();
-    }
+    if (error) toast.error(error.message); else { toast.success("Plat ajouté"); onChange(); }
   }
 
   return (
@@ -239,23 +198,13 @@ function ItemsPanel({
         <Button onClick={addItem}>Ajouter un plat</Button>
       </div>
       <div className="mt-6 space-y-6">
-        {rows.map((row) => (
-          <ItemEditor key={row.id} row={row} categories={categories} onChange={onChange} />
-        ))}
+        {rows.map((row) => <ItemEditor key={row.id} restaurantId={restaurantId} row={row} categories={categories} onChange={onChange} />)}
       </div>
     </section>
   );
 }
 
-function ItemEditor({
-  row,
-  categories,
-  onChange,
-}: {
-  row: DbMenuItem;
-  categories: Cat[];
-  onChange: () => void;
-}) {
+function ItemEditor({ restaurantId, row, categories, onChange }: { restaurantId: string; row: DbMenuItem; categories: Cat[]; onChange: () => void; }) {
   const [form, setForm] = useState({
     name: row.name,
     subtitle: row.subtitle ?? "",
@@ -270,176 +219,72 @@ function ItemEditor({
   const [preview, setPreview] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
-    if (!row.image_path) {
-      setPreview(null);
-      return;
-    }
-    supabase.storage
-      .from(MENU_BUCKET)
-      .createSignedUrl(row.image_path, 3600)
-      .then(({ data }) => {
-        if (!cancelled) setPreview(data?.signedUrl ?? null);
-      });
-    return () => {
-      cancelled = true;
-    };
+    if (!row.image_path) { setPreview(null); return; }
+    setPreview(supabase.storage.from(MENU_BUCKET).getPublicUrl(row.image_path).data.publicUrl);
   }, [row.image_path]);
 
   async function save() {
     setBusy(true);
-    const { error } = await supabase
-      .from("menu_items")
-      .update({
-        name: form.name,
-        subtitle: form.subtitle || null,
-        description: form.description,
-        price: form.price === "" ? null : Number(form.price),
-        category_id: form.category_id || null,
-        available: form.available,
-        daily: form.daily,
-        position: Number(form.position) || 0,
-      })
-      .eq("id", row.id);
+    const { error } = await supabase.from("restaurant_products").update({
+      name: form.name,
+      subtitle: form.subtitle || null,
+      description: form.description,
+      price: form.price === "" ? null : Number(form.price),
+      category_id: form.category_id || null,
+      is_available: form.available,
+      is_daily_menu: form.daily,
+      sort_order: Number(form.position) || 0,
+    }).eq("id", row.id).eq("restaurant_id", restaurantId);
     setBusy(false);
-    if (error) toast.error(error.message);
-    else {
-      toast.success("Plat mis à jour");
-      onChange();
-    }
+    if (error) toast.error(error.message); else { toast.success("Plat mis à jour"); onChange(); }
   }
 
   async function uploadImage(file: File) {
     setBusy(true);
     const ext = file.name.split(".").pop() ?? "jpg";
     const path = `${row.slug}-${Date.now()}.${ext}`;
-    const { error: upErr } = await supabase.storage
-      .from(MENU_BUCKET)
-      .upload(path, file, { upsert: true, contentType: file.type });
-    if (upErr) {
-      setBusy(false);
-      toast.error(upErr.message);
-      return;
-    }
-    const { error } = await supabase
-      .from("menu_items")
-      .update({ image_path: path })
-      .eq("id", row.id);
+    const { error: upErr } = await supabase.storage.from(MENU_BUCKET).upload(path, file, { upsert: true, contentType: file.type });
+    if (upErr) { setBusy(false); toast.error(upErr.message); return; }
+    const { error } = await supabase.from("restaurant_products").update({ image_path: path }).eq("id", row.id).eq("restaurant_id", restaurantId);
     setBusy(false);
-    if (error) toast.error(error.message);
-    else {
-      toast.success("Photo mise à jour");
-      onChange();
-    }
+    if (error) toast.error(error.message); else { toast.success("Photo mise à jour"); onChange(); }
   }
 
   async function removeItem() {
-    const { error } = await supabase.from("menu_items").delete().eq("id", row.id);
-    if (error) toast.error(error.message);
-    else {
-      toast.success("Plat supprimé");
-      onChange();
-    }
+    const { error } = await supabase.from("restaurant_products").delete().eq("id", row.id).eq("restaurant_id", restaurantId);
+    if (error) toast.error(error.message); else { toast.success("Plat supprimé"); onChange(); }
   }
 
   return (
     <div className="rounded-xl border border-border p-4">
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label>Nom</Label>
-          <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-        </div>
-        <div className="space-y-2">
-          <Label>Sous-titre</Label>
-          <Input
-            value={form.subtitle}
-            onChange={(e) => setForm({ ...form, subtitle: e.target.value })}
-          />
-        </div>
-        <div className="space-y-2 sm:col-span-2">
-          <Label>Description</Label>
-          <Textarea
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label>Prix (FCFA) — vide = prix sur demande</Label>
-          <Input
-            type="number"
-            min={0}
-            value={form.price}
-            onChange={(e) => setForm({ ...form, price: e.target.value })}
-          />
-        </div>
+        <div className="space-y-2"><Label>Nom</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+        <div className="space-y-2"><Label>Sous-titre</Label><Input value={form.subtitle} onChange={(e) => setForm({ ...form, subtitle: e.target.value })} /></div>
+        <div className="space-y-2 sm:col-span-2"><Label>Description</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
+        <div className="space-y-2"><Label>Prix (FCFA) - vide = prix sur demande</Label><Input type="number" min={0} value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} /></div>
         <div className="space-y-2">
           <Label>Catégorie</Label>
-          <select
-            value={form.category_id}
-            onChange={(e) => setForm({ ...form, category_id: e.target.value })}
-            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-          >
+          <select value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
             <option value="">Sans catégorie</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.label}
-              </option>
-            ))}
+            {categories.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
           </select>
         </div>
-        <div className="space-y-2">
-          <Label>Ordre d'affichage</Label>
-          <Input
-            type="number"
-            value={form.position}
-            onChange={(e) => setForm({ ...form, position: Number(e.target.value) })}
-          />
-        </div>
+        <div className="space-y-2"><Label>Ordre d&apos;affichage</Label><Input type="number" value={form.position} onChange={(e) => setForm({ ...form, position: Number(e.target.value) })} /></div>
         <div className="flex items-end gap-6">
-          <label className="flex items-center gap-2 text-sm">
-            <Switch
-              checked={form.available}
-              onCheckedChange={(v) => setForm({ ...form, available: v })}
-            />
-            Disponible
-          </label>
-          <label className="flex items-center gap-2 text-sm">
-            <Switch
-              checked={form.daily}
-              onCheckedChange={(v) => setForm({ ...form, daily: v })}
-            />
-            Menu du jour
-          </label>
+          <label className="flex items-center gap-2 text-sm"><Switch checked={form.available} onCheckedChange={(v) => setForm({ ...form, available: v })} /> Disponible</label>
+          <label className="flex items-center gap-2 text-sm"><Switch checked={form.daily} onCheckedChange={(v) => setForm({ ...form, daily: v })} /> Menu du jour</label>
         </div>
         <div className="space-y-2 sm:col-span-2">
           <Label>Photo du plat</Label>
           <div className="flex flex-wrap items-center gap-4">
-            {preview && (
-              <img
-                src={preview}
-                alt={form.name}
-                className="h-20 w-20 rounded-lg object-cover"
-              />
-            )}
-            <Input
-              type="file"
-              accept="image/*"
-              className="max-w-xs"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) uploadImage(file);
-              }}
-            />
+            {preview && <img src={preview} alt={form.name} className="h-20 w-20 rounded-lg object-cover" />}
+            <Input type="file" accept="image/*" className="max-w-xs" onChange={(e) => { const file = e.target.files?.[0]; if (file) void uploadImage(file); }} />
           </div>
         </div>
       </div>
       <div className="mt-4 flex gap-2">
-        <Button onClick={save} disabled={busy}>
-          Enregistrer
-        </Button>
-        <Button variant="ghost" onClick={removeItem} disabled={busy}>
-          Supprimer
-        </Button>
+        <Button onClick={save} disabled={busy}>Enregistrer</Button>
+        <Button variant="ghost" onClick={removeItem} disabled={busy}>Supprimer</Button>
       </div>
     </div>
   );

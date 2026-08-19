@@ -2,13 +2,17 @@ import { useState } from "react";
 import { useMenuData } from "@/lib/menu-db";
 import { MenuCard } from "./MenuCard";
 
+function slugify(value: string) {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
 export function MenuCategories() {
   const [active, setActive] = useState<string>("tous");
   const { data, isLoading } = useMenuData();
   const all = data?.items ?? [];
   const tabs = [
     { id: "tous", label: "Tous" },
-    ...(data?.categories ?? []).map((c) => ({ id: c.slug, label: c.label })),
+    ...(data?.categories ?? []).map((c) => ({ id: slugify(c.label), label: c.label })),
   ];
   const items = active === "tous" ? all : all.filter((i) => i.category === active);
 
