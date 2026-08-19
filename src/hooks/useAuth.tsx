@@ -52,6 +52,7 @@ export function useAuth() {
           .from("restaurant_memberships")
           .select("id,user_id,restaurant_id,role")
           .eq("user_id", userId)
+          .eq("status", "active")
           .order("created_at", { ascending: true })
           .limit(1)
           .maybeSingle(),

@@ -5,16 +5,16 @@ import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useMenuData, MENU_BUCKET, type DbMenuItem } from "@/lib/menu-db";
+import { useAdminMenuData, MENU_BUCKET, type DbMenuItem } from "@/lib/menu-db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 
-const TITLE = "Administration de la carte | Le Pacha Restaurant";
+const TITLE = "Administration de la carte";
 const DESCRIPTION =
-  "Gerez la carte du Pacha Restaurant : photos des plats, prix, categories et menu du jour.";
+  "Gerez la carte de votre restaurant : photos des plats, prix, categories et menu du jour.";
 
 export const Route = createFileRoute("/admin")({
   ssr: false,
@@ -40,8 +40,8 @@ function AdminPage() {
   const navigate = useNavigate();
   const { user, loading, canManageMenu, restaurantId } = useAuth();
   const queryClient = useQueryClient();
-  const { data } = useMenuData();
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ["menu-data"] });
+  const { data } = useAdminMenuData(restaurantId);
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ["admin-menu-data", restaurantId] });
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
@@ -105,7 +105,9 @@ function AdminPage() {
       <Toaster />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-primary">Le Pacha</p>
+          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-primary">
+            {data?.restaurant?.name ?? "..."}
+          </p>
           <h1 className="mt-2 font-display text-4xl font-semibold">Gestion de la carte</h1>
         </div>
         <div className="flex gap-2">
@@ -140,6 +142,7 @@ function CategoriesPanel({ restaurantId, categories, onChange }: { restaurantId:
     const { error } = await supabase.from("restaurant_categories").insert({
       restaurant_id: restaurantId,
       name: label.trim(),
+      slug: `${slugify(label.trim())}-${Date.now().toString(36)}`,
       sort_order: categories.length + 1,
     });
     if (error) toast.error(error.message);

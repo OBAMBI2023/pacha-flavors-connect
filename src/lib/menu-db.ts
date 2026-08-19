@@ -94,3 +94,69 @@ export async function fetchMenuData(): Promise<MenuData> {
 export function useMenuData() {
   return useQuery({ queryKey: ["menu-data"], queryFn: fetchMenuData, staleTime: 60_000 });
 }
+
+export type DbRestaurant = {
+  id: string;
+  name: string;
+};
+
+export type AdminMenuData = {
+  restaurant: DbRestaurant | null;
+  categories: DbCategory[];
+  rows: DbMenuItem[];
+};
+
+export async function fetchAdminMenuData(restaurantId: string): Promise<AdminMenuData> {
+  const [{ data: restaurant, error: restaurantError }, { data: categoriesData, error: categoriesError }, { data: productsData, error: productsError }] =
+    await Promise.all([
+      supabase.from("restaurants").select("id,name").eq("id", restaurantId).maybeSingle(),
+      supabase
+        .from("restaurant_categories")
+        .select("id,name,sort_order")
+        .eq("restaurant_id", restaurantId)
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("restaurant_products")
+        .select("id,slug,category_id,name,subtitle,description,price,image_path,is_available,is_daily_menu,sort_order")
+        .eq("restaurant_id", restaurantId)
+        .order("sort_order", { ascending: true }),
+    ]);
+
+  if (restaurantError) throw restaurantError;
+  if (categoriesError) throw categoriesError;
+  if (productsError) throw productsError;
+
+  const categories: DbCategory[] = (categoriesData ?? []).map((cat) => ({
+    id: cat.id,
+    label: cat.name,
+    position: cat.sort_order ?? 0,
+  }));
+
+  const rows: DbMenuItem[] = (productsData ?? []).map((row) => ({
+    id: row.id,
+    slug: row.slug,
+    category_id: row.category_id,
+    name: row.name,
+    subtitle: row.subtitle,
+    description: row.description ?? "",
+    price: row.price === null ? null : Number(row.price),
+    image_path: row.image_path,
+    available: row.is_available,
+    daily: row.is_daily_menu,
+    position: row.sort_order ?? 0,
+  }));
+
+  return {
+    restaurant: (restaurant as DbRestaurant | null) ?? null,
+    categories,
+    rows,
+  };
+}
+
+export function useAdminMenuData(restaurantId: string | null) {
+  return useQuery({
+    queryKey: ["admin-menu-data", restaurantId],
+    queryFn: () => fetchAdminMenuData(restaurantId as string),
+    enabled: Boolean(restaurantId),
+  });
+}
