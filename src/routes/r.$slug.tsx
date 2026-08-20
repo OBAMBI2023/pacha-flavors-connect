@@ -1,10 +1,63 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Phone, ShoppingBag } from "lucide-react";
+import { MapPin, Navigation, Phone, ShoppingBag } from "lucide-react";
 import { useMenuData } from "@/lib/menu-db";
 import { CartProvider, useCart } from "@/lib/cart";
 import { MenuCard } from "@/components/MenuCard";
 import { TenantOrderDrawer } from "@/components/TenantOrderDrawer";
+
+function TenantLocationSection({
+  name,
+  address,
+  commune,
+  city,
+  countryCode,
+}: {
+  name: string;
+  address: string | null;
+  commune: string | null;
+  city: string | null;
+  countryCode: string | null;
+}) {
+  const addressLines = [address, commune, city].filter(Boolean) as string[];
+  if (addressLines.length === 0) return null;
+
+  const mapsQuery = [address, commune, city, countryCode].filter(Boolean).join(", ");
+  const mapsDirectionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapsQuery)}`;
+  const mapsEmbedUrl = `https://www.google.com/maps?q=${encodeURIComponent(mapsQuery)}&output=embed`;
+
+  return (
+    <section id="localisation" className="section-pad bg-secondary/40">
+      <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-2">
+        <div>
+          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-primary">Nous trouver</p>
+          <h2 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">{name}</h2>
+          <address className="mt-8 flex gap-3 text-sm not-italic leading-relaxed">
+            <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+            <span>{addressLines.join(", ")}</span>
+          </address>
+          <a
+            href={mapsDirectionsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-8 inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-3 text-sm font-semibold hover:bg-accent"
+          >
+            <Navigation className="h-4 w-4" /> Itinéraire
+          </a>
+        </div>
+        <div className="overflow-hidden rounded-3xl border border-border bg-card">
+          <iframe
+            title={`Localisation de ${name}`}
+            src={mapsEmbedUrl}
+            loading="lazy"
+            className="h-80 w-full lg:h-full"
+            referrerPolicy="no-referrer-when-downgrade"
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
 
 function slugify(value: string) {
   return value.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -156,6 +209,14 @@ function TenantStorefront({ slug }: { slug: string }) {
             )}
           </div>
         </section>
+
+        <TenantLocationSection
+          name={restaurant.name}
+          address={restaurant.address}
+          commune={restaurant.commune}
+          city={restaurant.city}
+          countryCode={restaurant.country_code}
+        />
       </main>
 
       <footer className="bg-cocoa py-10 text-cocoa-foreground">
