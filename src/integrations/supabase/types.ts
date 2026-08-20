@@ -146,6 +146,28 @@ export type Database = {
         Args: { p_slug: string }
         Returns: Json
       }
+      create_order: {
+        Args: {
+          p_slug: string
+          p_fulfillment_type: "delivery" | "pickup"
+          p_customer_name: string
+          p_customer_phone: string
+          p_items: Json
+          p_delivery_commune?: string | null
+          p_delivery_address?: string | null
+          p_delivery_instructions?: string | null
+          p_customer_notes?: string | null
+        }
+        Returns: Json
+      }
+      update_order_status: {
+        Args: {
+          p_order_id: string
+          p_new_status: "pending" | "confirmed" | "preparing" | "ready" | "out_for_delivery" | "delivered" | "cancelled"
+          p_note?: string | null
+        }
+        Returns: Json
+      }
       super_admin_add_restaurant_member: {
         Args: { _restaurant_id: string; _email: string; _role: "owner" | "manager" | "staff" }
         Returns: { user_id: string; restaurant_id: string; role: "owner" | "manager" | "staff" }

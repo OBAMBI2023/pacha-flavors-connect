@@ -2,19 +2,31 @@ import { useState } from "react";
 import { Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/data/menu";
+import { createOrder, type FulfillmentType } from "@/lib/orders-db";
 
 type Mode = "livraison" | "emporter";
+
+const FULFILLMENT_TYPE: Record<Mode, FulfillmentType> = {
+  livraison: "delivery",
+  emporter: "pickup",
+};
 
 /**
  * Generic order drawer for tenant storefronts (`/r/:slug`). Unlike
  * `CartDrawer` (which is wired to LE PACHA's own WhatsApp number), this
  * component sends the WhatsApp order to the restaurant passed in via props,
- * so each tenant only ever receives its own orders.
+ * so each tenant only ever receives its own orders. The order is first
+ * persisted server-side via `create_order` (which re-validates every product
+ * and recomputes the total) so it stays visible in the restaurant dashboard;
+ * only the RPC's authoritative totals -- never the client's own cart
+ * subtotal -- are used in the WhatsApp message.
  */
 export function TenantOrderDrawer({
+  restaurantSlug,
   restaurantName,
   whatsappPhone,
 }: {
+  restaurantSlug: string;
   restaurantName: string;
   whatsappPhone: string | null;
 }) {
@@ -29,6 +41,7 @@ export function TenantOrderDrawer({
     instructions: "",
   });
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -39,8 +52,8 @@ export function TenantOrderDrawer({
       : "À confirmer avec le restaurant"
     : `${subtotal.toLocaleString("fr-FR")} FCFA`;
 
-  function submit() {
-    if (lines.length === 0) return;
+  async function submit() {
+    if (lines.length === 0 || submitting) return;
     if (!whatsappPhone) {
       setError("Ce restaurant n'a pas encore activé la commande WhatsApp. Merci de l'appeler directement.");
       return;
@@ -54,39 +67,66 @@ export function TenantOrderDrawer({
       return;
     }
     setError("");
+    setSubmitting(true);
 
-    const items = lines
-      .map((l) => `${l.qty} × ${l.item.name}${l.item.subtitle ? ` (${l.item.subtitle})` : ""}`)
-      .join("\n");
+    try {
+      const order = await createOrder({
+        slug: restaurantSlug,
+        fulfillmentType: FULFILLMENT_TYPE[mode],
+        customerName: form.nom,
+        customerPhone: form.telephone,
+        items: lines.map((l) => ({ product_id: l.item.id, quantity: l.qty })),
+        deliveryCommune: mode === "livraison" ? form.commune : undefined,
+        deliveryAddress: mode === "livraison" ? form.adresse : undefined,
+        deliveryInstructions: mode === "livraison" ? form.instructions : undefined,
+      });
 
-    const message = [
-      `Bonjour ${restaurantName}`,
-      "Je souhaite passer une commande.",
-      "",
-      "COMMANDE",
-      items,
-      "",
-      `Sous-total : ${subtotalLabel}`,
-      "",
-      "MODE",
-      mode === "livraison" ? "Livraison" : "À emporter",
-      "",
-      "CLIENT",
-      `Nom : ${form.nom}`,
-      `Téléphone : ${form.telephone}`,
-      ...(mode === "livraison"
-        ? [
-            `Quartier : ${form.commune}`,
-            `Adresse : ${form.adresse}`,
-            `Instructions : ${form.instructions || "-"}`,
-          ]
-        : []),
-      "",
-      "Merci.",
-    ].join("\n");
+      const itemsText = lines
+        .map((l) => `${l.qty} × ${l.item.name}${l.item.subtitle ? ` (${l.item.subtitle})` : ""}`)
+        .join("\n");
+      const totalLabel = `${order.total_amount.toLocaleString("fr-FR")} ${order.currency}`;
 
-    const url = `https://wa.me/${whatsappPhone}?text=${encodeURIComponent(message)}`;
-    window.open(url, "_blank", "noopener,noreferrer");
+      const message = [
+        `Bonjour ${restaurantName}`,
+        `Je souhaite passer commande n°${order.order_number}.`,
+        "",
+        "COMMANDE",
+        itemsText,
+        "",
+        `Total : ${totalLabel}`,
+        "",
+        "MODE",
+        mode === "livraison" ? "Livraison" : "À emporter",
+        "",
+        "CLIENT",
+        `Nom : ${form.nom}`,
+        `Téléphone : ${form.telephone}`,
+        ...(mode === "livraison"
+          ? [
+              `Quartier : ${form.commune}`,
+              `Adresse : ${form.adresse}`,
+              `Instructions : ${form.instructions || "-"}`,
+            ]
+          : []),
+        "",
+        "Merci.",
+      ].join("\n");
+
+      const url = `https://wa.me/${whatsappPhone}?text=${encodeURIComponent(message)}`;
+      window.open(url, "_blank", "noopener,noreferrer");
+      clear();
+      closeCart();
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof err === "object" && err !== null && "message" in err
+            ? String((err as { message: unknown }).message)
+            : "Impossible d'enregistrer la commande. Réessayez.";
+      setError(message);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   if (!isOpen) return null;
@@ -211,10 +251,11 @@ export function TenantOrderDrawer({
             </div>
             {error && <p className="mt-2 text-xs font-medium text-destructive">{error}</p>}
             <button
-              onClick={submit}
-              className="mt-3 w-full rounded-full bg-primary px-6 py-3.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+              onClick={() => void submit()}
+              disabled={submitting}
+              className="mt-3 w-full rounded-full bg-primary px-6 py-3.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
             >
-              Commander sur WhatsApp
+              {submitting ? "Envoi de la commande..." : "Commander sur WhatsApp"}
             </button>
           </div>
         )}
