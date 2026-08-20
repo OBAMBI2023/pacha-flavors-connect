@@ -19,6 +19,7 @@ export type DbMenuItem = {
   image_path: string | null;
   available: boolean;
   daily: boolean;
+  featured?: boolean;
   position: number;
 };
 
@@ -85,6 +86,7 @@ type PublicMenuRow = {
     available?: boolean | null;
     is_daily_menu: boolean;
     daily?: boolean | null;
+    is_featured?: boolean | null;
     sort_order: number | null;
     position?: number | null;
   }>;
@@ -108,6 +110,7 @@ export async function fetchMenuData(slug: string): Promise<MenuData> {
     ...row,
     available: row.available ?? row.is_available,
     daily: row.daily ?? row.is_daily_menu,
+    featured: row.is_featured ?? false,
     position: row.position ?? row.sort_order ?? 0,
   })) as DbMenuItem[];
 
@@ -121,6 +124,7 @@ export async function fetchMenuData(slug: string): Promise<MenuData> {
     category: slugify(cats.find((c) => c.id === row.category_id)?.label ?? "plats"),
     available: row.available,
     daily: row.daily,
+    featured: row.featured ?? false,
   }));
 
   return {
@@ -145,6 +149,15 @@ export type DbRestaurant = {
   id: string;
   name: string;
   slug: string;
+  logo_url: string | null;
+  cover_url: string | null;
+  address: string | null;
+  commune: string | null;
+  city: string | null;
+  phone: string | null;
+  whatsapp_phone: string | null;
+  email: string | null;
+  is_public: boolean;
 };
 
 export type AdminMenuData = {
@@ -156,7 +169,11 @@ export type AdminMenuData = {
 export async function fetchAdminMenuData(restaurantId: string): Promise<AdminMenuData> {
   const [{ data: restaurant, error: restaurantError }, { data: categoriesData, error: categoriesError }, { data: productsData, error: productsError }] =
     await Promise.all([
-      supabase.from("restaurants").select("id,name,slug").eq("id", restaurantId).maybeSingle(),
+      supabase
+        .from("restaurants")
+        .select("id,name,slug,logo_url,cover_url,address,commune,city,phone,whatsapp_phone,email,is_public")
+        .eq("id", restaurantId)
+        .maybeSingle(),
       supabase
         .from("restaurant_categories")
         .select("id,name,sort_order")

@@ -31,6 +31,7 @@ export type MenuItem = {
   category: Category;
   available: boolean;
   daily?: boolean | undefined;
+  featured?: boolean | undefined;
 };
 
 export const CATEGORIES: { id: Category | "tous"; label: string }[] = [
