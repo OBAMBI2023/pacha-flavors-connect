@@ -66,7 +66,12 @@ function slugify(value: string) {
 export const Route = createFileRoute("/r/$slug")({
   ssr: false,
   head: () => ({
-    meta: [{ name: "robots", content: "noindex" }],
+    meta: [
+      { name: "robots", content: "noindex" },
+      { name: "description", content: "Consultez le menu et les informations de ce restaurant." },
+      { name: "author", content: "Pacha Flavors Connect" },
+      { property: "og:description", content: "Consultez le menu et les informations de ce restaurant." },
+    ],
   }),
   component: TenantStorefrontPage,
 });
