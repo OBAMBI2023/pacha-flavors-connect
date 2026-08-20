@@ -19,6 +19,8 @@ export type CreateOrderItemInput = {
   notes?: string;
 };
 
+export type OrderSource = "direct" | "marketplace" | "qr_code" | "unknown";
+
 export type CreateOrderInput = {
   slug: string;
   fulfillmentType: FulfillmentType;
@@ -29,6 +31,8 @@ export type CreateOrderInput = {
   deliveryAddress?: string | undefined;
   deliveryInstructions?: string | undefined;
   customerNotes?: string | undefined;
+  orderSource?: OrderSource | undefined;
+  sourceMetadata?: Record<string, string> | undefined;
 };
 
 export type CreateOrderResult = {
@@ -40,13 +44,16 @@ export type CreateOrderResult = {
   delivery_fee_amount: number;
   total_amount: number;
   item_count: number;
+  order_source: OrderSource;
 };
 
 /**
  * Creates an order via the `create_order` RPC, which re-validates every
  * product/option and recomputes all totals server-side -- the values in the
  * returned result are the authoritative ones, never the client's own cart
- * subtotal.
+ * subtotal. `orderSource` is only ever a client-supplied *hint*: the RPC
+ * normalizes anything outside its known allow-list to 'unknown' rather than
+ * trusting it verbatim.
  */
 export async function createOrder(input: CreateOrderInput): Promise<CreateOrderResult> {
   const { data, error } = await supabase.rpc("create_order", {
@@ -59,6 +66,8 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
     p_delivery_address: input.deliveryAddress ?? null,
     p_delivery_instructions: input.deliveryInstructions ?? null,
     p_customer_notes: input.customerNotes ?? null,
+    p_order_source: input.orderSource ?? "direct",
+    p_source_metadata: (input.sourceMetadata ?? {}) as unknown as Json,
   });
   if (error) throw error;
   return data as unknown as CreateOrderResult;
@@ -245,4 +254,78 @@ export async function fetchOrderDetail(orderId: string): Promise<OrderDetail> {
     })),
     history,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Dashboard analytics. Tenant-scoped entirely server-side by
+// get_restaurant_dashboard_stats (resolves the restaurant from the
+// authenticated user, exactly like update_order_status) -- the client never
+// sends a restaurant_id.
+// ---------------------------------------------------------------------------
+
+export type PeriodTotals = {
+  revenue: number;
+  orders_count: number;
+  average_order_value: number | null;
+};
+
+export type CurrentPeriodTotals = PeriodTotals & {
+  delivered_count: number;
+  items_sold: number;
+  cancelled_orders: number;
+  cancelled_amount: number;
+  cancellation_rate: number;
+  in_progress_revenue: number;
+  total_orders: number;
+};
+
+export type RevenueSeriesPoint = { date: string; revenue: number; orders: number };
+export type TopProduct = { name: string; quantity: number; revenue: number };
+export type HourlyPoint = { hour: number; orders_count: number; revenue: number };
+export type WeekdayPoint = { weekday: number; orders_count: number; revenue: number };
+export type SourceBreakdownRow = {
+  source: OrderSource;
+  orders_count: number;
+  share: number;
+  revenue: number;
+  average_order_value: number | null;
+};
+export type OperationalMetrics = {
+  avg_confirmation_minutes: number | null;
+  avg_preparation_minutes: number | null;
+  avg_total_minutes: number | null;
+};
+
+export type DashboardStats = {
+  restaurant_id: string;
+  period: { start_date: string; end_date: string };
+  current: CurrentPeriodTotals;
+  previous: PeriodTotals;
+  revenue_series: RevenueSeriesPoint[];
+  top_products: TopProduct[];
+  hourly_distribution: HourlyPoint[];
+  weekday_distribution: WeekdayPoint[];
+  source_breakdown: SourceBreakdownRow[];
+  operational_metrics: OperationalMetrics;
+};
+
+/**
+ * Renders a Date as a plain YYYY-MM-DD using its *local* calendar fields --
+ * never `toISOString()`, which normalizes to UTC and can silently shift the
+ * date by a day depending on the viewer's timezone/time of day.
+ */
+function toDateInputValue(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+export async function fetchDashboardStats(startDate: Date, endDate: Date): Promise<DashboardStats> {
+  const { data, error } = await supabase.rpc("get_restaurant_dashboard_stats", {
+    p_start_date: toDateInputValue(startDate),
+    p_end_date: toDateInputValue(endDate),
+  });
+  if (error) throw error;
+  return data as unknown as DashboardStats;
 }

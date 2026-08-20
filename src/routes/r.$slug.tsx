@@ -193,11 +193,7 @@ function TenantStorefront({ slug }: { slug: string }) {
 
       <TenantCartBar count={count} subtotalLabel={subtotalLabel} onOpenCart={openCart} />
 
-      <TenantOrderDrawer
-        restaurantSlug={restaurant.slug}
-        restaurantName={restaurant.name}
-        whatsappPhone={restaurant.whatsapp_phone ?? restaurant.phone}
-      />
+      <TenantOrderDrawer restaurantSlug={restaurant.slug} restaurantName={restaurant.name} />
     </div>
   );
 }

@@ -157,6 +157,8 @@ export type Database = {
           p_delivery_address?: string | null
           p_delivery_instructions?: string | null
           p_customer_notes?: string | null
+          p_order_source?: string | null
+          p_source_metadata?: Json | null
         }
         Returns: Json
       }
@@ -166,6 +168,10 @@ export type Database = {
           p_new_status: "pending" | "confirmed" | "preparing" | "ready" | "out_for_delivery" | "delivered" | "cancelled"
           p_note?: string | null
         }
+        Returns: Json
+      }
+      get_restaurant_dashboard_stats: {
+        Args: { p_start_date: string; p_end_date: string }
         Returns: Json
       }
       super_admin_add_restaurant_member: {
