@@ -21,6 +21,9 @@ export type CreateOrderItemInput = {
 
 export type OrderSource = "direct" | "marketplace" | "qr_code" | "unknown";
 
+export type PaymentStatus = "pending" | "authorized" | "paid" | "failed" | "refunded" | "partially_refunded" | "cash_pending";
+export type PaymentMethod = "cash" | "mobile_money" | "card" | "online" | "unknown";
+
 export type CreateOrderInput = {
   slug: string;
   fulfillmentType: FulfillmentType;
@@ -33,6 +36,7 @@ export type CreateOrderInput = {
   customerNotes?: string | undefined;
   orderSource?: OrderSource | undefined;
   sourceMetadata?: Record<string, string> | undefined;
+  paymentMethod?: PaymentMethod | undefined;
 };
 
 export type CreateOrderResult = {
@@ -45,6 +49,8 @@ export type CreateOrderResult = {
   total_amount: number;
   item_count: number;
   order_source: OrderSource;
+  payment_method: PaymentMethod;
+  payment_status: PaymentStatus;
 };
 
 /**
@@ -68,6 +74,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
     p_customer_notes: input.customerNotes ?? null,
     p_order_source: input.orderSource ?? "direct",
     p_source_metadata: (input.sourceMetadata ?? {}) as unknown as Json,
+    p_payment_method: input.paymentMethod ?? "cash",
   });
   if (error) throw error;
   return data as unknown as CreateOrderResult;
@@ -85,6 +92,46 @@ export async function updateOrderStatus(
   });
   if (error) throw error;
   return data as unknown as { order_id: string; status: OrderStatus };
+}
+
+/**
+ * The only client-callable path from cash_pending -> paid. Restaurant-side
+ * only (the RPC checks has_restaurant_access) -- a customer can never mark
+ * their own cash order as paid.
+ */
+export async function markCashPaymentReceived(orderId: string): Promise<{ order_id: string; payment_status: PaymentStatus }> {
+  const { data, error } = await supabase.rpc("mark_cash_payment_received", { p_order_id: orderId });
+  if (error) throw error;
+  return data as unknown as { order_id: string; payment_status: PaymentStatus };
+}
+
+/**
+ * Refund amount is always bounded server-side by what was actually paid
+ * minus what was already refunded -- this call only ever *requests* an
+ * amount, the RPC decides whether it's valid.
+ */
+type PaymentRow = { amount: number; status: PaymentStatus };
+
+/** Refundable remainder = sum(paid) - sum(refunded | partially_refunded), read-only hint for the UI -- the RPC is the actual authority on the bound. */
+export async function fetchOrderPaymentSummary(orderId: string): Promise<{ paid: number; refunded: number; remaining: number }> {
+  const { data, error } = await supabase.from("payments").select("amount,status").eq("order_id", orderId);
+  if (error) throw error;
+  const rows = (data ?? []) as unknown as PaymentRow[];
+  const paid = rows.filter((r) => r.status === "paid").reduce((sum, r) => sum + Number(r.amount), 0);
+  const refunded = rows
+    .filter((r) => r.status === "refunded" || r.status === "partially_refunded")
+    .reduce((sum, r) => sum + Number(r.amount), 0);
+  return { paid, refunded, remaining: Math.max(0, paid - refunded) };
+}
+
+export async function createRefund(
+  orderId: string,
+  amount: number,
+  reason?: string,
+): Promise<{ order_id: string; payment_status: PaymentStatus; refunded_amount: number }> {
+  const { data, error } = await supabase.rpc("create_refund", { p_order_id: orderId, p_amount: amount, p_reason: reason ?? null });
+  if (error) throw error;
+  return data as unknown as { order_id: string; payment_status: PaymentStatus; refunded_amount: number };
 }
 
 // ---------------------------------------------------------------------------
@@ -111,6 +158,11 @@ export type Order = {
   delivery_fee_amount: number;
   total_amount: number;
   item_count: number;
+  discount_amount: number;
+  payment_status: PaymentStatus;
+  payment_method: PaymentMethod;
+  payment_reference: string | null;
+  paid_at: string | null;
   cancel_reason: string | null;
   created_at: string;
   updated_at: string;
@@ -277,6 +329,8 @@ export type CurrentPeriodTotals = PeriodTotals & {
   cancellation_rate: number;
   in_progress_revenue: number;
   total_orders: number;
+  gmv: number;
+  pending_collection: number;
 };
 
 export type RevenueSeriesPoint = { date: string; revenue: number; orders: number };
@@ -296,6 +350,9 @@ export type OperationalMetrics = {
   avg_total_minutes: number | null;
 };
 
+export type PaymentBreakdownRow = { payment_status: PaymentStatus; orders_count: number; amount: number };
+export type MethodBreakdownRow = { payment_method: PaymentMethod; orders_count: number; amount: number };
+
 export type DashboardStats = {
   restaurant_id: string;
   period: { start_date: string; end_date: string };
@@ -307,6 +364,10 @@ export type DashboardStats = {
   weekday_distribution: WeekdayPoint[];
   source_breakdown: SourceBreakdownRow[];
   operational_metrics: OperationalMetrics;
+  payment_breakdown: PaymentBreakdownRow[];
+  method_breakdown: MethodBreakdownRow[];
+  collected_revenue: number;
+  refunded_amount: number;
 };
 
 /**
@@ -328,4 +389,84 @@ export async function fetchDashboardStats(startDate: Date, endDate: Date): Promi
   });
   if (error) throw error;
   return data as unknown as DashboardStats;
+}
+
+// ---------------------------------------------------------------------------
+// In-app notifications. RLS (notifications_select_members) scopes reads to
+// the caller's own restaurant; rows are only ever written server-side by
+// create_notification, called from create_order/update_order_status/the
+// payment RPCs -- never inserted directly by the client.
+// ---------------------------------------------------------------------------
+
+export type AppNotification = {
+  id: string;
+  restaurant_id: string;
+  order_id: string | null;
+  type: string;
+  channel: string;
+  title: string;
+  body: string | null;
+  metadata: Json;
+  is_read: boolean;
+  created_at: string;
+};
+
+export async function fetchNotifications(restaurantId: string, limit = 30): Promise<AppNotification[]> {
+  const { data, error } = await supabase
+    .from("notifications")
+    .select("*")
+    .eq("restaurant_id", restaurantId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as unknown as AppNotification[];
+}
+
+export async function markNotificationRead(notificationId: string): Promise<void> {
+  const { error } = await supabase.from("notifications").update({ is_read: true }).eq("id", notificationId);
+  if (error) throw error;
+}
+
+export async function markAllNotificationsRead(restaurantId: string): Promise<void> {
+  const { error } = await supabase.from("notifications").update({ is_read: true }).eq("restaurant_id", restaurantId).eq("is_read", false);
+  if (error) throw error;
+}
+
+// ---------------------------------------------------------------------------
+// Subscription plan (read-only foundation -- no real billing yet). Every
+// restaurant is auto-enrolled on 'free' by a DB trigger; this just surfaces
+// that row, it never lets a tenant change its own plan.
+// ---------------------------------------------------------------------------
+
+export type Plan = {
+  id: string;
+  name: string;
+  description: string | null;
+  price_amount: number;
+  currency: string;
+  billing_period: string;
+  features: Json;
+};
+
+export type RestaurantSubscription = {
+  id: string;
+  restaurant_id: string;
+  plan_id: string;
+  status: string;
+  current_period_end: string | null;
+};
+
+export async function fetchRestaurantSubscription(restaurantId: string): Promise<{ subscription: RestaurantSubscription; plan: Plan } | null> {
+  const { data: sub, error: subError } = await supabase
+    .from("restaurant_subscriptions")
+    .select("*")
+    .eq("restaurant_id", restaurantId)
+    .maybeSingle();
+  if (subError) throw subError;
+  if (!sub) return null;
+  const subscription = sub as unknown as RestaurantSubscription;
+  const { data: plan, error: planError } = await supabase.from("plans").select("*").eq("id", subscription.plan_id).maybeSingle();
+  if (planError) throw planError;
+  if (!plan) return null;
+  return { subscription, plan: plan as unknown as Plan };
 }

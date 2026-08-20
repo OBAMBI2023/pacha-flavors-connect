@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { Bell, BellOff, RadioTower, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRealtimeOrders, type RealtimeConnectionState } from "@/hooks/useRealtimeOrders";
-import { updateOrderStatus, type Order, type OrderStatus } from "@/lib/orders-db";
+import { createRefund, fetchOrderPaymentSummary, markCashPaymentReceived, updateOrderStatus, type Order, type OrderStatus } from "@/lib/orders-db";
 import {
   getSoundPreference,
   playNewOrderChime,
@@ -15,6 +15,7 @@ import {
 import { OrderCard } from "./OrderCard";
 import { OrderDetailSheet } from "./OrderDetailSheet";
 import { RejectOrderDialog } from "./RejectOrderDialog";
+import { RefundDialog } from "./RefundDialog";
 import { FILTER_TABS, TERMINAL_STATUSES } from "./orderStatusMeta";
 
 const CONNECTION_META: Record<RealtimeConnectionState, { label: string; dot: string }> = {
@@ -31,6 +32,8 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string | null }) {
   const [filter, setFilter] = useState<"all" | OrderStatus>("all");
   const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<Order | null>(null);
+  const [refundTarget, setRefundTarget] = useState<Order | null>(null);
+  const [refundRemaining, setRefundRemaining] = useState(0);
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null);
   const [, setTick] = useState(0);
 
@@ -97,6 +100,43 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string | null }) {
       setRejectTarget(null);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Impossible de refuser la commande.");
+    } finally {
+      setBusyOrderId(null);
+    }
+  }
+
+  async function handleMarkPaid(order: Order) {
+    setBusyOrderId(order.id);
+    try {
+      await markCashPaymentReceived(order.id);
+      patchOrder(order.id, { payment_status: "paid", paid_at: new Date().toISOString() });
+      toast.success(`Commande #${order.order_number} marquée comme encaissée`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Impossible de marquer la commande comme payée.");
+    } finally {
+      setBusyOrderId(null);
+    }
+  }
+
+  async function openRefundDialog(order: Order) {
+    try {
+      const summary = await fetchOrderPaymentSummary(order.id);
+      setRefundRemaining(summary.remaining);
+      setRefundTarget(order);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Impossible de charger les paiements de cette commande.");
+    }
+  }
+
+  async function handleRefund(order: Order, amount: number, reason: string) {
+    setBusyOrderId(order.id);
+    try {
+      const result = await createRefund(order.id, amount, reason || undefined);
+      patchOrder(order.id, { payment_status: result.payment_status });
+      toast.success(`Remboursement de ${amount.toLocaleString("fr-FR")} ${order.currency} enregistré`);
+      setRefundTarget(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Impossible d'enregistrer le remboursement.");
     } finally {
       setBusyOrderId(null);
     }
@@ -204,6 +244,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string | null }) {
               }}
               onAdvance={(o, next) => void handleAdvance(o, next)}
               onReject={(o) => setRejectTarget(o)}
+              onMarkPaid={(o) => void handleMarkPaid(o)}
             />
           ))}
         </div>
@@ -215,6 +256,8 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string | null }) {
         onClose={() => setDetailOrderId(null)}
         onAdvance={(o, next) => void handleAdvance(o, next)}
         onReject={(o) => setRejectTarget(o)}
+        onMarkPaid={(o) => void handleMarkPaid(o)}
+        onRefund={(o) => void openRefundDialog(o)}
       />
 
       <RejectOrderDialog
@@ -222,6 +265,14 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string | null }) {
         busy={busyOrderId === rejectTarget?.id}
         onCancel={() => setRejectTarget(null)}
         onConfirm={(o, reason) => void handleReject(o, reason)}
+      />
+
+      <RefundDialog
+        order={refundTarget}
+        remaining={refundRemaining}
+        busy={busyOrderId === refundTarget?.id}
+        onCancel={() => setRefundTarget(null)}
+        onConfirm={(o, amount, reason) => void handleRefund(o, amount, reason)}
       />
     </div>
   );

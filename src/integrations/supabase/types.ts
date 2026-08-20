@@ -139,6 +139,45 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          id: string
+          restaurant_id: string
+          order_id: string | null
+          type: string
+          channel: string
+          title: string
+          body: string | null
+          metadata: Json
+          is_read: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          restaurant_id: string
+          order_id?: string | null
+          type: string
+          channel?: string
+          title: string
+          body?: string | null
+          metadata?: Json
+          is_read?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          restaurant_id?: string
+          order_id?: string | null
+          type?: string
+          channel?: string
+          title?: string
+          body?: string | null
+          metadata?: Json
+          is_read?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: {
@@ -159,6 +198,7 @@ export type Database = {
           p_customer_notes?: string | null
           p_order_source?: string | null
           p_source_metadata?: Json | null
+          p_payment_method?: string | null
         }
         Returns: Json
       }
@@ -172,6 +212,14 @@ export type Database = {
       }
       get_restaurant_dashboard_stats: {
         Args: { p_start_date: string; p_end_date: string }
+        Returns: Json
+      }
+      mark_cash_payment_received: {
+        Args: { p_order_id: string }
+        Returns: Json
+      }
+      create_refund: {
+        Args: { p_order_id: string; p_amount: number; p_reason?: string | null }
         Returns: Json
       }
       super_admin_add_restaurant_member: {

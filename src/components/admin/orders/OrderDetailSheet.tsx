@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Banknote, Undo2 } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { fetchOrderDetail, type Order, type OrderDetail, type OrderStatus } from "@/lib/orders-db";
 import { STATUS_BADGE_CLASS, STATUS_LABELS, fulfillmentLabel, nextActions } from "./orderStatusMeta";
+import { PAYMENT_METHOD_LABELS, PAYMENT_STATUS_BADGE_CLASS, PAYMENT_STATUS_LABELS } from "./paymentStatusMeta";
 
 function money(amount: number, currency: string) {
   return `${amount.toLocaleString("fr-FR")} ${currency}`;
@@ -17,12 +19,16 @@ export function OrderDetailSheet({
   onClose,
   onAdvance,
   onReject,
+  onMarkPaid,
+  onRefund,
 }: {
   orderId: string | null;
   busy: boolean;
   onClose: () => void;
   onAdvance: (order: Order, nextStatus: OrderStatus) => void;
   onReject: (order: Order) => void;
+  onMarkPaid: (order: Order) => void;
+  onRefund: (order: Order) => void;
 }) {
   const isMobile = useIsMobile();
   const [detail, setDetail] = useState<OrderDetail | null>(null);
@@ -72,9 +78,12 @@ export function OrderDetailSheet({
         {detail && (
           <>
             <SheetHeader>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <SheetTitle>Commande #{detail.order_number}</SheetTitle>
                 <Badge className={STATUS_BADGE_CLASS[detail.status]}>{STATUS_LABELS[detail.status]}</Badge>
+                <Badge variant="outline" className={PAYMENT_STATUS_BADGE_CLASS[detail.payment_status]}>
+                  {PAYMENT_STATUS_LABELS[detail.payment_status]}
+                </Badge>
               </div>
               <SheetDescription>
                 {new Date(detail.created_at).toLocaleString("fr-FR")}
@@ -140,6 +149,35 @@ export function OrderDetailSheet({
                   <span>Total</span>
                   <span>{money(detail.total_amount, detail.currency)}</span>
                 </div>
+              </section>
+
+              <section className="space-y-2.5 rounded-2xl border border-border p-4">
+                <h3 className="font-semibold">Paiement</h3>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Méthode</span>
+                  <span>{PAYMENT_METHOD_LABELS[detail.payment_method]}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Statut</span>
+                  <Badge variant="outline" className={PAYMENT_STATUS_BADGE_CLASS[detail.payment_status]}>
+                    {PAYMENT_STATUS_LABELS[detail.payment_status]}
+                  </Badge>
+                </div>
+                {detail.payment_status === "cash_pending" && (
+                  <Button
+                    className="h-11 w-full border-emerald-600 text-emerald-700 hover:bg-emerald-50"
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() => onMarkPaid(detail)}
+                  >
+                    <Banknote className="mr-2 h-4 w-4" /> Marquer comme encaissée
+                  </Button>
+                )}
+                {(detail.payment_status === "paid" || detail.payment_status === "partially_refunded") && (
+                  <Button className="h-11 w-full" variant="outline" disabled={busy} onClick={() => onRefund(detail)}>
+                    <Undo2 className="mr-2 h-4 w-4" /> Rembourser
+                  </Button>
+                )}
               </section>
 
               {detail.cancel_reason && (

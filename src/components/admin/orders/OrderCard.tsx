@@ -1,8 +1,9 @@
-import { MapPin, Phone, ShoppingBag } from "lucide-react";
+import { Banknote, MapPin, Phone, ShoppingBag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Order, OrderStatus } from "@/lib/orders-db";
 import { STATUS_BADGE_CLASS, STATUS_LABELS, elapsedLabel, fulfillmentLabel, nextActions } from "./orderStatusMeta";
+import { PAYMENT_STATUS_BADGE_CLASS, PAYMENT_STATUS_LABELS } from "./paymentStatusMeta";
 
 export function OrderCard({
   order,
@@ -11,6 +12,7 @@ export function OrderCard({
   onOpenDetail,
   onAdvance,
   onReject,
+  onMarkPaid,
 }: {
   order: Order;
   isNew: boolean;
@@ -18,6 +20,7 @@ export function OrderCard({
   onOpenDetail: (order: Order) => void;
   onAdvance: (order: Order, nextStatus: OrderStatus) => void;
   onReject: (order: Order) => void;
+  onMarkPaid: (order: Order) => void;
 }) {
   const actions = nextActions(order);
   const time = new Date(order.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
@@ -35,7 +38,12 @@ export function OrderCard({
             {time} · il y a {elapsedLabel(order.created_at)}
           </p>
         </div>
-        <Badge className={`shrink-0 ${STATUS_BADGE_CLASS[order.status]}`}>{STATUS_LABELS[order.status]}</Badge>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <Badge className={STATUS_BADGE_CLASS[order.status]}>{STATUS_LABELS[order.status]}</Badge>
+          <Badge variant="outline" className={PAYMENT_STATUS_BADGE_CLASS[order.payment_status]}>
+            {PAYMENT_STATUS_LABELS[order.payment_status]}
+          </Badge>
+        </div>
       </button>
 
       <div className="space-y-1 text-sm">
@@ -58,6 +66,20 @@ export function OrderCard({
           {order.total_amount.toLocaleString("fr-FR")} {order.currency}
         </span>
       </div>
+
+      {order.payment_status === "cash_pending" && (
+        <div className="pt-1">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-11 w-full border-emerald-600 text-emerald-700 hover:bg-emerald-50"
+            disabled={busy}
+            onClick={() => onMarkPaid(order)}
+          >
+            <Banknote className="mr-2 h-4 w-4" /> Marquer comme encaissée
+          </Button>
+        </div>
+      )}
 
       {actions.length > 0 && (
         <div className="flex flex-wrap gap-2 pt-1">
