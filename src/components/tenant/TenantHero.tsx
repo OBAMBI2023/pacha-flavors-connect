@@ -25,46 +25,56 @@ export function TenantHero({
     >
       {hasCover && (
         <>
-          <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/55 to-black/20" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/70 to-black/30 sm:from-black/90 sm:via-black/55 sm:to-black/20" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-transparent sm:via-black/10" />
         </>
       )}
       <div className="relative mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 sm:py-16">
-        <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-gold">Bienvenue chez</p>
-        <h1 className="mt-4 max-w-3xl text-balance-title font-display text-4xl font-semibold leading-[1.05] sm:text-5xl lg:text-6xl">
-          {restaurant.name}
-        </h1>
-        {settings?.description && (
-          <p className="mt-4 max-w-2xl font-display text-lg italic leading-relaxed text-gold/90 sm:text-xl">
-            {settings.description}
-          </p>
-        )}
-        {(location || restaurant.phone) && (
-          <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-cocoa-foreground/80">
-            {location && (
-              <span className="flex items-center gap-1.5">
-                <MapPin className="h-4 w-4 text-gold" /> {location}
-              </span>
-            )}
-            {restaurant.phone && (
-              <a href={`tel:${restaurant.phone}`} className="flex items-center gap-1.5 hover:text-cocoa-foreground">
-                <Phone className="h-4 w-4 text-gold" /> {restaurant.phone}
-              </a>
-            )}
-          </div>
-        )}
-        <div className="mt-8 flex flex-wrap gap-3">
+        {/* Dedicated backdrop on mobile guarantees text contrast regardless of the cover image; the wider gradients above take over from sm: up. */}
+        <div
+          className={`max-w-[92%] rounded-2xl p-4 sm:max-w-none sm:rounded-none sm:bg-transparent sm:p-0 ${
+            hasCover ? "bg-black/45 backdrop-blur-[2px] sm:backdrop-blur-none" : ""
+          }`}
+        >
+          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-gold">Bienvenue chez</p>
+          <h1 className="mt-4 max-w-full text-balance-title font-display text-3xl font-semibold leading-[1.1] sm:max-w-3xl sm:text-5xl lg:text-6xl">
+            {restaurant.name}
+          </h1>
+          {settings?.description && (
+            <p className="mt-4 max-w-full font-display text-base italic leading-relaxed text-gold/90 sm:max-w-2xl sm:text-xl">
+              {settings.description}
+            </p>
+          )}
+          {(location || restaurant.phone) && (
+            <div className="mt-6 flex min-w-0 flex-wrap items-center gap-x-6 gap-y-2 text-sm text-cocoa-foreground/80">
+              {location && (
+                <span className="flex min-w-0 items-center gap-1.5 break-words">
+                  <MapPin className="h-4 w-4 shrink-0 text-gold" /> {location}
+                </span>
+              )}
+              {restaurant.phone && (
+                <a
+                  href={`tel:${restaurant.phone}`}
+                  className="flex min-w-0 items-center gap-1.5 whitespace-nowrap hover:text-cocoa-foreground"
+                >
+                  <Phone className="h-4 w-4 shrink-0 text-gold" /> {restaurant.phone}
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <button
             onClick={scrollToMenu}
-            className="inline-flex items-center gap-2 rounded-full bg-gold px-7 py-3.5 text-sm font-semibold text-gold-foreground shadow-lg transition-opacity hover:opacity-90"
+            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-gold px-7 py-3.5 text-sm font-semibold text-gold-foreground shadow-lg transition-opacity hover:opacity-90 sm:w-auto"
           >
-            <ShoppingBag className="h-4 w-4" /> Commander maintenant
+            <ShoppingBag className="h-4 w-4 shrink-0" /> Commander maintenant
           </button>
           <button
             onClick={scrollToMenu}
-            className="inline-flex items-center gap-2 rounded-full border border-cocoa-foreground/30 px-7 py-3.5 text-sm font-semibold transition-colors hover:bg-cocoa-foreground/10"
+            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-cocoa-foreground/30 px-7 py-3.5 text-sm font-semibold transition-colors hover:bg-cocoa-foreground/10 sm:w-auto"
           >
-            Voir le menu <ChevronDown className="h-4 w-4" />
+            Voir le menu <ChevronDown className="h-4 w-4 shrink-0" />
           </button>
         </div>
       </div>

@@ -25,11 +25,11 @@ export function DeliverySection() {
             bureau.
           </p>
         </div>
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
+        <div className="mt-12 grid gap-4 sm:gap-6 md:grid-cols-3">
           {STEPS.map((s) => (
             <div
               key={s.n}
-              className="rounded-2xl border border-cocoa-foreground/15 bg-cocoa-foreground/5 p-6"
+              className="rounded-2xl border border-cocoa-foreground/15 bg-cocoa-foreground/5 p-4 sm:p-6"
             >
               <span className="font-display text-3xl font-semibold text-gold">{s.n}</span>
               <h3 className="mt-3 font-display text-2xl font-semibold">{s.t}</h3>

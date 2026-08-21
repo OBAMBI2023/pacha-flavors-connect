@@ -67,7 +67,7 @@ export function nextActions(order: Pick<Order, "status" | "fulfillment_type">): 
 }
 
 export function fulfillmentLabel(type: FulfillmentType): string {
-  return type === "delivery" ? "Livraison" : "À emporter";
+  return type === "delivery" ? "Livraison" : "Retrait sur place";
 }
 
 export function elapsedLabel(fromIso: string): string {

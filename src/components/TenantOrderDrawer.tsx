@@ -52,7 +52,6 @@ export function TenantOrderDrawer({
   const [form, setForm] = useState({
     nom: "",
     telephone: "",
-    commune: "",
     adresse: "",
     instructions: "",
   });
@@ -77,8 +76,8 @@ export function TenantOrderDrawer({
       setError("Merci d'indiquer votre nom et votre téléphone.");
       return;
     }
-    if (mode === "livraison" && (!form.commune.trim() || !form.adresse.trim())) {
-      setError("Merci d'indiquer votre commune / quartier et votre adresse.");
+    if (mode === "livraison" && !form.adresse.trim()) {
+      setError("Merci d'indiquer votre adresse.");
       return;
     }
     setError("");
@@ -92,7 +91,6 @@ export function TenantOrderDrawer({
         customerName: form.nom,
         customerPhone: form.telephone,
         items: lines.map((l) => ({ product_id: l.item.id, quantity: l.qty })),
-        deliveryCommune: mode === "livraison" ? form.commune : undefined,
         deliveryAddress: mode === "livraison" ? form.adresse : undefined,
         deliveryInstructions: mode === "livraison" ? form.instructions : undefined,
         orderSource: source,
@@ -121,7 +119,7 @@ export function TenantOrderDrawer({
     setConfirmation(null);
     setConfirmedLines([]);
     setShowConfirmedDetails(false);
-    setForm({ nom: "", telephone: "", commune: "", adresse: "", instructions: "" });
+    setForm({ nom: "", telephone: "", adresse: "", instructions: "" });
     closeCart();
   }
 
@@ -266,7 +264,7 @@ export function TenantOrderDrawer({
                               : "border-border bg-card hover:bg-accent"
                           }`}
                         >
-                          {m === "livraison" ? "Livraison" : "À emporter"}
+                          {m === "livraison" ? "Livraison" : "Retrait sur place"}
                         </button>
                       ))}
                     </div>
@@ -277,7 +275,6 @@ export function TenantOrderDrawer({
                     <Field label="Téléphone *" type="tel" value={form.telephone} onChange={set("telephone")} />
                     {mode === "livraison" && (
                       <>
-                        <Field label="Commune / quartier *" value={form.commune} onChange={set("commune")} />
                         <Field label="Adresse / indication *" value={form.adresse} onChange={set("adresse")} />
                         <label className="block">
                           <span className="text-xs font-medium text-muted-foreground">Instructions de livraison</span>

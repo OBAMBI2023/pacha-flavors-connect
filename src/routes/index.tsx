@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { CartProvider } from "@/lib/cart";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
@@ -10,7 +11,11 @@ import { AboutSection } from "@/components/AboutSection";
 import { ContactSection } from "@/components/ContactSection";
 import { Footer } from "@/components/Footer";
 import { CartDrawer } from "@/components/CartDrawer";
-import { MobileActionBar } from "@/components/MobileActionBar";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
+import { StickyCartBar } from "@/components/StickyCartBar";
+import { MoreSheet } from "@/components/MoreSheet";
+import { MenuSearchSheet } from "@/components/MenuSearchSheet";
+import { CategoriesSheet } from "@/components/CategoriesSheet";
 
 const TITLE = "Le Pacha Restaurant | Restaurant à Angré 8e Tranche Abidjan";
 const DESCRIPTION =
@@ -56,14 +61,24 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const [activeCategory, setActiveCategory] = useState("tous");
+
   return (
     <CartProvider>
       <div className="min-h-screen bg-background">
         <Header />
-        <main>
+        <main className="pb-24 lg:pb-0">
           <Hero />
           <DailyMenu slug="le-pacha" />
-          <MenuCategories slug="le-pacha" />
+          <MenuCategories
+            slug="le-pacha"
+            activeCategory={activeCategory}
+            onActiveCategoryChange={setActiveCategory}
+            onOpenCategories={() => setCategoriesOpen(true)}
+          />
           <DeliverySection />
           <ReservationSection />
           <AboutSection />
@@ -71,7 +86,21 @@ function Index() {
         </main>
         <Footer />
         <CartDrawer />
-        <MobileActionBar />
+        <StickyCartBar />
+        <MobileBottomNav
+          onOpenSearch={() => setSearchOpen(true)}
+          onOpenMore={() => setMoreOpen(true)}
+          isSearchOpen={searchOpen}
+          isMoreOpen={moreOpen}
+        />
+        <MenuSearchSheet slug="le-pacha" open={searchOpen} onOpenChange={setSearchOpen} />
+        <MoreSheet open={moreOpen} onOpenChange={setMoreOpen} />
+        <CategoriesSheet
+          slug="le-pacha"
+          open={categoriesOpen}
+          onOpenChange={setCategoriesOpen}
+          onSelectCategory={setActiveCategory}
+        />
       </div>
     </CartProvider>
   );

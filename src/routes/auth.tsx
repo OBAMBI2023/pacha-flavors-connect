@@ -24,6 +24,25 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
+/**
+ * Resolves where a signed-in user belongs, from the same DB-backed sources of
+ * truth the route guards themselves check (`profiles.is_super_admin` for
+ * `/super-admin`, an active `restaurant_memberships` row for `/admin`) --
+ * never from the login form's input or anything client-supplied. Super admin
+ * takes priority so a super admin who also happens to hold a restaurant
+ * membership still lands in their own space, per SAOVIA's "exclusively"
+ * requirement.
+ */
+async function resolvePostLoginPath(userId: string): Promise<"/super-admin" | "/admin"> {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("is_super_admin")
+    .eq("id", userId)
+    .maybeSingle();
+  if (profile?.is_super_admin) return "/super-admin";
+  return "/admin";
+}
+
 function AuthPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -31,6 +50,7 @@ function AuthPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [existingSessionEmail, setExistingSessionEmail] = useState<string | null>(null);
+  const [existingSessionUserId, setExistingSessionUserId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -41,6 +61,7 @@ function AuthPage() {
       // silently drop them into /admin. Surface it instead and let the
       // visitor opt in.
       setExistingSessionEmail(data.session?.user?.email ?? null);
+      setExistingSessionUserId(data.session?.user?.id ?? null);
     });
   }, []);
 
@@ -49,12 +70,15 @@ function AuthPage() {
     setBusy(true);
     setMessage(null);
     const result = await supabase.auth.signInWithPassword({ email, password });
-    setBusy(false);
     if (result.error) {
+      setBusy(false);
       setMessage(result.error.message);
       return;
     }
-    if (result.data.session) navigate({ to: "/admin" });
+    const userId = result.data.session?.user?.id;
+    const destination = userId ? await resolvePostLoginPath(userId) : "/admin";
+    setBusy(false);
+    if (result.data.session) navigate({ to: destination });
   }
 
   return (
@@ -73,7 +97,15 @@ function AuthPage() {
             <p className="text-muted-foreground">
               Vous êtes déjà connecté en tant que <span className="font-medium text-foreground">{existingSessionEmail}</span>.
             </p>
-            <Button className="mt-3 w-full" onClick={() => navigate({ to: "/admin" })}>
+            <Button
+              className="mt-3 w-full"
+              onClick={async () => {
+                const destination = existingSessionUserId
+                  ? await resolvePostLoginPath(existingSessionUserId)
+                  : "/admin";
+                navigate({ to: destination });
+              }}
+            >
               Accéder à l&apos;administration
             </Button>
           </div>

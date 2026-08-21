@@ -175,7 +175,10 @@ function RestaurantManager() {
       return;
     }
     setSaving(true);
-    const { data: inserted, error } = await supabase.from("restaurants").insert({
+    // restaurant_settings is initialized automatically by the
+    // restaurants_create_settings DB trigger (create_restaurant_settings_default)
+    // in the same insert -- no separate client-side write needed or wanted.
+    const { error } = await supabase.from("restaurants").insert({
       name: trimmedName,
       slug: trimmedSlug,
       phone: phone || null,
@@ -187,24 +190,10 @@ function RestaurantManager() {
       status,
       trial_ends_at: trialEndsAt ? new Date(trialEndsAt).toISOString() : null,
       is_public: isPublic,
-    }).select("id").single();
-    if (error) {
-      setSaving(false);
-      toast.error(error.message);
-      return;
-    }
-    const { error: settingsError } = await supabase.from("restaurant_settings").insert({
-      restaurant_id: inserted.id,
-      value: {
-        currency: "XOF",
-        timezone: "Africa/Abidjan",
-        ordering_enabled: true,
-        daily_menu_enabled: true,
-      },
     });
     setSaving(false);
-    if (settingsError) {
-      toast.error(settingsError.message);
+    if (error) {
+      toast.error(error.message);
       return;
     }
     toast.success("Restaurant cree");

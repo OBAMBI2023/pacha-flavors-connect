@@ -13,11 +13,11 @@ export function CartDrawer() {
   const [form, setForm] = useState({
     nom: "",
     telephone: "",
-    commune: "",
     adresse: "",
     instructions: "",
   });
-  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<{ nom?: string; telephone?: string; adresse?: string }>({});
+  const [submitting, setSubmitting] = useState(false);
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -28,17 +28,22 @@ export function CartDrawer() {
       : "À confirmer avec le restaurant"
     : `${subtotal.toLocaleString("fr-FR")} FCFA`;
 
+  const ctaTotalLabel = hasUnpriced && subtotal <= 0 ? "" : ` • ${subtotal.toLocaleString("fr-FR")} FCFA`;
+
   function submit() {
-    if (lines.length === 0) return;
-    if (!form.nom.trim() || !form.telephone.trim()) {
-      setError("Merci d'indiquer votre nom et votre téléphone.");
+    if (lines.length === 0 || submitting) return;
+
+    const errors: typeof fieldErrors = {};
+    if (!form.nom.trim()) errors.nom = "Merci d'indiquer votre nom.";
+    if (!form.telephone.trim()) errors.telephone = "Merci d'indiquer votre téléphone.";
+    if (mode === "livraison" && !form.adresse.trim()) errors.adresse = "Merci d'indiquer votre adresse.";
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       return;
     }
-    if (mode === "livraison" && (!form.commune.trim() || !form.adresse.trim())) {
-      setError("Merci d'indiquer votre commune / quartier et votre adresse.");
-      return;
-    }
-    setError("");
+    setFieldErrors({});
+    setSubmitting(true);
 
     const items = lines
       .map((l) => `${l.qty} × ${l.item.name}${l.item.subtitle ? ` (${l.item.subtitle})` : ""}`)
@@ -54,14 +59,13 @@ export function CartDrawer() {
       `Sous-total : ${subtotalLabel}`,
       "",
       "MODE",
-      mode === "livraison" ? "Livraison" : "À emporter",
+      mode === "livraison" ? "Livraison" : "Retrait sur place",
       "",
       "CLIENT",
       `Nom : ${form.nom}`,
       `Téléphone : ${form.telephone}`,
       ...(mode === "livraison"
         ? [
-            `Quartier : ${form.commune}`,
             `Adresse : ${form.adresse}`,
             `Instructions : ${form.instructions || "-"}`,
           ]
@@ -71,12 +75,13 @@ export function CartDrawer() {
     ].join("\n");
 
     window.open(whatsappUrl(message), "_blank", "noopener,noreferrer");
+    window.setTimeout(() => setSubmitting(false), 1000);
   }
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className="fixed inset-0 z-[100] flex justify-end">
       <div
         className="absolute inset-0 bg-cocoa/50 backdrop-blur-sm"
         onClick={closeCart}
@@ -121,7 +126,7 @@ export function CartDrawer() {
                         <button
                           onClick={() => decrement(l.item.id)}
                           aria-label="Diminuer"
-                          className="grid h-8 w-8 place-items-center rounded-full border border-border"
+                          className="grid h-11 w-11 place-items-center rounded-full border border-border"
                         >
                           <Minus className="h-3.5 w-3.5" />
                         </button>
@@ -129,14 +134,14 @@ export function CartDrawer() {
                         <button
                           onClick={() => increment(l.item.id)}
                           aria-label="Augmenter"
-                          className="grid h-8 w-8 place-items-center rounded-full border border-border"
+                          className="grid h-11 w-11 place-items-center rounded-full border border-border"
                         >
                           <Plus className="h-3.5 w-3.5" />
                         </button>
                         <button
                           onClick={() => remove(l.item.id)}
                           aria-label="Supprimer"
-                          className="ml-auto grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-accent"
+                          className="ml-auto grid h-11 w-11 place-items-center rounded-full text-muted-foreground hover:bg-accent"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -162,24 +167,34 @@ export function CartDrawer() {
                           : "border-border bg-card hover:bg-accent"
                       }`}
                     >
-                      {m === "livraison" ? "Livraison" : "À emporter"}
+                      {m === "livraison" ? "Livraison" : "Retrait sur place"}
                     </button>
                   ))}
                 </div>
               </div>
 
               <div className="mt-5 space-y-3">
-                <Field label="Nom *" value={form.nom} onChange={set("nom")} />
+                <Field
+                  label="Nom *"
+                  value={form.nom}
+                  onChange={set("nom")}
+                  error={fieldErrors.nom}
+                />
                 <Field
                   label="Téléphone *"
                   type="tel"
                   value={form.telephone}
                   onChange={set("telephone")}
+                  error={fieldErrors.telephone}
                 />
                 {mode === "livraison" && (
                   <>
-                    <Field label="Commune / quartier *" value={form.commune} onChange={set("commune")} />
-                    <Field label="Adresse / indication *" value={form.adresse} onChange={set("adresse")} />
+                    <Field
+                      label="Adresse / indication *"
+                      value={form.adresse}
+                      onChange={set("adresse")}
+                      error={fieldErrors.adresse}
+                    />
                     <label className="block">
                       <span className="text-xs font-medium text-muted-foreground">
                         Instructions de livraison
@@ -203,17 +218,17 @@ export function CartDrawer() {
         </div>
 
         {lines.length > 0 && (
-          <div className="border-t border-border px-5 py-4">
+          <div className="sticky bottom-0 border-t border-border bg-background px-5 py-4 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
             <div className="flex items-center justify-between gap-3 text-sm">
               <span className="text-muted-foreground">Sous-total</span>
               <span className="text-right font-semibold">{subtotalLabel}</span>
             </div>
-            {error && <p className="mt-2 text-xs font-medium text-destructive">{error}</p>}
             <button
               onClick={submit}
-              className="mt-3 w-full rounded-full bg-primary px-6 py-3.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+              disabled={submitting}
+              className="mt-3 flex h-[54px] w-full items-center justify-center rounded-2xl bg-primary px-6 text-base font-bold text-primary-foreground shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Commander sur WhatsApp
+              {submitting ? "Envoi en cours..." : `Commander${ctaTotalLabel}`}
             </button>
           </div>
         )}
@@ -227,11 +242,13 @@ function Field({
   value,
   onChange,
   type = "text",
+  error,
 }: {
   label: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   type?: string;
+  error?: string | undefined;
 }) {
   return (
     <label className="block">
@@ -240,8 +257,12 @@ function Field({
         type={type}
         value={value}
         onChange={onChange}
-        className="mt-1 w-full rounded-xl border border-input bg-card px-3 py-2.5 text-sm outline-none focus:border-primary"
+        aria-invalid={Boolean(error)}
+        className={`mt-1 w-full rounded-xl border bg-card px-3 py-2.5 text-sm outline-none focus:border-primary ${
+          error ? "border-destructive" : "border-input"
+        }`}
       />
+      {error && <span className="mt-1 block text-xs font-medium text-destructive">{error}</span>}
     </label>
   );
 }

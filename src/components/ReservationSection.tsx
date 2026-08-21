@@ -56,7 +56,7 @@ export function ReservationSection() {
 
         <form
           onSubmit={submit}
-          className="rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8"
+          className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:rounded-3xl sm:p-6 lg:p-8"
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Nom *" value={form.nom} onChange={set("nom")} />

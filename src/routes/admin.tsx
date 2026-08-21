@@ -26,6 +26,8 @@ import { SubscriptionCard } from "@/components/admin/settings/SubscriptionCard";
 
 const TITLE = "Administration du restaurant";
 const DESCRIPTION = "Gestion compacte de la carte, de la vitrine et des coordonnées du restaurant.";
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_ASSET_SIZE_BYTES = 5 * 1024 * 1024;
 
 type Cat = { id: string; label: string; position: number };
 type RestaurantForm = { name: string; logo_url: string; cover_url: string; address: string; commune: string; city: string; phone: string; whatsapp_phone: string; email: string; is_public: boolean };
@@ -79,7 +81,7 @@ export default function AdminPage() {
     if (data?.restaurant?.slug) await queryClient.invalidateQueries({ queryKey: ["menu-data", data.restaurant.slug] });
   };
   const restaurant = data?.restaurant ?? null;
-  const publicHref = restaurant?.slug && restaurant.slug !== "le-pacha" ? `/r/${restaurant.slug}` : "/";
+  const publicHref = restaurant?.slug ? `/r/${restaurant.slug}` : "/";
   const mapPreview = mapsUrl(restaurantForm);
 
   const categoryCounts = useMemo(() => { const counts = new Map<string | null, number>(); for (const row of data?.rows ?? []) counts.set(row.category_id, (counts.get(row.category_id) ?? 0) + 1); return counts; }, [data?.rows]);
@@ -151,25 +153,37 @@ export default function AdminPage() {
   async function uploadRestaurantAsset(file: File, field: "logo_url" | "cover_url"): Promise<void> {
     const rid = restaurantId;
     if (!rid) return;
+    const label = field === "logo_url" ? "logo" : "cover";
+
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      toast.error("Format d'image non supporté.");
+      return;
+    }
+    if (file.size > MAX_ASSET_SIZE_BYTES) {
+      toast.error("Image trop volumineuse.");
+      return;
+    }
+
     setBusy(true);
+    const toastId = toast.loading(`Upload du ${label} en cours...`);
     const ext = file.name.split(".").pop() ?? "jpg";
-    const path = `${rid}/${field}/${Date.now().toString(36)}.${ext}`;
+    const path = `${rid}/${field}/${crypto.randomUUID()}.${ext}`;
     const { error } = await supabase.storage.from(MENU_BUCKET).upload(path, file, { upsert: true, contentType: file.type });
     if (error) {
       setBusy(false);
-      toast.error(error.message);
+      toast.error(`Impossible d'envoyer le ${label}.`, { id: toastId, description: error.message });
       return;
     }
     const url = supabase.storage.from(MENU_BUCKET).getPublicUrl(path).data.publicUrl;
     const { error: updateError } = await supabase.from("restaurants").update({ [field]: url } as any).eq("id", rid);
     if (updateError) {
       setBusy(false);
-      toast.error(updateError.message);
+      toast.error(`Impossible de sauvegarder le ${label}.`, { id: toastId, description: updateError.message });
       return;
     }
     setRestaurantForm((current) => ({ ...current, [field]: url }));
     setBusy(false);
-    toast.success(field === "logo_url" ? "Logo mis à jour" : "Cover mis à jour");
+    toast.success(`${label === "logo" ? "Logo" : "Cover"} mis à jour avec succès.`, { id: toastId });
     await refresh();
   }
 
@@ -204,7 +218,7 @@ export default function AdminPage() {
         <TabsContent value="statistiques"><StatisticsPanel /></TabsContent>
         <TabsContent value="finances"><FinancialPanel /></TabsContent>
         <TabsContent value="menu" className="space-y-6"><Card className="p-5"><MenuCategoriesPanel categories={data?.categories ?? []} counts={categoryCounts} busy={busy} onAdd={() => { setEditingCategory(null); setCategoryLabel(""); setCategoryDialogOpen(true); }} onEdit={(cat) => { setEditingCategory(cat); setCategoryLabel(cat.label); setCategoryDialogOpen(true); }} onDelete={setCategoryDelete} /></Card><Card className="p-5"><MenuItemsPanel rows={filteredRows} categories={data?.categories ?? []} busy={busy} search={search} setSearch={setSearch} categoryFilter={categoryFilter} setCategoryFilter={setCategoryFilter} onAdd={() => { setEditingItem(null); setItemPreview(null); setItemForm({ name: "", subtitle: "", description: "", price: "", category_id: data?.categories[0]?.id ?? "", position: String((data?.rows.length ?? 0) + 1), available: true, daily: false, image_path: "" }); setItemDialogOpen(true); }} onEdit={(row) => { setEditingItem(row); setItemForm({ name: row.name, subtitle: row.subtitle ?? "", description: row.description, price: row.price === null ? "" : String(row.price), category_id: row.category_id ?? "", position: String(row.position), available: row.available, daily: row.daily, image_path: row.image_path ?? "" }); setItemDialogOpen(true); }} onDelete={setItemDelete} /></Card></TabsContent>
-        <TabsContent value="storefront" className="grid gap-6 lg:grid-cols-2"><Card className="space-y-5 p-5"><div><h2 className="font-display text-2xl font-semibold">Site vitrine</h2><p className="text-sm text-muted-foreground">Nom, visibilité publique, logo, cover et coordonnées.</p></div><div className="space-y-4"><Field label="Nom du restaurant"><Input value={restaurantForm.name} onChange={(e) => setRestaurantForm((c) => ({ ...c, name: e.target.value }))} /></Field><div className="grid gap-4 md:grid-cols-2"><AssetField label="Logo" preview={logoPreview} onPick={(file) => void uploadRestaurantAsset(file, "logo_url")} busy={busy} /><AssetField label="Cover" preview={coverPreview} onPick={(file) => void uploadRestaurantAsset(file, "cover_url")} busy={busy} fullWidth /></div><div className="flex items-center gap-3 rounded-2xl border border-border px-4 py-3"><Switch checked={restaurantForm.is_public} onCheckedChange={(checked) => setRestaurantForm((c) => ({ ...c, is_public: checked }))} /><div><p className="text-sm font-medium">Visibilité publique</p><p className="text-xs text-muted-foreground">Le site du tenant est exposé publiquement.</p></div></div></div><Button onClick={() => void saveRestaurant()} disabled={busy}>{busy ? "Enregistrement..." : "Enregistrer la vitrine"}</Button></Card><Card className="space-y-4 p-5"><h3 className="font-semibold">Aperçu</h3><div className="overflow-hidden rounded-3xl border border-border"><div className="min-h-48 bg-muted" style={coverPreview ? { backgroundImage: `url(${coverPreview})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}>{!coverPreview && <div className="flex min-h-48 items-center justify-center text-sm text-muted-foreground">Fond neutre générique</div>}</div></div><div className="flex items-center gap-3 rounded-2xl border border-border p-4">{logoPreview ? <img src={logoPreview} alt="Logo" className="h-14 w-14 rounded-2xl object-cover" /> : <div className="h-14 w-14 rounded-2xl bg-muted" />}<div><p className="font-medium">{restaurantForm.name || restaurant?.name || "Restaurant"}</p><p className="text-sm text-muted-foreground">{restaurant?.slug === "le-pacha" ? "/" : `/r/${restaurant?.slug ?? "slug"}`}</p></div></div></Card></TabsContent>
+        <TabsContent value="storefront" className="grid gap-6 lg:grid-cols-2"><Card className="space-y-5 p-5"><div><h2 className="font-display text-2xl font-semibold">Site vitrine</h2><p className="text-sm text-muted-foreground">Nom, visibilité publique, logo, cover et coordonnées.</p></div><div className="space-y-4"><Field label="Nom du restaurant"><Input value={restaurantForm.name} onChange={(e) => setRestaurantForm((c) => ({ ...c, name: e.target.value }))} /></Field><div className="grid gap-4 md:grid-cols-2"><AssetField label="Logo" preview={logoPreview} onPick={(file) => void uploadRestaurantAsset(file, "logo_url")} busy={busy} accept={ACCEPTED_IMAGE_TYPES.join(",")} /><AssetField label="Cover" preview={coverPreview} onPick={(file) => void uploadRestaurantAsset(file, "cover_url")} busy={busy} fullWidth accept={ACCEPTED_IMAGE_TYPES.join(",")} /></div><div className="flex items-center gap-3 rounded-2xl border border-border px-4 py-3"><Switch checked={restaurantForm.is_public} onCheckedChange={(checked) => setRestaurantForm((c) => ({ ...c, is_public: checked }))} /><div><p className="text-sm font-medium">Visibilité publique</p><p className="text-xs text-muted-foreground">Le site du tenant est exposé publiquement.</p></div></div></div><Button onClick={() => void saveRestaurant()} disabled={busy}>{busy ? "Enregistrement..." : "Enregistrer la vitrine"}</Button></Card><Card className="space-y-4 p-5"><h3 className="font-semibold">Aperçu</h3><div className="overflow-hidden rounded-3xl border border-border"><div className="min-h-48 bg-muted" style={coverPreview ? { backgroundImage: `url(${coverPreview})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}>{!coverPreview && <div className="flex min-h-48 items-center justify-center text-sm text-muted-foreground">Fond neutre générique</div>}</div></div><div className="flex items-center gap-3 rounded-2xl border border-border p-4">{logoPreview ? <img src={logoPreview} alt="Logo" className="h-14 w-14 rounded-2xl object-cover" /> : <div className="h-14 w-14 rounded-2xl bg-muted" />}<div><p className="font-medium">{restaurantForm.name || restaurant?.name || "Restaurant"}</p><p className="text-sm text-muted-foreground">{`/r/${restaurant?.slug ?? "slug"}`}</p></div></div></Card></TabsContent>
         <TabsContent value="contact" className="grid gap-6 lg:grid-cols-2"><Card className="space-y-4 p-5"><div><h2 className="font-display text-2xl font-semibold">Coordonnées</h2><p className="text-sm text-muted-foreground">Adresse, téléphone, WhatsApp et email.</p></div><div className="grid gap-4 md:grid-cols-2"><Field label="Adresse"><Textarea value={restaurantForm.address} onChange={(e) => setRestaurantForm((c) => ({ ...c, address: e.target.value }))} /></Field><Field label="Commune"><Input value={restaurantForm.commune} onChange={(e) => setRestaurantForm((c) => ({ ...c, commune: e.target.value }))} /></Field><Field label="Ville"><Input value={restaurantForm.city} onChange={(e) => setRestaurantForm((c) => ({ ...c, city: e.target.value }))} /></Field><Field label="Téléphone"><Input value={restaurantForm.phone} onChange={(e) => setRestaurantForm((c) => ({ ...c, phone: e.target.value }))} /></Field><Field label="WhatsApp"><Input value={restaurantForm.whatsapp_phone} onChange={(e) => setRestaurantForm((c) => ({ ...c, whatsapp_phone: e.target.value }))} /></Field><Field label="Email"><Input type="email" value={restaurantForm.email} onChange={(e) => setRestaurantForm((c) => ({ ...c, email: e.target.value }))} /></Field></div><Button onClick={() => void saveRestaurant()} disabled={busy}>{busy ? "Enregistrement..." : "Enregistrer les coordonnées"}</Button></Card><Card className="space-y-4 p-5"><div><h3 className="font-semibold">Localisation</h3><p className="text-sm text-muted-foreground">La carte est masquée si aucune adresse exploitable n’existe.</p></div>{mapPreview ? <iframe title="Prévisualisation Google Maps" src={mapPreview} className="h-80 w-full rounded-3xl border border-border" loading="lazy" referrerPolicy="no-referrer-when-downgrade" /> : <div className="flex h-80 items-center justify-center rounded-3xl border border-dashed border-border text-sm text-muted-foreground">Aucune carte</div>}<div className="rounded-2xl border border-border p-4 text-sm text-muted-foreground"><MapPin className="mb-2 h-4 w-4" />{mapsQuery(restaurantForm) || "Renseignez une adresse, une commune ou une ville."}</div></Card></TabsContent>
         <TabsContent value="settings" className="space-y-6"><Card className="p-5"><h2 className="font-display text-2xl font-semibold">Paramètres</h2><p className="mt-2 text-sm text-muted-foreground">Section réservée aux réglages complémentaires sans toucher à l’isolation multi-tenant.</p></Card><SubscriptionCard restaurantId={restaurantId} /></TabsContent>
       </Tabs>
@@ -223,8 +237,8 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   return <label className="space-y-2"><span className="text-sm font-medium">{label}</span>{children}</label>;
 }
 
-function AssetField({ label, preview, onPick, busy, fullWidth = false }: { label: string; preview: string | null; onPick: (file: File) => void; busy: boolean; fullWidth?: boolean }) {
-  return (<div className={`space-y-2 ${fullWidth ? "md:col-span-2" : ""}`}><Label>{label}</Label><div className="rounded-2xl border border-dashed border-border p-4">{preview ? <img src={preview} alt={label} className="mb-3 h-24 w-full rounded-2xl object-cover" /> : <div className="mb-3 h-24 rounded-2xl bg-muted" />}<Input type="file" accept="image/*" disabled={busy} onChange={(e) => { const file = e.target.files?.[0]; if (file) onPick(file); }} /></div></div>);
+function AssetField({ label, preview, onPick, busy, fullWidth = false, accept = "image/*" }: { label: string; preview: string | null; onPick: (file: File) => void; busy: boolean; fullWidth?: boolean; accept?: string }) {
+  return (<div className={`space-y-2 ${fullWidth ? "md:col-span-2" : ""}`}><Label>{label}</Label><div className="rounded-2xl border border-dashed border-border p-4">{preview ? <img src={preview} alt={label} className="mb-3 h-24 w-full rounded-2xl object-cover" /> : <div className="mb-3 h-24 rounded-2xl bg-muted" />}<Input type="file" accept={accept} disabled={busy} onChange={(e) => { const file = e.target.files?.[0]; if (file) onPick(file); e.target.value = ""; }} /></div></div>);
 }
 
 function MenuCategoriesPanel({ categories, counts, busy, onAdd, onEdit, onDelete }: { categories: Cat[]; counts: Map<string | null, number>; busy: boolean; onAdd: () => void; onEdit: (cat: Cat) => void; onDelete: (cat: Cat) => void; }) {
