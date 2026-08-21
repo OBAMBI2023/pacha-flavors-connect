@@ -6,10 +6,12 @@ export function TenantCategoryNav({
   tabs,
   active,
   onSelect,
+  onOpenCategories,
 }: {
   tabs: CategoryTab[];
   active: string;
   onSelect: (id: string) => void;
+  onOpenCategories?: () => void;
 }) {
   return (
     <div className="border-b border-border/60 bg-background/95 backdrop-blur">
@@ -31,6 +33,14 @@ export function TenantCategoryNav({
                 {tab.label}
               </button>
             ))}
+            {onOpenCategories && (
+              <button
+                onClick={onOpenCategories}
+                className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium transition-colors hover:bg-accent"
+              >
+                <LayoutGrid className="h-3.5 w-3.5" /> Toutes
+              </button>
+            )}
           </div>
         </div>
         {/* Fade hint on the right edge signaling more categories to scroll to */}

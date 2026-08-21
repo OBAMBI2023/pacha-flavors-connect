@@ -4,6 +4,7 @@ import { MapPin, Navigation } from "lucide-react";
 import { useMenuData } from "@/lib/menu-db";
 import { CartProvider, useCart } from "@/lib/cart";
 import { TenantOrderDrawer } from "@/components/TenantOrderDrawer";
+import { CategoriesSheet } from "@/components/CategoriesSheet";
 import { TenantHeader } from "@/components/tenant/TenantHeader";
 import { TenantHero } from "@/components/tenant/TenantHero";
 import { TenantCategoryNav } from "@/components/tenant/TenantCategoryNav";
@@ -103,6 +104,7 @@ function TenantStorefront({ slug }: { slug: string }) {
   const { count, subtotal, hasUnpriced, openCart, add } = useCart();
   const [active, setActive] = useState("tous");
   const [openItem, setOpenItem] = useState<MenuItem | null>(null);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
 
   if (isLoading) {
     return <TenantStorefrontSkeleton />;
@@ -140,7 +142,14 @@ function TenantStorefront({ slug }: { slug: string }) {
           hasContact={hasContact}
           onOpenCart={openCart}
         />
-        {hasMenu && <TenantCategoryNav tabs={tabs} active={active} onSelect={setActive} />}
+        {hasMenu && (
+          <TenantCategoryNav
+            tabs={tabs}
+            active={active}
+            onSelect={setActive}
+            onOpenCategories={() => setCategoriesOpen(true)}
+          />
+        )}
       </div>
 
       <main>
@@ -194,6 +203,13 @@ function TenantStorefront({ slug }: { slug: string }) {
       <TenantCartBar count={count} subtotalLabel={subtotalLabel} onOpenCart={openCart} />
 
       <TenantOrderDrawer restaurantSlug={restaurant.slug} restaurantName={restaurant.name} />
+
+      <CategoriesSheet
+        slug={slug}
+        open={categoriesOpen}
+        onOpenChange={setCategoriesOpen}
+        onSelectCategory={setActive}
+      />
     </div>
   );
 }

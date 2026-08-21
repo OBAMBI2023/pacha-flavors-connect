@@ -28,7 +28,7 @@ export function TenantHeader({
   ];
 
   return (
-    <header className="border-b border-cocoa-foreground/10 bg-cocoa/95 text-cocoa-foreground backdrop-blur">
+    <header className="border-b border-cocoa-foreground/10 bg-cocoa/95 text-cocoa-foreground backdrop-blur lg:border-border/60 lg:bg-background/90 lg:text-foreground">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-2 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
           <button
@@ -59,7 +59,7 @@ export function TenantHeader({
             <button
               key={link.id}
               onClick={() => scrollToId(link.id)}
-              className="text-sm font-medium text-cocoa-foreground/80 transition-colors hover:text-gold"
+              className="text-sm font-medium text-foreground/80 transition-colors hover:text-primary"
             >
               {link.label}
             </button>
@@ -71,7 +71,7 @@ export function TenantHeader({
             <a
               href={`tel:${restaurant.phone}`}
               aria-label="Appeler le restaurant"
-              className="hidden h-11 w-11 place-items-center rounded-full border border-cocoa-foreground/20 transition-colors hover:bg-cocoa-foreground/10 sm:grid"
+              className="hidden h-11 w-11 place-items-center rounded-full border border-cocoa-foreground/20 transition-colors hover:bg-cocoa-foreground/10 sm:grid lg:border-border lg:hover:bg-accent"
             >
               <Phone className="h-4 w-4" />
             </a>
@@ -79,12 +79,12 @@ export function TenantHeader({
           <button
             onClick={onOpenCart}
             aria-label="Ouvrir le panier"
-            className="relative flex h-11 items-center gap-2 rounded-full border border-cocoa-foreground/20 px-3 transition-colors hover:bg-cocoa-foreground/10"
+            className="relative flex h-11 items-center gap-2 rounded-full border border-cocoa-foreground/20 px-3 transition-colors hover:bg-cocoa-foreground/10 lg:border-border lg:hover:bg-accent"
           >
             <span className="relative">
               <ShoppingBag className="h-4 w-4" />
               {cartCount > 0 && (
-                <span className="absolute -right-2 -top-2 grid h-5 min-w-5 place-items-center rounded-full bg-gold px-1 text-[0.65rem] font-semibold text-gold-foreground">
+                <span className="absolute -right-2 -top-2 grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1 text-[0.65rem] font-semibold text-primary-foreground">
                   {cartCount}
                 </span>
               )}
@@ -95,7 +95,7 @@ export function TenantHeader({
           </button>
           <button
             onClick={onOpenCart}
-            className="hidden rounded-full bg-gold px-5 py-2.5 text-sm font-semibold text-gold-foreground shadow-sm transition-opacity hover:opacity-90 sm:inline-flex"
+            className="hidden rounded-full bg-gold px-5 py-2.5 text-sm font-semibold text-gold-foreground shadow-sm transition-opacity hover:opacity-90 sm:inline-flex lg:bg-primary lg:text-primary-foreground"
           >
             Commander
           </button>
