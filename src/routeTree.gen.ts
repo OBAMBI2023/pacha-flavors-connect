@@ -12,9 +12,14 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as RechercherRouteImport } from './routes/rechercher'
+import { Route as RestaurantsRouteImport } from './routes/restaurants'
 import { Route as SuperAdminRouteImport } from './routes/super-admin'
 import { Route as RSlugRouteImport } from './routes/r.$slug'
+import { Route as RestaurantSlugRouteImport } from './routes/restaurant.$slug'
 import { Route as SuperAdminIndexRouteImport } from './routes/super-admin.index'
+import { Route as CommandeOrderIdConfirmationRouteImport } from './routes/commande.$orderId.confirmation'
+import { Route as RestaurantsCategorieCategorySlugRouteImport } from './routes/restaurants.categorie.$categorySlug'
 import { Route as SuperAdminRestaurantsRestaurantIdRouteImport } from './routes/super-admin.restaurants.$restaurantId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -32,6 +37,16 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RechercherRoute = RechercherRouteImport.update({
+  id: '/rechercher',
+  path: '/rechercher',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RestaurantsRoute = RestaurantsRouteImport.update({
+  id: '/restaurants',
+  path: '/restaurants',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SuperAdminRoute = SuperAdminRouteImport.update({
   id: '/super-admin',
   path: '/super-admin',
@@ -42,11 +57,28 @@ const RSlugRoute = RSlugRouteImport.update({
   path: '/r/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RestaurantSlugRoute = RestaurantSlugRouteImport.update({
+  id: '/restaurant/$slug',
+  path: '/restaurant/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SuperAdminIndexRoute = SuperAdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => SuperAdminRoute,
 } as any)
+const CommandeOrderIdConfirmationRoute =
+  CommandeOrderIdConfirmationRouteImport.update({
+    id: '/commande/$orderId/confirmation',
+    path: '/commande/$orderId/confirmation',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const RestaurantsCategorieCategorySlugRoute =
+  RestaurantsCategorieCategorySlugRouteImport.update({
+    id: '/categorie/$categorySlug',
+    path: '/categorie/$categorySlug',
+    getParentRoute: () => RestaurantsRoute,
+  } as any)
 const SuperAdminRestaurantsRestaurantIdRoute =
   SuperAdminRestaurantsRestaurantIdRouteImport.update({
     id: '/restaurants/$restaurantId',
@@ -58,17 +90,27 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/rechercher': typeof RechercherRoute
+  '/restaurants': typeof RestaurantsRouteWithChildren
   '/super-admin': typeof SuperAdminRouteWithChildren
   '/r/$slug': typeof RSlugRoute
+  '/restaurant/$slug': typeof RestaurantSlugRoute
   '/super-admin/': typeof SuperAdminIndexRoute
+  '/commande/$orderId/confirmation': typeof CommandeOrderIdConfirmationRoute
+  '/restaurants/categorie/$categorySlug': typeof RestaurantsCategorieCategorySlugRoute
   '/super-admin/restaurants/$restaurantId': typeof SuperAdminRestaurantsRestaurantIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/rechercher': typeof RechercherRoute
+  '/restaurants': typeof RestaurantsRouteWithChildren
   '/r/$slug': typeof RSlugRoute
+  '/restaurant/$slug': typeof RestaurantSlugRoute
   '/super-admin': typeof SuperAdminIndexRoute
+  '/commande/$orderId/confirmation': typeof CommandeOrderIdConfirmationRoute
+  '/restaurants/categorie/$categorySlug': typeof RestaurantsCategorieCategorySlugRoute
   '/super-admin/restaurants/$restaurantId': typeof SuperAdminRestaurantsRestaurantIdRoute
 }
 export interface FileRoutesById {
@@ -76,9 +118,14 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/rechercher': typeof RechercherRoute
+  '/restaurants': typeof RestaurantsRouteWithChildren
   '/super-admin': typeof SuperAdminRouteWithChildren
   '/r/$slug': typeof RSlugRoute
+  '/restaurant/$slug': typeof RestaurantSlugRoute
   '/super-admin/': typeof SuperAdminIndexRoute
+  '/commande/$orderId/confirmation': typeof CommandeOrderIdConfirmationRoute
+  '/restaurants/categorie/$categorySlug': typeof RestaurantsCategorieCategorySlugRoute
   '/super-admin/restaurants/$restaurantId': typeof SuperAdminRestaurantsRestaurantIdRoute
 }
 export interface FileRouteTypes {
@@ -87,26 +134,41 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/rechercher'
+    | '/restaurants'
     | '/super-admin'
     | '/r/$slug'
+    | '/restaurant/$slug'
     | '/super-admin/'
+    | '/commande/$orderId/confirmation'
+    | '/restaurants/categorie/$categorySlug'
     | '/super-admin/restaurants/$restaurantId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/admin'
     | '/auth'
+    | '/rechercher'
+    | '/restaurants'
     | '/r/$slug'
+    | '/restaurant/$slug'
     | '/super-admin'
+    | '/commande/$orderId/confirmation'
+    | '/restaurants/categorie/$categorySlug'
     | '/super-admin/restaurants/$restaurantId'
   id:
     | '__root__'
     | '/'
     | '/admin'
     | '/auth'
+    | '/rechercher'
+    | '/restaurants'
     | '/super-admin'
     | '/r/$slug'
+    | '/restaurant/$slug'
     | '/super-admin/'
+    | '/commande/$orderId/confirmation'
+    | '/restaurants/categorie/$categorySlug'
     | '/super-admin/restaurants/$restaurantId'
   fileRoutesById: FileRoutesById
 }
@@ -114,8 +176,12 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
+  RechercherRoute: typeof RechercherRoute
+  RestaurantsRoute: typeof RestaurantsRouteWithChildren
   SuperAdminRoute: typeof SuperAdminRouteWithChildren
   RSlugRoute: typeof RSlugRoute
+  RestaurantSlugRoute: typeof RestaurantSlugRoute
+  CommandeOrderIdConfirmationRoute: typeof CommandeOrderIdConfirmationRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -141,6 +207,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/rechercher': {
+      id: '/rechercher'
+      path: '/rechercher'
+      fullPath: '/rechercher'
+      preLoaderRoute: typeof RechercherRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/restaurants': {
+      id: '/restaurants'
+      path: '/restaurants'
+      fullPath: '/restaurants'
+      preLoaderRoute: typeof RestaurantsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/super-admin': {
       id: '/super-admin'
       path: '/super-admin'
@@ -155,12 +235,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/restaurant/$slug': {
+      id: '/restaurant/$slug'
+      path: '/restaurant/$slug'
+      fullPath: '/restaurant/$slug'
+      preLoaderRoute: typeof RestaurantSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/super-admin/': {
       id: '/super-admin/'
       path: '/'
       fullPath: '/super-admin/'
       preLoaderRoute: typeof SuperAdminIndexRouteImport
       parentRoute: typeof SuperAdminRoute
+    }
+    '/commande/$orderId/confirmation': {
+      id: '/commande/$orderId/confirmation'
+      path: '/commande/$orderId/confirmation'
+      fullPath: '/commande/$orderId/confirmation'
+      preLoaderRoute: typeof CommandeOrderIdConfirmationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/restaurants/categorie/$categorySlug': {
+      id: '/restaurants/categorie/$categorySlug'
+      path: '/categorie/$categorySlug'
+      fullPath: '/restaurants/categorie/$categorySlug'
+      preLoaderRoute: typeof RestaurantsCategorieCategorySlugRouteImport
+      parentRoute: typeof RestaurantsRoute
     }
     '/super-admin/restaurants/$restaurantId': {
       id: '/super-admin/restaurants/$restaurantId'
@@ -171,6 +272,18 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface RestaurantsRouteChildren {
+  RestaurantsCategorieCategorySlugRoute: typeof RestaurantsCategorieCategorySlugRoute
+}
+
+const RestaurantsRouteChildren: RestaurantsRouteChildren = {
+  RestaurantsCategorieCategorySlugRoute: RestaurantsCategorieCategorySlugRoute,
+}
+
+const RestaurantsRouteWithChildren = RestaurantsRoute._addFileChildren(
+  RestaurantsRouteChildren,
+)
 
 interface SuperAdminRouteChildren {
   SuperAdminIndexRoute: typeof SuperAdminIndexRoute
@@ -191,8 +304,12 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
+  RechercherRoute: RechercherRoute,
+  RestaurantsRoute: RestaurantsRouteWithChildren,
   SuperAdminRoute: SuperAdminRouteWithChildren,
   RSlugRoute: RSlugRoute,
+  RestaurantSlugRoute: RestaurantSlugRoute,
+  CommandeOrderIdConfirmationRoute: CommandeOrderIdConfirmationRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

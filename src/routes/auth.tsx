@@ -30,12 +30,19 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [existingSessionEmail, setExistingSessionEmail] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/admin" });
+      // Intentionally not an automatic navigate() here: a session found on
+      // mount can belong to a completely unrelated visit (e.g. a Marketplace
+      // customer whose browser still carries a tenant session from earlier
+      // testing) that only reaches /auth indirectly. Auto-redirecting would
+      // silently drop them into /admin. Surface it instead and let the
+      // visitor opt in.
+      setExistingSessionEmail(data.session?.user?.email ?? null);
     });
-  }, [navigate]);
+  }, []);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -60,6 +67,17 @@ function AuthPage() {
         <p className="mt-2 text-sm text-muted-foreground">
           Gerez la carte, les prix, les categories et les photos des plats.
         </p>
+
+        {existingSessionEmail && (
+          <div className="mt-6 rounded-2xl border border-border bg-secondary/40 p-4 text-sm">
+            <p className="text-muted-foreground">
+              Vous êtes déjà connecté en tant que <span className="font-medium text-foreground">{existingSessionEmail}</span>.
+            </p>
+            <Button className="mt-3 w-full" onClick={() => navigate({ to: "/admin" })}>
+              Accéder à l&apos;administration
+            </Button>
+          </div>
+        )}
 
         <form onSubmit={onSubmit} className="mt-6 space-y-4">
           <div className="space-y-2">
