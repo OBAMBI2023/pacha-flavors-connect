@@ -141,12 +141,28 @@ export async function createRefund(
 // defense-in-depth and to keep query plans tenant-scoped.
 // ---------------------------------------------------------------------------
 
+export type DeliveryDispatchStatus = "not_started" | "searching" | "assigned" | "no_driver_available";
+export type DriverDeliveryStatus =
+  | "assigned"
+  | "going_to_pickup"
+  | "arrived_at_restaurant"
+  | "collecting"
+  | "collected"
+  | "en_route"
+  | "arrived_at_customer"
+  | "cash_collection"
+  | "payment_confirmed"
+  | "delivered";
+
 export type Order = {
   id: string;
   restaurant_id: string;
   order_number: number;
   status: OrderStatus;
   fulfillment_type: FulfillmentType;
+  assigned_driver_id: string | null;
+  delivery_dispatch_status: DeliveryDispatchStatus;
+  driver_delivery_status: DriverDeliveryStatus | null;
   customer_name: string;
   customer_phone: string;
   delivery_commune: string | null;

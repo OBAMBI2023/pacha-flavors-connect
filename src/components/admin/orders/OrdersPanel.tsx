@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { Bell, BellOff, RadioTower, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { OrdersAlert, RealtimeConnectionState } from "@/hooks/useOrdersAlert";
+import { useDeliveryDispatch } from "@/hooks/useDeliveryDispatch";
 import { createRefund, fetchOrderPaymentSummary, markCashPaymentReceived, updateOrderStatus, type Order, type OrderStatus } from "@/lib/orders-db";
 import { playTestChime } from "@/lib/order-audio";
 import { OrderCard } from "./OrderCard";
@@ -21,6 +22,7 @@ const CONNECTION_META: Record<RealtimeConnectionState, { label: string; dot: str
 const TICK_MS = 30_000;
 
 export function OrdersPanel({
+  restaurantId,
   orders,
   connectionState,
   newOrderIds,
@@ -30,8 +32,9 @@ export function OrdersPanel({
   soundEnabled,
   enableSound,
   disableSound,
-}: OrdersAlert) {
+}: OrdersAlert & { restaurantId: string | null }) {
   const [filter, setFilter] = useState<"all" | OrderStatus>("all");
+  const dispatchByOrderId = useDeliveryDispatch(restaurantId);
   const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<Order | null>(null);
   const [refundTarget, setRefundTarget] = useState<Order | null>(null);
@@ -206,6 +209,7 @@ export function OrdersPanel({
               order={order}
               isNew={newOrderIds.has(order.id)}
               busy={busyOrderId === order.id}
+              dispatchProposal={dispatchByOrderId.get(order.id)}
               onOpenDetail={(o) => {
                 acknowledgeOrder(o.id);
                 setDetailOrderId(o.id);

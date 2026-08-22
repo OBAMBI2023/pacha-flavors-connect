@@ -21,6 +21,18 @@ export type OrderItemRow = {
   line_total: number;
 };
 
+export type DriverDeliveryStatus =
+  | "assigned"
+  | "going_to_pickup"
+  | "arrived_at_restaurant"
+  | "collecting"
+  | "collected"
+  | "en_route"
+  | "arrived_at_customer"
+  | "cash_collection"
+  | "payment_confirmed"
+  | "delivered";
+
 export type OrderRow = {
   id: string;
   order_number: number;
@@ -34,6 +46,7 @@ export type OrderRow = {
   subtotal_amount: number;
   total_amount: number;
   created_at: string;
+  driver_delivery_status: DriverDeliveryStatus | null;
   restaurant: { id: string; name: string; slug: string } | null;
   items: OrderItemRow[];
 };
@@ -112,8 +125,8 @@ export async function fetchCustomerOrder(params: { orderId: string; customerPhon
   return (data as unknown as OrderRow | null) ?? null;
 }
 
-export function getOrderTrackingSteps(status: OrderStatus) {
-  const steps: Array<{ key: OrderStatus; label: string }> = [
+export function getOrderTrackingSteps(status: OrderStatus, fulfillmentType?: FulfillmentType) {
+  const allSteps: Array<{ key: OrderStatus; label: string }> = [
     { key: "pending", label: "En attente" },
     { key: "confirmed", label: "Confirmée" },
     { key: "preparing", label: "En préparation" },
@@ -121,12 +134,33 @@ export function getOrderTrackingSteps(status: OrderStatus) {
     { key: "out_for_delivery", label: "En livraison" },
     { key: "delivered", label: "Livrée" },
   ];
+  // Pickup orders never go through a delivery leg -- showing "En livraison"
+  // would misrepresent a step that will never apply to this order.
+  const steps = fulfillmentType === "pickup" ? allSteps.filter((step) => step.key !== "out_for_delivery") : allSteps;
   const activeIndex = steps.findIndex((step) => step.key === status);
   return steps.map((step, index) => ({
     ...step,
     active: index <= activeIndex && status !== "cancelled",
     done: index < activeIndex && status !== "cancelled",
   }));
+}
+
+const DRIVER_STEP_LABELS: Partial<Record<DriverDeliveryStatus, string>> = {
+  assigned: "Livreur en route vers le restaurant",
+  going_to_pickup: "Livreur en route vers le restaurant",
+  arrived_at_restaurant: "Livreur arrivé au restaurant",
+  collecting: "Récupération de la commande",
+  collected: "Commande récupérée",
+  en_route: "Livreur en route vers vous",
+  arrived_at_customer: "Livreur arrivé",
+  cash_collection: "Paiement en cours",
+  payment_confirmed: "Paiement confirmé",
+  delivered: "Commande livrée",
+};
+
+/** Customer-facing copy for the driver's current sub-step, a sibling to getOrderTrackingSteps (not folded into its fixed-shape array -- other callers depend on that shape). */
+export function getDriverStepLabel(status: DriverDeliveryStatus | null): string | null {
+  return status ? (DRIVER_STEP_LABELS[status] ?? null) : null;
 }
 
 export function formatOrderNumber(order: Pick<OrderRow, "order_number">) {

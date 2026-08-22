@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CommandesRouteImport } from './routes/commandes'
+import { Route as LivreurRouteImport } from './routes/livreur'
 import { Route as RechercherRouteImport } from './routes/rechercher'
 import { Route as RestaurantsRouteImport } from './routes/restaurants'
 import { Route as SuperAdminRouteImport } from './routes/super-admin'
@@ -41,6 +42,11 @@ const AuthRoute = AuthRouteImport.update({
 const CommandesRoute = CommandesRouteImport.update({
   id: '/commandes',
   path: '/commandes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LivreurRoute = LivreurRouteImport.update({
+  id: '/livreur',
+  path: '/livreur',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RechercherRoute = RechercherRouteImport.update({
@@ -97,6 +103,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/commandes': typeof CommandesRoute
+  '/livreur': typeof LivreurRoute
   '/rechercher': typeof RechercherRoute
   '/restaurants': typeof RestaurantsRouteWithChildren
   '/super-admin': typeof SuperAdminRouteWithChildren
@@ -112,6 +119,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/commandes': typeof CommandesRoute
+  '/livreur': typeof LivreurRoute
   '/rechercher': typeof RechercherRoute
   '/restaurants': typeof RestaurantsRouteWithChildren
   '/r/$slug': typeof RSlugRoute
@@ -127,6 +135,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/commandes': typeof CommandesRoute
+  '/livreur': typeof LivreurRoute
   '/rechercher': typeof RechercherRoute
   '/restaurants': typeof RestaurantsRouteWithChildren
   '/super-admin': typeof SuperAdminRouteWithChildren
@@ -144,6 +153,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/commandes'
+    | '/livreur'
     | '/rechercher'
     | '/restaurants'
     | '/super-admin'
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/commandes'
+    | '/livreur'
     | '/rechercher'
     | '/restaurants'
     | '/r/$slug'
@@ -173,6 +184,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/commandes'
+    | '/livreur'
     | '/rechercher'
     | '/restaurants'
     | '/super-admin'
@@ -189,6 +201,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
   CommandesRoute: typeof CommandesRoute
+  LivreurRoute: typeof LivreurRoute
   RechercherRoute: typeof RechercherRoute
   RestaurantsRoute: typeof RestaurantsRouteWithChildren
   SuperAdminRoute: typeof SuperAdminRouteWithChildren
@@ -225,6 +238,13 @@ declare module '@tanstack/react-router' {
       path: '/commandes'
       fullPath: '/commandes'
       preLoaderRoute: typeof CommandesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/livreur': {
+      id: '/livreur'
+      path: '/livreur'
+      fullPath: '/livreur'
+      preLoaderRoute: typeof LivreurRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/rechercher': {
@@ -325,6 +345,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
   CommandesRoute: CommandesRoute,
+  LivreurRoute: LivreurRoute,
   RechercherRoute: RechercherRoute,
   RestaurantsRoute: RestaurantsRouteWithChildren,
   SuperAdminRoute: SuperAdminRouteWithChildren,

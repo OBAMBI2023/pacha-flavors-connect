@@ -57,7 +57,7 @@ function OrdersPage() {
           ) : (
             <div className="space-y-4">
               {orders.map((order) => {
-                const steps = getOrderTrackingSteps(order.status);
+                const steps = getOrderTrackingSteps(order.status, order.fulfillment_type);
                 return (
                   <Link key={order.id} to="/commande/$orderId/confirmation" params={{ orderId: order.id }} className="block rounded-3xl border border-border bg-card p-5 transition-colors hover:bg-accent/40">
                     <div className="flex items-start justify-between gap-4">

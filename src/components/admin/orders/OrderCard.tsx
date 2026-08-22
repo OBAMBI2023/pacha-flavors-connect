@@ -1,14 +1,55 @@
-import { Banknote, MapPin, Phone, ShoppingBag } from "lucide-react";
+import { Banknote, Bike, MapPin, Phone, ShoppingBag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Order, OrderStatus } from "@/lib/orders-db";
+import type { DispatchProposalWithDriver } from "@/lib/delivery";
 import { STATUS_BADGE_CLASS, STATUS_LABELS, elapsedLabel, fulfillmentLabel, nextActions } from "./orderStatusMeta";
 import { PAYMENT_STATUS_BADGE_CLASS, PAYMENT_STATUS_LABELS } from "./paymentStatusMeta";
+
+function dispatchLabel(order: Order, proposal: DispatchProposalWithDriver | undefined): string | null {
+  if (order.fulfillment_type !== "delivery") return null;
+  switch (order.delivery_dispatch_status) {
+    case "searching":
+      return proposal?.status === "pending"
+        ? `Livreur proposé : ${proposal.driver_name}${proposal.distance_km !== null ? ` (~${proposal.distance_km.toFixed(1)} km)` : ""}`
+        : "Recherche d'un livreur...";
+    case "no_driver_available":
+      return "Aucun livreur disponible -- recherche en cours";
+    case "assigned":
+      return proposal?.driver_name ? `Livreur assigné : ${proposal.driver_name}` : "Livreur assigné";
+    default:
+      return null;
+  }
+}
+
+/**
+ * Only the tenant-visible subset of driver_delivery_status -- 'assigned' is
+ * already covered by dispatchLabel above, 'delivered' by the status badge;
+ * going_to_pickup/collecting/cash_collection aren't on the requested list.
+ */
+function driverStepLabel(order: Order): string | null {
+  if (order.fulfillment_type !== "delivery") return null;
+  switch (order.driver_delivery_status) {
+    case "arrived_at_restaurant":
+      return "Livreur arrivé au restaurant";
+    case "collected":
+      return "Commande récupérée par le livreur";
+    case "en_route":
+      return "Livreur en route";
+    case "arrived_at_customer":
+      return "Livreur arrivé chez le client";
+    case "payment_confirmed":
+      return "Paiement confirmé (livreur)";
+    default:
+      return null;
+  }
+}
 
 export function OrderCard({
   order,
   isNew,
   busy,
+  dispatchProposal,
   onOpenDetail,
   onAdvance,
   onReject,
@@ -17,11 +58,14 @@ export function OrderCard({
   order: Order;
   isNew: boolean;
   busy: boolean;
+  dispatchProposal?: DispatchProposalWithDriver | undefined;
   onOpenDetail: (order: Order) => void;
   onAdvance: (order: Order, nextStatus: OrderStatus) => void;
   onReject: (order: Order) => void;
   onMarkPaid: (order: Order) => void;
 }) {
+  const dispatch = dispatchLabel(order, dispatchProposal);
+  const driverStep = driverStepLabel(order);
   const actions = nextActions(order);
   const time = new Date(order.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 
@@ -56,6 +100,16 @@ export function OrderCard({
         <p className="flex items-center gap-1.5 text-muted-foreground">
           <MapPin className="h-3.5 w-3.5 shrink-0" /> {fulfillmentLabel(order.fulfillment_type)}
         </p>
+        {dispatch && (
+          <p className="flex items-center gap-1.5 text-primary">
+            <Bike className="h-3.5 w-3.5 shrink-0" /> {dispatch}
+          </p>
+        )}
+        {driverStep && (
+          <p className="flex items-center gap-1.5 text-primary">
+            <Bike className="h-3.5 w-3.5 shrink-0" /> {driverStep}
+          </p>
+        )}
       </div>
 
       <div className="space-y-1.5 border-t border-border pt-3 text-sm">

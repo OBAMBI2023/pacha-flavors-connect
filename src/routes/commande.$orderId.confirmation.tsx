@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, CheckCircle2, XCircle } from "lucide-react";
-import { fetchCustomerOrder, formatOrderNumber, getOrderTrackingSteps, type OrderRow, type OrderStatus } from "@/lib/orders";
+import { fetchCustomerOrder, formatOrderNumber, getDriverStepLabel, getOrderTrackingSteps, type OrderRow, type OrderStatus } from "@/lib/orders";
 import { CartProvider } from "@/lib/cart";
 
 const STORAGE_PHONE = "saovia.customer.phone";
@@ -37,7 +37,7 @@ function ConfirmationPage() {
   }, [query.data]);
 
   const backSlug = order?.restaurant?.slug || fallbackSlug;
-  const steps = getOrderTrackingSteps(order?.status ?? "pending");
+  const steps = getOrderTrackingSteps(order?.status ?? "pending", order?.fulfillment_type);
   const isCancelled = order?.status === "cancelled";
 
   return (
@@ -80,6 +80,14 @@ function ConfirmationPage() {
                 </div>
               )}
 
+              {order.fulfillment_type === "delivery" &&
+                order.status === "out_for_delivery" &&
+                getDriverStepLabel(order.driver_delivery_status) && (
+                  <p className="mt-2 text-center text-sm font-semibold text-[#171717]">
+                    {getDriverStepLabel(order.driver_delivery_status)}
+                  </p>
+                )}
+
               <div className="mt-4 space-y-4 rounded-3xl border border-[#EAEAEA] bg-white p-5">
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
@@ -120,9 +128,22 @@ function ConfirmationPage() {
                 </div>
               </div>
 
-              <Link to="/commandes" className="mt-4 flex h-[54px] w-full items-center justify-center rounded-2xl bg-[#F5A900] px-5 text-sm font-bold text-[#111111] shadow-sm transition-opacity hover:opacity-90">
-                Suivre mes commandes
-              </Link>
+              {backSlug ? (
+                <Link
+                  to="/r/$slug"
+                  params={{ slug: backSlug }}
+                  className="mt-4 flex h-[54px] w-full items-center justify-center rounded-2xl bg-[#F5A900] px-5 text-sm font-bold text-[#111111] shadow-sm transition-opacity hover:opacity-90"
+                >
+                  Retour
+                </Link>
+              ) : (
+                <Link
+                  to="/"
+                  className="mt-4 flex h-[54px] w-full items-center justify-center rounded-2xl bg-[#F5A900] px-5 text-sm font-bold text-[#111111] shadow-sm transition-opacity hover:opacity-90"
+                >
+                  Retour
+                </Link>
+              )}
             </>
           )}
         </main>
