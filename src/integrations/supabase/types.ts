@@ -742,6 +742,63 @@ export type Database = {
           },
         ]
       }
+      product_promotions: {
+        Row: {
+          created_at: string
+          ends_at: string
+          id: string
+          product_id: string
+          restaurant_id: string
+          starts_at: string
+          status: Database["public"]["Enums"]["promotion_status"]
+          title: string
+          type: Database["public"]["Enums"]["promotion_type"]
+          updated_at: string
+          value: number | null
+        }
+        Insert: {
+          created_at?: string
+          ends_at: string
+          id?: string
+          product_id: string
+          restaurant_id: string
+          starts_at: string
+          status?: Database["public"]["Enums"]["promotion_status"]
+          title: string
+          type: Database["public"]["Enums"]["promotion_type"]
+          updated_at?: string
+          value?: number | null
+        }
+        Update: {
+          created_at?: string
+          ends_at?: string
+          id?: string
+          product_id?: string
+          restaurant_id?: string
+          starts_at?: string
+          status?: Database["public"]["Enums"]["promotion_status"]
+          title?: string
+          type?: Database["public"]["Enums"]["promotion_type"]
+          updated_at?: string
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_promotions_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_promotions_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1253,6 +1310,28 @@ export type Database = {
         Args: { p_accept: boolean; p_proposal_id: string }
         Returns: Json
       }
+      get_active_promotion: {
+        Args: { p_product_id: string }
+        Returns: {
+          created_at: string
+          ends_at: string
+          id: string
+          product_id: string
+          restaurant_id: string
+          starts_at: string
+          status: Database["public"]["Enums"]["promotion_status"]
+          title: string
+          type: Database["public"]["Enums"]["promotion_type"]
+          updated_at: string
+          value: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "product_promotions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_customer_order: {
         Args: { p_customer_phone: string; p_order_id: string }
         Returns: Json
@@ -1426,6 +1505,8 @@ export type Database = {
         | "refunded"
         | "partially_refunded"
         | "cash_pending"
+      promotion_status: "draft" | "active" | "inactive" | "expired"
+      promotion_type: "fixed_amount" | "percentage" | "free_delivery"
       restaurant_role: "owner" | "manager" | "staff"
       restaurant_status: "trial" | "active" | "suspended" | "archived"
     }
@@ -1602,6 +1683,8 @@ export const Constants = {
         "partially_refunded",
         "cash_pending",
       ],
+      promotion_status: ["draft", "active", "inactive", "expired"],
+      promotion_type: ["fixed_amount", "percentage", "free_delivery"],
       restaurant_role: ["owner", "manager", "staff"],
       restaurant_status: ["trial", "active", "suspended", "archived"],
     },

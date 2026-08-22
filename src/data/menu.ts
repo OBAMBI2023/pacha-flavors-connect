@@ -20,6 +20,14 @@ export const FALLBACK_IMAGES: Record<string, string> = {
   "alloco-simple": alloco,
 };
 
+/** Server-computed (never recalculated client-side) -- see get_public_menu / get_active_promotion. */
+export type ProductPromotion = {
+  title: string;
+  type: "fixed_amount" | "percentage" | "free_delivery";
+  value: number | null;
+  final_price: number;
+};
+
 export type MenuItem = {
   id: string;
   name: string;
@@ -32,6 +40,7 @@ export type MenuItem = {
   available: boolean;
   daily?: boolean | undefined;
   featured?: boolean | undefined;
+  promotion?: ProductPromotion | null | undefined;
 };
 
 export const CATEGORIES: { id: Category | "tous"; label: string }[] = [
@@ -186,4 +195,11 @@ export const DAILY_MENU = MENU.filter((item) => item.daily);
 
 export function formatPrice(price: number | null) {
   return price === null ? "Prix sur demande" : `${price.toLocaleString("fr-FR")} FCFA`;
+}
+
+/** Real badge text for a currently-effective promotion -- never an invented discount. */
+export function getPromotionBadgeLabel(promotion: ProductPromotion): string {
+  if (promotion.type === "free_delivery") return "Livraison gratuite";
+  if (promotion.type === "percentage") return `-${promotion.value}%`;
+  return `-${(promotion.value ?? 0).toLocaleString("fr-FR")} FCFA`;
 }

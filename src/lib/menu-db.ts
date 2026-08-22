@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { FALLBACK_IMAGES, type MenuItem } from "@/data/menu";
+import { FALLBACK_IMAGES, type MenuItem, type ProductPromotion } from "@/data/menu";
 
 export type DbCategory = {
   id: string;
@@ -21,6 +21,7 @@ export type DbMenuItem = {
   daily: boolean;
   featured?: boolean;
   position: number;
+  promotion?: ProductPromotion | null;
 };
 
 export type PublicRestaurant = {
@@ -47,6 +48,8 @@ export type PublicRestaurantSettings = {
   dine_in_enabled: boolean | null;
   reservation_enabled: boolean | null;
   whatsapp_message_template: string | null;
+  /** Already returned by get_public_menu; lets the storefront apply the tenant's own brand color. */
+  primary_color: string | null;
 };
 
 export type MenuData = {
@@ -89,6 +92,7 @@ type PublicMenuRow = {
     is_featured?: boolean | null;
     sort_order: number | null;
     position?: number | null;
+    promotion?: ProductPromotion | null;
   }>;
 };
 
@@ -125,6 +129,7 @@ export async function fetchMenuData(slug: string): Promise<MenuData> {
     available: row.available,
     daily: row.daily,
     featured: row.featured ?? false,
+    promotion: row.promotion ?? null,
   }));
 
   return {

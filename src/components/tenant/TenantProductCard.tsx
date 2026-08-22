@@ -1,10 +1,13 @@
 import { Plus } from "lucide-react";
-import type { MenuItem } from "@/data/menu";
+import { getPromotionBadgeLabel, type MenuItem } from "@/data/menu";
 
 export function TenantProductCard({ item, onOpen }: { item: MenuItem; onOpen: (item: MenuItem) => void }) {
   function open() {
     if (item.available) onOpen(item);
   }
+
+  const promotion = item.promotion;
+  const hasPriceDiscount = promotion && promotion.type !== "free_delivery" && item.price !== null;
 
   return (
     <article
@@ -29,11 +32,18 @@ export function TenantProductCard({ item, onOpen }: { item: MenuItem; onOpen: (i
         ) : (
           <div className="h-full w-full bg-gradient-to-br from-stone-200 to-stone-300" />
         )}
-        {item.featured && (
-          <span className="absolute left-3 top-3 rounded-full bg-gold px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-wide text-gold-foreground shadow-sm">
-            Populaire
-          </span>
-        )}
+        <div className="absolute left-3 top-3 flex flex-col items-start gap-1.5">
+          {item.featured && (
+            <span className="rounded-full bg-gold px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-wide text-gold-foreground shadow-sm">
+              Populaire
+            </span>
+          )}
+          {promotion && (
+            <span className="rounded-full bg-primary px-3 py-1 text-[0.65rem] font-bold uppercase tracking-wide text-primary-foreground shadow-sm">
+              {getPromotionBadgeLabel(promotion)}
+            </span>
+          )}
+        </div>
         {item.available && (
           <span
             aria-hidden="true"
@@ -47,7 +57,14 @@ export function TenantProductCard({ item, onOpen }: { item: MenuItem; onOpen: (i
         <div className="flex items-start justify-between gap-3">
           <h3 className="line-clamp-1 font-semibold">{item.name}</h3>
           {item.available ? (
-            <span className="shrink-0 text-sm font-semibold text-primary">{item.price === null ? "À confirmer" : `${item.price.toLocaleString("fr-FR")} FCFA`}</span>
+            hasPriceDiscount ? (
+              <span className="flex shrink-0 flex-col items-end">
+                <span className="text-xs font-medium text-muted-foreground line-through">{item.price!.toLocaleString("fr-FR")} FCFA</span>
+                <span className="text-sm font-semibold text-primary">{promotion!.final_price.toLocaleString("fr-FR")} FCFA</span>
+              </span>
+            ) : (
+              <span className="shrink-0 text-sm font-semibold text-primary">{item.price === null ? "À confirmer" : `${item.price.toLocaleString("fr-FR")} FCFA`}</span>
+            )
           ) : (
             <span className="shrink-0 rounded-full bg-muted px-2 py-1 text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">Indisponible</span>
           )}
