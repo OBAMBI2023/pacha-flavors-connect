@@ -47,7 +47,7 @@ export function TenantCategoryNav({
   onOpenCategories?: () => void;
 }) {
   return (
-    <div className="bg-[#F7F7F7] pt-3.5">
+    <div className="bg-background pt-3.5">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="-mx-4 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden">
           <div className="flex w-max gap-3">
@@ -63,12 +63,12 @@ export function TenantCategoryNav({
                 >
                   <span
                     className={`grid h-[58px] w-[58px] place-items-center rounded-full shadow-sm transition-colors ${
-                      isActive ? "border-2 border-[#F5A900] bg-[#FFF8E5]" : "border border-[#EEEEEE] bg-white"
+                      isActive ? "border-2 border-primary bg-accent" : "border border-border bg-card"
                     }`}
                   >
-                    <Icon className={`h-6 w-6 ${isActive ? "text-[#B17A00]" : "text-[#333333]"}`} />
+                    <Icon className={`h-6 w-6 ${isActive ? "text-primary" : "text-foreground"}`} />
                   </span>
-                  <span className={`line-clamp-1 w-full text-center text-xs ${isActive ? "font-bold text-[#B17A00]" : "font-medium text-[#333333]"}`}>
+                  <span className={`line-clamp-1 w-full text-center text-xs ${isActive ? "font-bold text-primary" : "font-medium text-foreground"}`}>
                     {tab.label}
                   </span>
                 </button>
@@ -76,10 +76,10 @@ export function TenantCategoryNav({
             })}
             {onOpenCategories && (
               <button onClick={onOpenCategories} className="flex w-16 shrink-0 flex-col items-center gap-1.5">
-                <span className="grid h-[58px] w-[58px] place-items-center rounded-full border border-[#EEEEEE] bg-white shadow-sm">
-                  <LayoutGrid className="h-6 w-6 text-[#333333]" />
+                <span className="grid h-[58px] w-[58px] place-items-center rounded-full border border-border bg-card shadow-sm">
+                  <LayoutGrid className="h-6 w-6 text-foreground" />
                 </span>
-                <span className="line-clamp-1 w-full text-center text-xs font-medium text-[#333333]">Toutes</span>
+                <span className="line-clamp-1 w-full text-center text-xs font-medium text-foreground">Toutes</span>
               </button>
             )}
           </div>

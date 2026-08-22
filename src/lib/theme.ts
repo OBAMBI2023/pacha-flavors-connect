@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 export type RestaurantTheme = {
   primary_color: string | null;
   secondary_color: string | null;
@@ -45,4 +47,28 @@ export function applyRestaurantTheme(theme: Partial<RestaurantTheme>): void {
   if (merged.text_color) root.setProperty("--foreground", merged.text_color);
   if (merged.border_radius) root.setProperty("--radius", merged.border_radius);
   if (merged.font_family) root.setProperty("--font-sans", merged.font_family);
+}
+
+/**
+ * Light/dark UI-mode toggle (the `.dark` class already defined in
+ * styles.css) -- unrelated to the per-tenant RestaurantTheme above, but
+ * MoreSheet.tsx (the legacy "/" landing page) imports it from here and this
+ * was the only missing piece breaking `npm run build`.
+ */
+export function useTheme() {
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    if (typeof document === "undefined") return "light";
+    return document.documentElement.classList.contains("dark") ? "dark" : "light";
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    window.localStorage.setItem("ui-theme", theme);
+  }, [theme]);
+
+  function toggle() {
+    setTheme((current) => (current === "dark" ? "light" : "dark"));
+  }
+
+  return { theme, toggle };
 }

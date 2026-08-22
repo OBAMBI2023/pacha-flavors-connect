@@ -11,13 +11,13 @@ export function TenantBottomNav({ restaurantSlug }: { restaurantSlug: string }) 
   const onHome = location.pathname === base;
 
   const itemClass = (isActive: boolean) =>
-    `flex flex-1 flex-col items-center gap-1 py-2 text-[11px] ${isActive ? "font-bold text-[#F5A900]" : "font-medium text-[#333333]"}`;
+    `flex flex-1 flex-col items-center gap-1 py-2 text-[11px] ${isActive ? "font-bold text-primary" : "font-medium text-foreground"}`;
   const iconWrapClass = (isActive: boolean) =>
-    `grid h-8 w-8 place-items-center rounded-full ${isActive ? "bg-[#FFF2C7]" : ""}`;
+    `grid h-8 w-8 place-items-center rounded-full ${isActive ? "bg-accent" : ""}`;
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-50 rounded-t-[22px] border-t border-[#EAEAEA] bg-white px-2 pb-[env(safe-area-inset-bottom)] shadow-[0_-5px_20px_rgba(0,0,0,0.10)] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-50 rounded-t-[22px] border-t border-border bg-card px-2 pb-[env(safe-area-inset-bottom)] shadow-[0_-5px_20px_rgba(0,0,0,0.10)] md:hidden"
       style={{ height: "calc(70px + env(safe-area-inset-bottom))" }}
     >
       <div className="flex h-[70px] items-center">

@@ -5,16 +5,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 export function TenantStorefrontSkeleton() {
   return (
     <div className="min-h-screen bg-background">
-      <div className="border-b border-cocoa-foreground/10 bg-cocoa">
+      <div className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-2 sm:px-6">
           <div className="flex items-center gap-3">
-            <Skeleton className="h-12 w-12 rounded-full bg-cocoa-foreground/10 sm:h-14 sm:w-14 md:h-16 md:w-16 lg:h-[4.5rem] lg:w-[4.5rem]" />
-            <Skeleton className="h-6 w-40 bg-cocoa-foreground/10" />
+            <Skeleton className="h-12 w-12 rounded-full sm:h-14 sm:w-14 md:h-16 md:w-16 lg:h-[4.5rem] lg:w-[4.5rem]" />
+            <Skeleton className="h-6 w-40" />
           </div>
-          <Skeleton className="h-11 w-11 rounded-full bg-cocoa-foreground/10" />
+          <Skeleton className="h-11 w-11 rounded-full" />
         </div>
       </div>
-      <Skeleton className="min-h-[520px] w-full rounded-none bg-cocoa/60 md:min-h-[600px]" />
+      <Skeleton className="min-h-[520px] w-full rounded-none md:min-h-[600px]" />
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         <div className="flex gap-2">
           {[0, 1, 2, 3].map((i) => (

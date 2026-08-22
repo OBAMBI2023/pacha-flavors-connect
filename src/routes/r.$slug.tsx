@@ -5,6 +5,7 @@ import { useMenuData } from "@/lib/menu-db";
 import { CartProvider, useCart } from "@/lib/cart";
 import { TenantOrderDrawer } from "@/components/TenantOrderDrawer";
 import { CategoriesSheet } from "@/components/CategoriesSheet";
+import { useStorefrontTheme } from "@/components/tenant/tenantTheme";
 import { TenantHeader } from "@/components/tenant/TenantHeader";
 import { TenantSearchBar } from "@/components/tenant/TenantSearchBar";
 import { TenantHero } from "@/components/tenant/TenantHero";
@@ -87,6 +88,7 @@ function TenantStorefront({ slug }: { slug: string }) {
   const [query, setQuery] = useState("");
   const [openItem, setOpenItem] = useState<MenuItem | null>(null);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
+  useStorefrontTheme(data?.settings?.primary_color);
 
   if (isLoading) return <TenantStorefrontSkeleton />;
   if (isError) return <TenantErrorState onRetry={() => void refetch()} />;
@@ -103,7 +105,7 @@ function TenantStorefront({ slug }: { slug: string }) {
   const hasContact = Boolean(restaurant.address || restaurant.commune || restaurant.city);
 
   return (
-    <div className="min-h-screen bg-[#F7F7F7] pb-28 md:pb-0">
+    <div className="min-h-screen bg-background pb-28 md:pb-0">
       <TenantHeader restaurant={restaurant} cartCount={count} subtotalLabel={subtotalLabel} hasContact={hasContact} onOpenCart={openCart} />
       {hasMenu && <TenantSearchBar value={query} onChange={setQuery} onOpenFilters={() => setCategoriesOpen(true)} />}
 
@@ -112,13 +114,13 @@ function TenantStorefront({ slug }: { slug: string }) {
         {hasMenu && <TenantCategoryNav tabs={tabs} active={active} onSelect={setActive} onOpenCategories={() => setCategoriesOpen(true)} />}
         {hasMenu && <TenantPopularSection items={data.items} onOpen={setOpenItem} />}
         <TenantPromoBanner restaurant={restaurant} settings={settings} />
-        <section id="carte" className="section-pad bg-[#F7F7F7]">
+        <section id="carte" className="section-pad bg-background">
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
             <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-primary">La carte</p>
             <h2 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">Notre carte</h2>
             <p className="mt-3 max-w-xl text-sm text-muted-foreground">Sélectionnez vos plats, ajoutez-les au panier et commandez en quelques secondes.</p>
             {!hasMenu ? <TenantEmptyMenuState /> : items.length === 0 ? (
-              <p className="mt-8 rounded-2xl border border-[#EAEAEA] bg-white p-6 text-center text-sm text-[#666666]">Aucun plat ne correspond à votre recherche.</p>
+              <p className="mt-8 rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">Aucun plat ne correspond à votre recherche.</p>
             ) : (
               <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{items.map((item) => <TenantProductCard key={item.id} item={item} onOpen={setOpenItem} />)}</div>
             )}

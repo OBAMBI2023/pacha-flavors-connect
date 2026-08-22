@@ -17,15 +17,15 @@ function AccountLookupModal({ restaurantName, onClose, onSubmit }: { restaurantN
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} aria-hidden />
-      <div className="relative w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
+      <div className="relative w-full max-w-sm rounded-3xl bg-card p-6 shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="font-display text-xl font-semibold text-[#171717]">Mes commandes</h2>
-            <p className="mt-1 text-sm text-[#171717]/70">
+            <h2 className="font-display text-xl font-semibold text-foreground">Mes commandes</h2>
+            <p className="mt-1 text-sm text-foreground/70">
               Entrez le numero utilise lors de votre commande chez {restaurantName} pour la retrouver.
             </p>
           </div>
-          <button onClick={onClose} aria-label="Fermer" className="grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-[#F7F7F7]">
+          <button onClick={onClose} aria-label="Fermer" className="grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-muted">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -42,17 +42,17 @@ function AccountLookupModal({ restaurantName, onClose, onSubmit }: { restaurantN
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="Numero de telephone"
-            className="w-full rounded-xl border border-[#EAEAEA] px-4 py-3 text-sm outline-none focus:border-[#F5A900]"
+            className="w-full rounded-xl border border-border px-4 py-3 text-sm outline-none focus:border-primary"
           />
           <button
             type="submit"
             disabled={!phone.trim()}
-            className="flex h-12 w-full items-center justify-center rounded-2xl bg-[#F5A900] px-6 text-sm font-bold text-[#111111] shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex h-12 w-full items-center justify-center rounded-xl bg-primary px-6 text-sm font-bold text-primary-foreground shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Voir mes commandes
           </button>
         </form>
-        <p className="mt-4 text-xs text-[#171717]/60">
+        <p className="mt-4 text-xs text-foreground/60">
           Pas encore commande ? Fermez cette fenetre et ajoutez un plat au panier pour passer votre premiere commande.
         </p>
       </div>
@@ -104,17 +104,17 @@ export function TenantHeader({
   const logo = restaurant.logo_url ? (
     <img src={restaurant.logo_url} alt={restaurant.name} className="h-9 w-9 shrink-0 rounded-full object-contain lg:h-14 lg:w-14" />
   ) : (
-    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#F5A900] font-display text-sm font-bold text-[#111111] lg:h-14 lg:w-14 lg:text-2xl">
+    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary font-display text-sm font-bold text-primary-foreground lg:h-14 lg:w-14 lg:text-2xl">
       {restaurant.name.charAt(0).toUpperCase()}
     </span>
   );
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[#EAEAEA] bg-white text-[#171717]">
+    <header className="sticky top-0 z-50 border-b border-border bg-card text-foreground">
       <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6 lg:justify-between">
         {/* Mobile: hamburger | centered logo+name | profile+cart, each flex-1 so the center group stays visually centered. */}
         <div className="flex flex-1 items-center lg:hidden">
-          <button onClick={() => setNavOpen((v) => !v)} aria-label="Menu" className="grid h-10 w-10 place-items-center rounded-full border border-[#EAEAEA]">
+          <button onClick={() => setNavOpen((v) => !v)} aria-label="Menu" className="grid h-10 w-10 place-items-center rounded-full border border-border">
             {navOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
@@ -123,13 +123,13 @@ export function TenantHeader({
           <span className="min-w-0 truncate font-display text-base font-bold">{restaurant.name}</span>
         </div>
         <div className="flex flex-1 items-center justify-end gap-2 lg:hidden">
-          <Link to="/commandes" onClick={handleAccountClick} aria-label="Mes commandes" className="grid h-10 w-10 place-items-center rounded-full border border-[#EAEAEA] text-[#171717] hover:bg-[#F7F7F7]">
+          <Link to="/commandes" onClick={handleAccountClick} aria-label="Mes commandes" className="grid h-10 w-10 place-items-center rounded-full border border-border text-foreground hover:bg-muted">
             <User className="h-5 w-5" />
           </Link>
-          <button onClick={onOpenCart} aria-label="Ouvrir le panier" className="relative grid h-10 w-10 place-items-center rounded-full border border-[#EAEAEA] text-[#171717] hover:bg-[#F7F7F7]">
+          <button onClick={onOpenCart} aria-label="Ouvrir le panier" className="relative grid h-10 w-10 place-items-center rounded-full border border-border text-foreground hover:bg-muted">
             <ShoppingCart className="h-5 w-5" />
             {cartCount > 0 && (
-              <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-[#F5A900] px-1 text-[0.65rem] font-bold text-[#111111]">
+              <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1 text-[0.65rem] font-bold text-primary-foreground">
                 {cartCount}
               </span>
             )}
@@ -143,31 +143,31 @@ export function TenantHeader({
         </div>
         <nav className="hidden items-center gap-6 lg:flex">
           {navLinks.map((link) => (
-            <button key={link.id} onClick={() => scrollToId(link.id)} className="text-sm font-medium text-[#171717]/80 transition-colors hover:text-[#F5A900]">
+            <button key={link.id} onClick={() => scrollToId(link.id)} className="text-sm font-medium text-foreground/80 transition-colors hover:text-primary">
               {link.label}
             </button>
           ))}
         </nav>
         <div className="hidden shrink-0 items-center gap-2 lg:flex">
-          <Link to="/commandes" onClick={handleAccountClick} aria-label="Mes commandes" className="grid h-11 w-11 place-items-center rounded-full border border-[#EAEAEA] hover:bg-[#F7F7F7]">
+          <Link to="/commandes" onClick={handleAccountClick} aria-label="Mes commandes" className="grid h-11 w-11 place-items-center rounded-full border border-border hover:bg-muted">
             <User className="h-4 w-4" />
           </Link>
-          <button onClick={onOpenCart} aria-label="Ouvrir le panier" className="relative grid h-11 w-11 place-items-center rounded-full border border-[#EAEAEA] hover:bg-[#F7F7F7]">
+          <button onClick={onOpenCart} aria-label="Ouvrir le panier" className="relative grid h-11 w-11 place-items-center rounded-full border border-border hover:bg-muted">
             <ShoppingCart className="h-4 w-4" />
             {cartCount > 0 && (
-              <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-[#F5A900] px-1 text-[0.65rem] font-bold text-[#111111]">
+              <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1 text-[0.65rem] font-bold text-primary-foreground">
                 {cartCount}
               </span>
             )}
           </button>
-          <button onClick={onOpenCart} className="rounded-full bg-[#F5A900] px-5 py-2.5 text-sm font-bold text-[#111111] shadow-sm transition-opacity hover:opacity-90">
+          <button onClick={onOpenCart} className="rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-sm transition-opacity hover:opacity-90">
             Commander
           </button>
         </div>
       </div>
 
       {navOpen && (
-        <nav className="border-t border-[#EAEAEA] bg-white px-4 py-3 lg:hidden">
+        <nav className="border-t border-border bg-card px-4 py-3 lg:hidden">
           <ul className="flex flex-col">
             {navLinks.map((link) => (
               <li key={link.id}>
@@ -176,7 +176,7 @@ export function TenantHeader({
                     setNavOpen(false);
                     scrollToId(link.id);
                   }}
-                  className="block w-full border-b border-[#EAEAEA] py-3 text-left text-sm font-medium last:border-b-0"
+                  className="block w-full border-b border-border py-3 text-left text-sm font-medium last:border-b-0"
                 >
                   {link.label}
                 </button>

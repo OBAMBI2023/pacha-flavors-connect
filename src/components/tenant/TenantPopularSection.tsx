@@ -23,19 +23,19 @@ function PopularCard({ item, onOpen }: { item: MenuItem; onOpen: (item: MenuItem
           open();
         }
       }}
-      className={`w-[155px] shrink-0 overflow-hidden rounded-2xl border border-black/5 bg-white shadow-[0_3px_12px_rgba(0,0,0,0.06)] ${item.available ? "cursor-pointer" : "cursor-not-allowed opacity-90"}`}
+      className={`w-[155px] shrink-0 overflow-hidden rounded-2xl border border-border bg-card shadow-[0_4px_16px_rgba(0,0,0,0.08)] ${item.available ? "cursor-pointer" : "cursor-not-allowed opacity-90"}`}
     >
-      <div className="relative h-[105px] bg-[#F5F5F5]">
+      <div className="relative h-[105px] bg-muted">
         {item.image ? <img src={item.image} alt={item.name} loading="lazy" className="h-full w-full object-cover" /> : <div className="h-full w-full bg-gradient-to-br from-stone-200 to-stone-300" />}
-        <span className="absolute left-2 top-2 rounded-full bg-[#F5A900] px-2 py-0.5 text-[10px] font-bold text-[#111111]">Populaire</span>
+        <span className="absolute left-2 top-2 rounded-full bg-gold px-2 py-0.5 text-[10px] font-bold text-gold-foreground">Populaire</span>
       </div>
       <div className="p-2.5">
-        <h3 className="line-clamp-2 text-sm font-bold text-[#171717]">{item.name}</h3>
-        {item.description && <p className="mt-0.5 line-clamp-2 text-[11px] text-[#666666]">{item.description}</p>}
+        <h3 className="line-clamp-2 text-sm font-bold text-foreground">{item.name}</h3>
+        {item.description && <p className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground">{item.description}</p>}
         <div className="mt-2 flex items-center justify-between">
-          <span className="text-base font-extrabold text-[#171717]">{item.price === null ? "À confirmer" : `${item.price.toLocaleString("fr-FR")} FCFA`}</span>
+          <span className="text-base font-extrabold text-foreground">{item.price === null ? "À confirmer" : `${item.price.toLocaleString("fr-FR")} FCFA`}</span>
           {item.available && (
-            <span aria-hidden="true" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#111111] text-white">
+            <span aria-hidden="true" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground">
               <Plus className="h-4 w-4" />
             </span>
           )}
@@ -50,11 +50,11 @@ export function TenantPopularSection({ items, onOpen }: { items: MenuItem[]; onO
   if (featured.length === 0) return null;
 
   return (
-    <section id="populaires" className="bg-[#F7F7F7] pt-5">
+    <section id="populaires" className="bg-background pt-5">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-xl font-extrabold text-[#171717]">Plats populaires</h2>
-          <button onClick={scrollToMenu} className="inline-flex items-center gap-1 text-sm font-semibold text-[#B17A00]">
+          <h2 className="font-display text-xl font-extrabold text-foreground">Plats populaires</h2>
+          <button onClick={scrollToMenu} className="inline-flex items-center gap-1 text-sm font-semibold text-primary">
             Voir tout <ArrowRight className="h-3.5 w-3.5" />
           </button>
         </div>

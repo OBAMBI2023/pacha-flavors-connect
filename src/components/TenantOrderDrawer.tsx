@@ -1,9 +1,10 @@
 ﻿import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { Minus, Plus, ShoppingBag, X } from "lucide-react";
+import { Banknote, ShoppingBag, X } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useCart } from "@/lib/cart";
 import { createRestaurantOrder, cartLinesToOrderItems } from "@/lib/orders";
+import { QuantitySelector } from "@/components/tenant/QuantitySelector";
 
 const CUSTOMER_PHONE_KEY = "saovia.customer.phone";
 const CUSTOMER_NAME_KEY = "saovia.customer.name";
@@ -97,9 +98,7 @@ export function TenantOrderDrawer({ restaurantSlug, restaurantName }: { restaura
                       <p className="truncate font-medium">{l.item.name}</p>
                       <p className="text-xs text-muted-foreground">{(l.item.price ?? 0).toLocaleString("fr-FR")} FCFA</p>
                       <div className="mt-2 flex items-center gap-2">
-                        <button onClick={() => decrement(l.item.id)} aria-label="Diminuer" className="grid h-11 w-11 place-items-center rounded-full border border-border"><Minus className="h-3.5 w-3.5" /></button>
-                        <span className="w-6 text-center text-sm font-semibold">{l.qty}</span>
-                        <button onClick={() => increment(l.item.id)} aria-label="Augmenter" className="grid h-11 w-11 place-items-center rounded-full border border-border"><Plus className="h-3.5 w-3.5" /></button>
+                        <QuantitySelector value={l.qty} onDecrement={() => decrement(l.item.id)} onIncrement={() => increment(l.item.id)} />
                         <button onClick={() => remove(l.item.id)} aria-label="Supprimer" className="ml-auto grid h-11 w-11 place-items-center rounded-full text-muted-foreground hover:bg-accent">×</button>
                       </div>
                     </div>
@@ -131,6 +130,16 @@ export function TenantOrderDrawer({ restaurantSlug, restaurantName }: { restaura
                   </>
                 )}
               </div>
+
+              <div className="mt-5 space-y-2">
+                <h3 className="font-display text-xl font-semibold">Mode de paiement</h3>
+                <div className="flex items-center gap-3 rounded-xl border border-primary bg-primary/10 px-4 py-3">
+                  <Banknote className="h-5 w-5 shrink-0 text-primary" />
+                  <span className="text-sm font-medium text-foreground">
+                    Espèces {mode === "delivery" ? "à la livraison" : "au retrait"}
+                  </span>
+                </div>
+              </div>
             </>
           )}
           {error && <p className="mt-4 rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive">{error}</p>}
@@ -139,7 +148,7 @@ export function TenantOrderDrawer({ restaurantSlug, restaurantName }: { restaura
         {lines.length > 0 && (
           <div className="sticky bottom-0 border-t border-border bg-background px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
             <div className="flex items-center justify-between gap-3 text-sm"><span className="text-muted-foreground">Sous-total</span><span className="text-right font-semibold">{subtotalLabel}</span></div>
-            <button onClick={submit} disabled={!canSubmit} className="mt-3 flex h-[54px] w-full items-center justify-center rounded-2xl bg-[#F5A900] px-6 text-base font-bold text-[#111111] shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60">
+            <button onClick={submit} disabled={!canSubmit} className="mt-3 flex h-[54px] w-full items-center justify-center rounded-2xl bg-primary px-6 text-base font-bold text-primary-foreground shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60">
               {submitting ? "Création en cours..." : "Commander"}
             </button>
           </div>
