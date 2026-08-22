@@ -1,10 +1,64 @@
 import { useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { createPortal } from "react-dom";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Menu, ShoppingCart, User, X } from "lucide-react";
 import type { PublicRestaurant } from "@/lib/menu-db";
 
+const CUSTOMER_PHONE_KEY = "saovia.customer.phone";
+const CUSTOMER_RESTAURANT_SLUG_KEY = "saovia.restaurant.slug";
+
 function scrollToId(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function AccountLookupModal({ restaurantName, onClose, onSubmit }: { restaurantName: string; onClose: () => void; onSubmit: (phone: string) => void }) {
+  const [phone, setPhone] = useState("");
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} aria-hidden />
+      <div className="relative w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="font-display text-xl font-semibold text-[#171717]">Mes commandes</h2>
+            <p className="mt-1 text-sm text-[#171717]/70">
+              Entrez le numero utilise lors de votre commande chez {restaurantName} pour la retrouver.
+            </p>
+          </div>
+          <button onClick={onClose} aria-label="Fermer" className="grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-[#F7F7F7]">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <form
+          className="mt-5 space-y-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (phone.trim()) onSubmit(phone.trim());
+          }}
+        >
+          <input
+            type="tel"
+            autoFocus
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="Numero de telephone"
+            className="w-full rounded-xl border border-[#EAEAEA] px-4 py-3 text-sm outline-none focus:border-[#F5A900]"
+          />
+          <button
+            type="submit"
+            disabled={!phone.trim()}
+            className="flex h-12 w-full items-center justify-center rounded-2xl bg-[#F5A900] px-6 text-sm font-bold text-[#111111] shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Voir mes commandes
+          </button>
+        </form>
+        <p className="mt-4 text-xs text-[#171717]/60">
+          Pas encore commande ? Fermez cette fenetre et ajoutez un plat au panier pour passer votre premiere commande.
+        </p>
+      </div>
+    </div>,
+    document.body,
+  );
 }
 
 export function TenantHeader({
@@ -19,7 +73,27 @@ export function TenantHeader({
   hasContact: boolean;
   onOpenCart: () => void;
 }) {
+  const navigate = useNavigate();
   const [navOpen, setNavOpen] = useState(false);
+  const [accountModalOpen, setAccountModalOpen] = useState(false);
+
+  function handleAccountClick(e: React.MouseEvent) {
+    e.preventDefault();
+    const storedPhone = window.localStorage.getItem(CUSTOMER_PHONE_KEY);
+    const storedSlug = window.localStorage.getItem(CUSTOMER_RESTAURANT_SLUG_KEY);
+    if (storedPhone && storedSlug === restaurant.slug) {
+      navigate({ to: "/commandes" });
+    } else {
+      setAccountModalOpen(true);
+    }
+  }
+
+  function handlePhoneSubmit(phone: string) {
+    window.localStorage.setItem(CUSTOMER_PHONE_KEY, phone);
+    window.localStorage.setItem(CUSTOMER_RESTAURANT_SLUG_KEY, restaurant.slug);
+    setAccountModalOpen(false);
+    navigate({ to: "/commandes" });
+  }
 
   const navLinks = [
     { id: "accueil", label: "Accueil" },
@@ -49,7 +123,7 @@ export function TenantHeader({
           <span className="min-w-0 truncate font-display text-base font-bold">{restaurant.name}</span>
         </div>
         <div className="flex flex-1 items-center justify-end gap-2 lg:hidden">
-          <Link to="/commandes" aria-label="Mes commandes" className="grid h-10 w-10 place-items-center rounded-full border border-[#EAEAEA] text-[#171717] hover:bg-[#F7F7F7]">
+          <Link to="/commandes" onClick={handleAccountClick} aria-label="Mes commandes" className="grid h-10 w-10 place-items-center rounded-full border border-[#EAEAEA] text-[#171717] hover:bg-[#F7F7F7]">
             <User className="h-5 w-5" />
           </Link>
           <button onClick={onOpenCart} aria-label="Ouvrir le panier" className="relative grid h-10 w-10 place-items-center rounded-full border border-[#EAEAEA] text-[#171717] hover:bg-[#F7F7F7]">
@@ -75,7 +149,7 @@ export function TenantHeader({
           ))}
         </nav>
         <div className="hidden shrink-0 items-center gap-2 lg:flex">
-          <Link to="/commandes" aria-label="Mes commandes" className="grid h-11 w-11 place-items-center rounded-full border border-[#EAEAEA] hover:bg-[#F7F7F7]">
+          <Link to="/commandes" onClick={handleAccountClick} aria-label="Mes commandes" className="grid h-11 w-11 place-items-center rounded-full border border-[#EAEAEA] hover:bg-[#F7F7F7]">
             <User className="h-4 w-4" />
           </Link>
           <button onClick={onOpenCart} aria-label="Ouvrir le panier" className="relative grid h-11 w-11 place-items-center rounded-full border border-[#EAEAEA] hover:bg-[#F7F7F7]">
@@ -110,6 +184,14 @@ export function TenantHeader({
             ))}
           </ul>
         </nav>
+      )}
+
+      {accountModalOpen && (
+        <AccountLookupModal
+          restaurantName={restaurant.name}
+          onClose={() => setAccountModalOpen(false)}
+          onSubmit={handlePhoneSubmit}
+        />
       )}
     </header>
   );

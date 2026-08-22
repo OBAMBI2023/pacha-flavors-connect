@@ -979,6 +979,9 @@ export type Database = {
       }
       restaurant_settings: {
         Row: {
+          accent_color: string | null
+          background_color: string | null
+          border_radius: string | null
           created_at: string
           default_prep_time_minutes: number | null
           delivery_enabled: boolean
@@ -987,17 +990,24 @@ export type Database = {
           dine_in_enabled: boolean
           driver_location_freshness_minutes: number
           driver_proposal_timeout_seconds: number
+          font_family: string | null
           minimum_order: number
           opening_hours: Json
           pickup_enabled: boolean
           primary_color: string | null
           reservation_enabled: boolean
           restaurant_id: string
+          secondary_color: string | null
           social_links: Json
+          surface_color: string | null
+          text_color: string | null
           updated_at: string
           whatsapp_message_template: string | null
         }
         Insert: {
+          accent_color?: string | null
+          background_color?: string | null
+          border_radius?: string | null
           created_at?: string
           default_prep_time_minutes?: number | null
           delivery_enabled?: boolean
@@ -1006,17 +1016,24 @@ export type Database = {
           dine_in_enabled?: boolean
           driver_location_freshness_minutes?: number
           driver_proposal_timeout_seconds?: number
+          font_family?: string | null
           minimum_order?: number
           opening_hours?: Json
           pickup_enabled?: boolean
           primary_color?: string | null
           reservation_enabled?: boolean
           restaurant_id: string
+          secondary_color?: string | null
           social_links?: Json
+          surface_color?: string | null
+          text_color?: string | null
           updated_at?: string
           whatsapp_message_template?: string | null
         }
         Update: {
+          accent_color?: string | null
+          background_color?: string | null
+          border_radius?: string | null
           created_at?: string
           default_prep_time_minutes?: number | null
           delivery_enabled?: boolean
@@ -1025,13 +1042,17 @@ export type Database = {
           dine_in_enabled?: boolean
           driver_location_freshness_minutes?: number
           driver_proposal_timeout_seconds?: number
+          font_family?: string | null
           minimum_order?: number
           opening_hours?: Json
           pickup_enabled?: boolean
           primary_color?: string | null
           reservation_enabled?: boolean
           restaurant_id?: string
+          secondary_color?: string | null
           social_links?: Json
+          surface_color?: string | null
+          text_color?: string | null
           updated_at?: string
           whatsapp_message_template?: string | null
         }
@@ -1100,6 +1121,7 @@ export type Database = {
           created_at: string
           currency: string
           email: string | null
+          favicon_url: string | null
           id: string
           is_public: boolean
           lat: number | null
@@ -1125,6 +1147,7 @@ export type Database = {
           created_at?: string
           currency?: string
           email?: string | null
+          favicon_url?: string | null
           id?: string
           is_public?: boolean
           lat?: number | null
@@ -1150,6 +1173,7 @@ export type Database = {
           created_at?: string
           currency?: string
           email?: string | null
+          favicon_url?: string | null
           id?: string
           is_public?: boolean
           lat?: number | null
@@ -1292,6 +1316,33 @@ export type Database = {
           out_user_id: string
         }[]
       }
+      super_admin_create_tenant: {
+        Args: {
+          _accent_color?: string
+          _address: string
+          _background_color?: string
+          _border_radius?: string
+          _city: string
+          _commune: string
+          _email: string
+          _font_family?: string
+          _name: string
+          _owner_user_id: string
+          _phone: string
+          _primary_color?: string
+          _secondary_color?: string
+          _slug: string
+          _status?: Database["public"]["Enums"]["restaurant_status"]
+          _surface_color?: string
+          _text_color?: string
+          _whatsapp_phone: string
+        }
+        Returns: string
+      }
+      super_admin_get_tenant_owner: {
+        Args: { _restaurant_id: string }
+        Returns: string
+      }
       super_admin_list_restaurant_members: {
         Args: { _restaurant_id: string }
         Returns: {
@@ -1300,6 +1351,22 @@ export type Database = {
           role: Database["public"]["Enums"]["restaurant_role"]
           status: string
           user_id: string
+        }[]
+      }
+      super_admin_list_tenants: {
+        Args: never
+        Returns: {
+          accent_color: string
+          created_at: string
+          id: string
+          name: string
+          owner_email: string
+          owner_name: string
+          owner_user_id: string
+          primary_color: string
+          secondary_color: string
+          slug: string
+          status: Database["public"]["Enums"]["restaurant_status"]
         }[]
       }
       update_order_status: {
