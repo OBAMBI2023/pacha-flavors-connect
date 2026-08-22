@@ -43,12 +43,15 @@ export type DeliveryProposal = {
 /**
  * Curated payload from `get_driver_pending_proposal()` -- deliberately
  * excludes any customer data. Only the restaurant name, order number,
- * distance, and expiry are needed to accept or refuse.
+ * distance, and expiry are needed to accept or refuse. `restaurant_id` is
+ * included solely to carry in the background-notification `data` payload
+ * (per the notification spec), not for any client-side lookup.
  */
 export type DriverPendingProposal = {
   proposal_id: string;
   order_id: string;
   order_number: number;
+  restaurant_id: string;
   restaurant_name: string;
   distance_km: number | null;
   expires_at: string;

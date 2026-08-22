@@ -138,8 +138,17 @@ function DriverDashboard({ driverId, initiallyAvailable }: { driverId: string; i
   }, [available, driverId]);
 
   async function toggleAvailability() {
-    setTogglingAvailability(true);
     const next = !available;
+    // Contextual permission request -- exactly when the driver signals
+    // intent to receive courses, never blindly on page load. Synchronous,
+    // before the network call (not after an await), to stay inside the
+    // user-activation window on stricter browsers (WebKit). Independent of
+    // whether setDriverAvailability itself succeeds. `=== "default"` means
+    // this never re-prompts once the browser has settled on granted/denied.
+    if (next && typeof Notification !== "undefined" && Notification.permission === "default") {
+      void Notification.requestPermission().catch(() => {});
+    }
+    setTogglingAvailability(true);
     try {
       await setDriverAvailability(driverId, next);
       setAvailable(next);
