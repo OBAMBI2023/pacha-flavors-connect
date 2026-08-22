@@ -1,17 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Bell, BellOff, RadioTower, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useRealtimeOrders, type RealtimeConnectionState } from "@/hooks/useRealtimeOrders";
+import type { OrdersAlert, RealtimeConnectionState } from "@/hooks/useOrdersAlert";
 import { createRefund, fetchOrderPaymentSummary, markCashPaymentReceived, updateOrderStatus, type Order, type OrderStatus } from "@/lib/orders-db";
-import {
-  getSoundPreference,
-  playNewOrderChime,
-  playTestChime,
-  setSoundPreference,
-  stopOrderChime,
-  unlockOrderAudio,
-} from "@/lib/order-audio";
+import { playTestChime } from "@/lib/order-audio";
 import { OrderCard } from "./OrderCard";
 import { OrderDetailSheet } from "./OrderDetailSheet";
 import { RejectOrderDialog } from "./RejectOrderDialog";
@@ -27,8 +20,17 @@ const CONNECTION_META: Record<RealtimeConnectionState, { label: string; dot: str
 
 const TICK_MS = 30_000;
 
-export function OrdersPanel({ restaurantId }: { restaurantId: string | null }) {
-  const [soundEnabled, setSoundEnabledState] = useState(false);
+export function OrdersPanel({
+  orders,
+  connectionState,
+  newOrderIds,
+  acknowledgeOrder,
+  patchOrder,
+  loading,
+  soundEnabled,
+  enableSound,
+  disableSound,
+}: OrdersAlert) {
   const [filter, setFilter] = useState<"all" | OrderStatus>("all");
   const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<Order | null>(null);
@@ -38,43 +40,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string | null }) {
   const [, setTick] = useState(0);
 
   useEffect(() => {
-    setSoundEnabledState(getSoundPreference());
-  }, []);
-
-  useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), TICK_MS);
     return () => clearInterval(id);
   }, []);
-
-  const onNewOrder = useCallback((order: Order) => {
-    playNewOrderChime();
-    toast(`Nouvelle commande #${order.order_number}`, {
-      description: `${order.customer_name} · ${order.total_amount.toLocaleString("fr-FR")} ${order.currency}`,
-      action: { label: "Voir", onClick: () => setDetailOrderId(order.id) },
-      duration: 10_000,
-    });
-  }, []);
-
-  const { orders, connectionState, newOrderIds, acknowledgeOrder, patchOrder, loading } = useRealtimeOrders(
-    restaurantId,
-    onNewOrder,
-  );
-
-  useEffect(() => {
-    if (newOrderIds.size === 0) stopOrderChime();
-  }, [newOrderIds]);
-
-  async function enableSound() {
-    await unlockOrderAudio();
-    setSoundPreference(true);
-    setSoundEnabledState(true);
-  }
-
-  function disableSound() {
-    setSoundPreference(false);
-    setSoundEnabledState(false);
-    stopOrderChime();
-  }
 
   async function handleAdvance(order: Order, nextStatus: OrderStatus) {
     setBusyOrderId(order.id);

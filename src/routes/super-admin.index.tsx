@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+﻿import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,13 +51,16 @@ function SuperAdminIndexPage() {
 
 function OverviewBlock() {
   const [restaurants, setRestaurants] = useState<RestaurantRow[]>([]);
-  const [status, setStatus] = useState<string>("all");
+  const [status, setStatus] = useState<(typeof STATUSES)[number] | "all">("all");
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function load() {
     setBusy(true);
-    let request = supabase.from("restaurants").select("id,name,slug,phone,whatsapp_phone,email,address,commune,city,status,trial_ends_at,is_public,created_at").order("created_at", { ascending: false });
+    let request = supabase
+      .from("restaurants")
+      .select("id,name,slug,phone,whatsapp_phone,email,address,commune,city,status,trial_ends_at,is_public,created_at")
+      .order("created_at", { ascending: false });
     if (status !== "all") request = request.eq("status", status);
     const { data, error } = await request;
     setBusy(false);
@@ -100,9 +103,9 @@ function OverviewBlock() {
 
       <div className="mt-6 grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]">
         <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher un restaurant..." />
-        <select value={status} onChange={(e) => setStatus(e.target.value)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm">
+        <select value={status} onChange={(e) => setStatus(e.target.value as (typeof STATUSES)[number] | "all")} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm">
           <option value="all">Tous les status</option>
-          {STATUSES.map((value) => <option key={value} value={value}>{value}</option>)}
+          {STATUSES.map((value) => <option key={value} value={value}>`n              {value}`n            </option>)}
         </select>
       </div>
 
@@ -264,3 +267,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </label>
   );
 }
+
+
+

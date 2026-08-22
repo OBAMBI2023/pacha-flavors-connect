@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+﻿import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -85,7 +85,7 @@ function RestaurantDetailPage() {
           user_id: item.user_id,
           restaurant_id: item.restaurant_id,
           role: item.role,
-          status: item.status,
+          status: item.status as (typeof MEMBER_STATUSES)[number] | null,
           email: item.email,
         })),
       );
@@ -102,15 +102,19 @@ function RestaurantDetailPage() {
   if (!restaurant) return <main className="p-10 text-sm text-muted-foreground">Restaurant introuvable.</main>;
 
   async function saveRestaurant(patch: Partial<Pick<Restaurant, "status" | "is_public">>) {
-    const { error } = await supabase.from("restaurants").update(patch).eq("id", restaurant.id);
-    if (error) toast.error(error.message);
-    else {
-      toast.success("Restaurant mis a jour");
-      setRestaurant({ ...restaurant, ...patch });
+    const currentRestaurant = restaurant;
+    if (!currentRestaurant) return;
+    const { error } = await supabase.from("restaurants").update(patch).eq("id", currentRestaurant.id);
+    if (error) {
+      toast.error(error.message);
+      return;
     }
+    toast.success("Restaurant mis a jour");
+    setRestaurant((current) => (current ? { ...current, ...patch } : current));
   }
-
   async function addMember() {
+    const currentRestaurant = restaurant;
+    if (!currentRestaurant) return;
     const email = memberEmail.trim();
     if (!email) {
       toast.error("Renseignez un e-mail.");
@@ -118,7 +122,7 @@ function RestaurantDetailPage() {
     }
     try {
       const { error } = await supabase.rpc("super_admin_add_restaurant_member", {
-        _restaurant_id: restaurant.id,
+        _restaurant_id: currentRestaurant.id,
         _email: email,
         _role: memberRole,
       });
@@ -128,7 +132,7 @@ function RestaurantDetailPage() {
       }
       toast.success("Membre ajoute (ou mis a jour) pour ce restaurant");
       setMemberEmail("");
-      const { data, error: listError } = await supabase.rpc("super_admin_list_restaurant_members", { _restaurant_id: restaurant.id });
+      const { data, error: listError } = await supabase.rpc("super_admin_list_restaurant_members", { _restaurant_id: currentRestaurant.id });
       if (listError) {
         toast.error(listError.message);
         return;
@@ -139,7 +143,7 @@ function RestaurantDetailPage() {
           user_id: item.user_id,
           restaurant_id: item.restaurant_id,
           role: item.role,
-          status: item.status,
+          status: item.status as (typeof MEMBER_STATUSES)[number] | null,
           email: item.email,
         })),
       );
@@ -147,7 +151,6 @@ function RestaurantDetailPage() {
       toast.error(err instanceof Error ? err.message : "Erreur inattendue lors de l'ajout du membre.");
     }
   }
-
   return (
     <main className="min-h-screen bg-slate-950 px-4 py-6 text-slate-100 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl space-y-6">
@@ -234,3 +237,8 @@ function RestaurantDetailPage() {
     </main>
   );
 }
+
+
+
+
+

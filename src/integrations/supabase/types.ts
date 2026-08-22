@@ -185,6 +185,14 @@ export type Database = {
         Args: { p_slug: string }
         Returns: Json
       }
+      get_customer_orders: {
+        Args: { p_restaurant_slug: string; p_customer_phone: string }
+        Returns: Json
+      }
+      get_customer_order: {
+        Args: { p_order_id: string; p_customer_phone: string }
+        Returns: Json
+      }
       create_order: {
         Args: {
           p_slug: string

@@ -58,13 +58,28 @@ export function OrderCard({
         </p>
       </div>
 
-      <div className="flex items-center justify-between border-t border-border pt-3 text-sm">
-        <span className="flex items-center gap-1.5 text-muted-foreground">
-          <ShoppingBag className="h-3.5 w-3.5" /> {order.item_count} article{order.item_count > 1 ? "s" : ""}
-        </span>
-        <span className="font-display text-base font-semibold">
-          {order.total_amount.toLocaleString("fr-FR")} {order.currency}
-        </span>
+      <div className="space-y-1.5 border-t border-border pt-3 text-sm">
+        {order.items_summary && order.items_summary.length > 0 ? (
+          <ul className="space-y-1">
+            {order.items_summary.map((item) => (
+              <li key={item.id} className="flex items-center gap-1.5 text-muted-foreground">
+                <ShoppingBag className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">
+                  {item.quantity} × {item.product_name_snapshot}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <span className="flex items-center gap-1.5 text-muted-foreground">
+            <ShoppingBag className="h-3.5 w-3.5" /> {order.item_count} article{order.item_count > 1 ? "s" : ""}
+          </span>
+        )}
+        <div className="flex items-center justify-end">
+          <span className="font-display text-base font-semibold">
+            {order.total_amount.toLocaleString("fr-FR")} {order.currency}
+          </span>
+        </div>
       </div>
 
       {order.payment_status === "cash_pending" && (

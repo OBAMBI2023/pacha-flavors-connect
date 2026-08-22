@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchRestaurantOrders, type Order } from "@/lib/orders-db";
+import { fetchOrderItemsSummary, fetchRestaurantOrders, type Order } from "@/lib/orders-db";
 
 export type RealtimeConnectionState = "connecting" | "connected" | "disconnected" | "error";
 
@@ -55,8 +55,15 @@ export function useRealtimeOrders(
     setLoading(true);
     setConnectionState("connecting");
 
+    // The topic includes a per-mount random suffix -- `supabase.channel(topic)`
+    // returns the *same* channel object for a topic still being torn down
+    // (removeChannel below is async and not awaited), so a fast
+    // unmount+remount with an identical topic (React 18 double-invokes
+    // effects in dev) hands back an already-`subscribe()`d channel and the
+    // `.on()` calls below throw. A unique topic per effect run guarantees a
+    // fresh, never-subscribed channel every time.
     const channel = supabase
-      .channel(`orders-${restaurantId}`)
+      .channel(`orders-${restaurantId}-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` },
@@ -66,6 +73,13 @@ export function useRealtimeOrders(
           applyOrder(row);
           setNewOrderIds((prev) => new Set(prev).add(row.id));
           onNewOrderRef.current?.(row);
+          // The INSERT payload has no joined rows -- back-fill product names
+          // for the dashboard card once order_items has actually been written.
+          void fetchOrderItemsSummary(row.id).then((items_summary) => {
+            if (cancelled) return;
+            const current = ordersMapRef.current.get(row.id);
+            if (current) applyOrder({ ...current, items_summary });
+          });
         },
       )
       .on(

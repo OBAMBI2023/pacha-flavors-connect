@@ -1,12 +1,12 @@
 const CHIME_SRC = "/sounds/new-order.wav";
 const SOUND_PREF_KEY = "saovia:order-sound-enabled";
-const REPEAT_INTERVAL_MS = 12_000;
-const MAX_REPEATS = 5;
+const REPEAT_INTERVAL_MS = 2_000;
 
 let audioEl: HTMLAudioElement | null = null;
 let unlocked = false;
 let repeatTimer: ReturnType<typeof setInterval> | null = null;
-let repeatCount = 0;
+let autoplayBlocked = false;
+let blockedListener: (() => void) | null = null;
 
 function getAudioEl(): HTMLAudioElement {
   if (!audioEl) {
@@ -14,6 +14,26 @@ function getAudioEl(): HTMLAudioElement {
     audioEl.preload = "auto";
   }
   return audioEl;
+}
+
+/**
+ * Creates and starts fetching the chime element as early as possible (e.g.
+ * on dashboard mount) so the audio bytes are already in the browser's cache
+ * by the time a real order arrives -- without this, the *first* chime of a
+ * session pays for the network fetch, which is what reads as "slow to
+ * start". Safe to call regardless of whether the tenant has sound enabled.
+ */
+export function preloadOrderAudio(): void {
+  getAudioEl();
+}
+
+/**
+ * Registers a callback fired (at most once per autoplay-blocked streak) when
+ * the browser rejects a programmatic `.play()` call -- lets the UI surface a
+ * one-time "click to enable sound" hint instead of failing silently forever.
+ */
+export function setAutoplayBlockedListener(fn: (() => void) | null): void {
+  blockedListener = fn;
 }
 
 export function getSoundPreference(): boolean {
@@ -53,29 +73,31 @@ async function playOnce(): Promise<void> {
   try {
     el.currentTime = 0;
     await el.play();
+    autoplayBlocked = false;
   } catch {
-    // Ignore playback failures (autoplay policy, no user gesture yet, etc).
+    // Autoplay policy, no user gesture yet, etc -- surface it once instead
+    // of failing silently on every repeat tick.
+    if (!autoplayBlocked) {
+      autoplayBlocked = true;
+      blockedListener?.();
+    }
   }
 }
 
 /**
- * Starts playing the new-order chime and repeats it at a fixed interval,
- * capped at MAX_REPEATS, until `stopOrderChime` is called (order accepted,
- * refused, or otherwise acknowledged). Never overlaps multiple simultaneous
- * chimes even if several orders arrive in quick succession -- restarting the
- * repeat loop just resets the same single timer/element.
+ * Starts playing the new-order chime and repeats it indefinitely at a fixed
+ * interval until `stopOrderChime` is called -- which must only happen when
+ * the tenant explicitly accepts or refuses the order, never merely from
+ * opening/viewing it or closing a notification panel. Never overlaps
+ * multiple simultaneous chimes even if several orders arrive in quick
+ * succession or the caller re-triggers while already looping: restarting
+ * just resets the same single timer/element.
  */
 export function playNewOrderChime(): void {
   if (!getSoundPreference()) return;
   stopOrderChime();
-  repeatCount = 0;
   void playOnce();
   repeatTimer = setInterval(() => {
-    repeatCount += 1;
-    if (repeatCount >= MAX_REPEATS) {
-      stopOrderChime();
-      return;
-    }
     void playOnce();
   }, REPEAT_INTERVAL_MS);
 }
@@ -91,7 +113,6 @@ export function stopOrderChime(): void {
     clearInterval(repeatTimer);
     repeatTimer = null;
   }
-  repeatCount = 0;
   if (audioEl) {
     audioEl.pause();
     audioEl.currentTime = 0;

@@ -218,7 +218,7 @@ export function CartDrawer() {
         </div>
 
         {lines.length > 0 && (
-          <div className="sticky bottom-0 border-t border-border bg-background px-5 py-4 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
+          <div className="sticky bottom-0 border-t border-border bg-background px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
             <div className="flex items-center justify-between gap-3 text-sm">
               <span className="text-muted-foreground">Sous-total</span>
               <span className="text-right font-semibold">{subtotalLabel}</span>

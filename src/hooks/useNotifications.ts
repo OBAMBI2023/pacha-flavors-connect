@@ -25,8 +25,11 @@ export function useNotifications(restaurantId: string | null) {
     seenIds.current = new Set();
     setLoading(true);
 
+    // Unique per-mount topic suffix: see the identical comment in
+    // useRealtimeOrders.ts -- avoids `.on()` throwing on a channel that's
+    // still being torn down from a fast unmount+remount with the same topic.
     const channel = supabase
-      .channel(`notifications-${restaurantId}`)
+      .channel(`notifications-${restaurantId}-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "notifications", filter: `restaurant_id=eq.${restaurantId}` },

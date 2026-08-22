@@ -18,6 +18,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { OrdersPanel } from "@/components/admin/orders/OrdersPanel";
+import { useOrdersAlert } from "@/hooks/useOrdersAlert";
 import { DashboardHome } from "@/components/admin/home/DashboardHome";
 import { StatisticsPanel } from "@/components/admin/stats/StatisticsPanel";
 import { FinancialPanel } from "@/components/admin/finance/FinancialPanel";
@@ -45,6 +46,7 @@ export default function AdminPage() {
   const queryClient = useQueryClient();
   const { data } = useAdminMenuData(restaurantId);
   const [tab, setTab] = useState("accueil");
+  const ordersAlert = useOrdersAlert(restaurantId, { onViewOrder: () => setTab("commandes") });
   const [busy, setBusy] = useState(false);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -212,9 +214,9 @@ export default function AdminPage() {
         <div className="flex flex-wrap items-center gap-2"><NotificationBell restaurantId={restaurantId} /><Button variant="outline" onClick={() => window.open(publicHref, "_blank", "noopener,noreferrer")}>Prévisualiser mon site</Button><Button variant="outline" onClick={async () => { await supabase.auth.signOut(); navigate({ to: "/auth", replace: true }); }}>Déconnexion</Button></div>
       </div>
       <Tabs value={tab} onValueChange={setTab} className="space-y-6">
-        <TabsList className="h-auto flex-wrap justify-start bg-transparent p-0"><TabsTrigger value="accueil">Accueil</TabsTrigger><TabsTrigger value="commandes">Commandes</TabsTrigger><TabsTrigger value="statistiques">Statistiques</TabsTrigger><TabsTrigger value="finances">Finances</TabsTrigger><TabsTrigger value="menu">Carte</TabsTrigger><TabsTrigger value="storefront">Site vitrine</TabsTrigger><TabsTrigger value="contact">Coordonnées</TabsTrigger><TabsTrigger value="settings">Paramètres</TabsTrigger></TabsList>
+        <TabsList className="h-auto flex-wrap justify-start bg-transparent p-0"><TabsTrigger value="accueil">Accueil</TabsTrigger><TabsTrigger value="commandes" className="relative">Commandes{ordersAlert.pendingCount > 0 && <span className="ml-1.5 rounded-full bg-primary px-1.5 py-0.5 text-[0.65rem] font-semibold text-primary-foreground">{ordersAlert.pendingCount}</span>}</TabsTrigger><TabsTrigger value="statistiques">Statistiques</TabsTrigger><TabsTrigger value="finances">Finances</TabsTrigger><TabsTrigger value="menu">Carte</TabsTrigger><TabsTrigger value="storefront">Site vitrine</TabsTrigger><TabsTrigger value="contact">Coordonnées</TabsTrigger><TabsTrigger value="settings">Paramètres</TabsTrigger></TabsList>
         <TabsContent value="accueil"><DashboardHome restaurantId={restaurantId} publicHref={publicHref} onNavigateTab={setTab} /></TabsContent>
-        <TabsContent value="commandes"><OrdersPanel restaurantId={restaurantId} /></TabsContent>
+        <TabsContent value="commandes"><OrdersPanel {...ordersAlert} /></TabsContent>
         <TabsContent value="statistiques"><StatisticsPanel /></TabsContent>
         <TabsContent value="finances"><FinancialPanel /></TabsContent>
         <TabsContent value="menu" className="space-y-6"><Card className="p-5"><MenuCategoriesPanel categories={data?.categories ?? []} counts={categoryCounts} busy={busy} onAdd={() => { setEditingCategory(null); setCategoryLabel(""); setCategoryDialogOpen(true); }} onEdit={(cat) => { setEditingCategory(cat); setCategoryLabel(cat.label); setCategoryDialogOpen(true); }} onDelete={setCategoryDelete} /></Card><Card className="p-5"><MenuItemsPanel rows={filteredRows} categories={data?.categories ?? []} busy={busy} search={search} setSearch={setSearch} categoryFilter={categoryFilter} setCategoryFilter={setCategoryFilter} onAdd={() => { setEditingItem(null); setItemPreview(null); setItemForm({ name: "", subtitle: "", description: "", price: "", category_id: data?.categories[0]?.id ?? "", position: String((data?.rows.length ?? 0) + 1), available: true, daily: false, image_path: "" }); setItemDialogOpen(true); }} onEdit={(row) => { setEditingItem(row); setItemForm({ name: row.name, subtitle: row.subtitle ?? "", description: row.description, price: row.price === null ? "" : String(row.price), category_id: row.category_id ?? "", position: String(row.position), available: row.available, daily: row.daily, image_path: row.image_path ?? "" }); setItemDialogOpen(true); }} onDelete={setItemDelete} /></Card></TabsContent>

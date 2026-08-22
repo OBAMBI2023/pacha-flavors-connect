@@ -172,6 +172,18 @@ export type Order = {
   out_for_delivery_at: string | null;
   delivered_at: string | null;
   cancelled_at: string | null;
+  /**
+   * Populated by `fetchRestaurantOrders`'s embedded select; realtime INSERT
+   * payloads don't include joined rows, so `useRealtimeOrders` back-fills
+   * this for orders that arrive live via `fetchOrderItemsSummary`.
+   */
+  items_summary?: OrderItemSummary[];
+};
+
+export type OrderItemSummary = {
+  id: string;
+  product_name_snapshot: string;
+  quantity: number;
 };
 
 export type OrderItemOption = {
@@ -218,13 +230,28 @@ export async function fetchRestaurantOrders(restaurantId: string): Promise<Order
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const { data, error } = await supabase
     .from("orders")
-    .select("*")
+    .select("*, items_summary:order_items(id,product_name_snapshot,quantity)")
     .eq("restaurant_id", restaurantId)
     .or(`status.not.in.(${TERMINAL_STATUSES.join(",")}),created_at.gt.${since}`)
     .order("created_at", { ascending: false })
     .limit(200);
   if (error) throw error;
   return (data ?? []) as unknown as Order[];
+}
+
+/**
+ * Back-fills `items_summary` for a single order -- used when Realtime
+ * delivers a bare `orders` INSERT payload (no joined rows) so the dashboard
+ * card can still show product names without waiting for a full refetch.
+ */
+export async function fetchOrderItemsSummary(orderId: string): Promise<OrderItemSummary[]> {
+  const { data, error } = await supabase
+    .from("order_items")
+    .select("id,product_name_snapshot,quantity")
+    .eq("order_id", orderId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as unknown as OrderItemSummary[];
 }
 
 type OrderItemRow = {
