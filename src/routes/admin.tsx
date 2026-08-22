@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { MapPin, PencilLine, Plus, Search, Trash2 } from "lucide-react";
+import { ImagePlus, MapPin, PencilLine, Plus, Search, Trash2 } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,6 +22,9 @@ import { useOrdersAlert } from "@/hooks/useOrdersAlert";
 import { DashboardHome } from "@/components/admin/home/DashboardHome";
 import { StatisticsPanel } from "@/components/admin/stats/StatisticsPanel";
 import { FinancialPanel } from "@/components/admin/finance/FinancialPanel";
+import { PromotionsPanel } from "@/components/admin/promotions/PromotionsPanel";
+import { OptionGroupsManager } from "@/components/admin/menu/OptionGroupsManager";
+import { createPromotion, fetchPromotions, setPromotionStatus, updatePromotion, type Promotion } from "@/lib/promotions";
 import { NotificationBell } from "@/components/admin/notifications/NotificationBell";
 import { SubscriptionCard } from "@/components/admin/settings/SubscriptionCard";
 import { SecurityCard } from "@/components/admin/settings/SecurityCard";
@@ -34,7 +37,10 @@ const MAX_ASSET_SIZE_BYTES = 5 * 1024 * 1024;
 
 type Cat = { id: string; label: string; position: number };
 type RestaurantForm = { name: string; logo_url: string; cover_url: string; address: string; commune: string; city: string; phone: string; whatsapp_phone: string; email: string; is_public: boolean; lat: string; lng: string };
-type ItemForm = { name: string; subtitle: string; description: string; price: string; category_id: string; position: string; available: boolean; daily: boolean; image_path: string };
+type ItemForm = { name: string; subtitle: string; description: string; price: string; category_id: string; position: string; available: boolean; daily: boolean; image_path: string; promotionEnabled: boolean; promotionalPrice: string };
+function emptyItemForm(data?: { categoryId?: string | undefined; position?: string | undefined }): ItemForm {
+  return { name: "", subtitle: "", description: "", price: "", category_id: data?.categoryId ?? "", position: data?.position ?? "0", available: true, daily: false, image_path: "", promotionEnabled: false, promotionalPrice: "" };
+}
 
 export const Route = createFileRoute("/admin")({ ssr: false, head: () => ({ meta: [{ title: TITLE }, { name: "description", content: DESCRIPTION }, { name: "robots", content: "noindex" }] }), component: AdminPage });
 
@@ -61,8 +67,10 @@ export default function AdminPage() {
   const [editingItem, setEditingItem] = useState<DbMenuItem | null>(null);
   const [categoryLabel, setCategoryLabel] = useState("");
   const [restaurantForm, setRestaurantForm] = useState<RestaurantForm>(emptyRestaurantForm());
-  const [itemForm, setItemForm] = useState<ItemForm>({ name: "", subtitle: "", description: "", price: "", category_id: "", position: "0", available: true, daily: false, image_path: "" });
+  const [itemForm, setItemForm] = useState<ItemForm>(() => emptyItemForm());
   const [itemPreview, setItemPreview] = useState<string | null>(null);
+  const [existingPromotion, setExistingPromotion] = useState<Promotion | null>(null);
+  const [promotionsRefreshSignal, setPromotionsRefreshSignal] = useState(0);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
 
@@ -122,22 +130,91 @@ export default function AdminPage() {
     setEditingCategory(null); setCategoryLabel(""); setCategoryDialogOpen(false); await refresh();
   }
 
+  /** Preloads the product's promotion (if any) when opening the edit dialog, so the quick "Promotion" toggle reflects reality instead of always starting unchecked. */
+  async function loadItemPromotion(productId: string, normalPrice: number | null): Promise<void> {
+    const rid = restaurantId;
+    if (!rid) return;
+    try {
+      const all = await fetchPromotions(rid);
+      const promo = all.find((p) => p.product_id === productId) ?? null;
+      setExistingPromotion(promo);
+      if (promo && promo.type === "fixed_amount" && promo.value != null && normalPrice != null) {
+        setItemForm((c) => ({ ...c, promotionEnabled: promo.status === "active", promotionalPrice: String(normalPrice - promo.value!) }));
+      }
+    } catch {
+      // Non-fatal: the quick toggle just won't preload, editing still works.
+    }
+  }
+
+  /** Quick promotion toggle in the item editor -- only ever creates/edits a simple fixed_amount promotion. A pre-existing percentage/free_delivery promotion (managed from the Promotions tab) is left untouched, matching the read-only notice shown in the dialog. */
+  async function saveItemPromotion(productId: string, normalPrice: number | null): Promise<void> {
+    if (existingPromotion && existingPromotion.type !== "fixed_amount") return;
+
+    if (itemForm.promotionEnabled && normalPrice !== null) {
+      const promoPrice = Number(itemForm.promotionalPrice);
+      const discount = normalPrice - promoPrice;
+      const promoInput = {
+        product_id: productId,
+        title: existingPromotion?.title ?? "Promotion",
+        type: "fixed_amount" as const,
+        value: discount,
+        starts_at: existingPromotion?.starts_at ?? new Date().toISOString(),
+        ends_at: existingPromotion?.ends_at ?? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+      };
+      if (existingPromotion) {
+        await updatePromotion(existingPromotion.id, promoInput);
+        if (existingPromotion.status !== "active") await setPromotionStatus(existingPromotion.id, "active");
+      } else {
+        await createPromotion(restaurantId as string, promoInput, "active");
+      }
+    } else if (existingPromotion && existingPromotion.status === "active") {
+      await setPromotionStatus(existingPromotion.id, "inactive");
+    }
+    setPromotionsRefreshSignal((n) => n + 1);
+  }
+
   async function saveItem(): Promise<void> {
     const rid = restaurantId;
     if (!rid || !itemForm.name.trim()) return;
-    setBusy(true);
-    const payload = { name: itemForm.name.trim(), subtitle: itemForm.subtitle.trim() || null, description: itemForm.description.trim(), price: itemForm.price.trim() === "" ? null : Number(itemForm.price), category_id: itemForm.category_id || null, sort_order: Number(itemForm.position) || 0, is_available: itemForm.available, is_daily_menu: itemForm.daily };
-    const result = editingItem
-      ? await supabase.from("restaurant_products").update(payload as any).eq("id", editingItem.id).eq("restaurant_id", rid)
-      : await supabase.from("restaurant_products").insert({ restaurant_id: rid, slug: `${slugify(itemForm.name.trim())}-${Date.now().toString(36)}`, image_path: itemForm.image_path || null, ...payload } as any);
-    setBusy(false);
-    if (result.error) {
-      toast.error(result.error.message);
-      return;
+
+    const normalPrice = itemForm.price.trim() === "" ? null : Number(itemForm.price);
+    if (itemForm.promotionEnabled && (!existingPromotion || existingPromotion.type === "fixed_amount")) {
+      const promoPrice = itemForm.promotionalPrice.trim() === "" ? null : Number(itemForm.promotionalPrice);
+      if (normalPrice === null) { toast.error("Indiquez un prix normal avant d'activer une promotion."); return; }
+      if (promoPrice === null || promoPrice <= 0) { toast.error("Indiquez un prix promotionnel."); return; }
+      if (promoPrice >= normalPrice) { toast.error("Le prix promotionnel doit être inférieur au prix normal."); return; }
     }
+
+    setBusy(true);
+    const payload = { name: itemForm.name.trim(), subtitle: itemForm.subtitle.trim() || null, description: itemForm.description.trim(), price: normalPrice, category_id: itemForm.category_id || null, sort_order: Number(itemForm.position) || 0, is_available: itemForm.available, is_daily_menu: itemForm.daily };
+    let productId: string | null = editingItem?.id ?? null;
+    if (editingItem) {
+      const { error } = await supabase.from("restaurant_products").update(payload as any).eq("id", editingItem.id).eq("restaurant_id", rid);
+      if (error) { setBusy(false); toast.error(error.message); return; }
+    } else {
+      const { data: inserted, error } = await supabase
+        .from("restaurant_products")
+        .insert({ restaurant_id: rid, slug: `${slugify(itemForm.name.trim())}-${Date.now().toString(36)}`, image_path: itemForm.image_path || null, ...payload } as any)
+        .select("id")
+        .single();
+      if (error) { setBusy(false); toast.error(error.message); return; }
+      productId = inserted.id;
+    }
+
+    if (productId) {
+      try {
+        await saveItemPromotion(productId, normalPrice);
+      } catch (err) {
+        setBusy(false);
+        toast.error(err instanceof Error ? err.message : "Le plat a été enregistré, mais la promotion n'a pas pu être mise à jour.");
+        return;
+      }
+    }
+
+    setBusy(false);
     toast.success(editingItem ? "Plat mis à jour" : "Plat ajouté");
-    setEditingItem(null); setItemDialogOpen(false); setItemPreview(null);
-    setItemForm({ name: "", subtitle: "", description: "", price: "", category_id: data?.categories[0]?.id ?? "", position: String((data?.rows.length ?? 0) + 1), available: true, daily: false, image_path: "" });
+    setEditingItem(null); setItemDialogOpen(false); setItemPreview(null); setExistingPromotion(null);
+    setItemForm(emptyItemForm({ categoryId: data?.categories[0]?.id, position: String((data?.rows.length ?? 0) + 1) }));
     await refresh();
   }
 
@@ -217,18 +294,86 @@ export default function AdminPage() {
         <div className="flex flex-wrap items-center gap-2"><NotificationBell restaurantId={restaurantId} /><Button variant="outline" onClick={() => window.open(publicHref, "_blank", "noopener,noreferrer")}>Prévisualiser mon site</Button><Button variant="outline" onClick={async () => { await supabase.auth.signOut(); navigate({ to: "/auth", replace: true }); }}>Déconnexion</Button></div>
       </div>
       <Tabs value={tab} onValueChange={setTab} className="space-y-6">
-        <TabsList className="h-auto flex-wrap justify-start bg-transparent p-0"><TabsTrigger value="accueil">Accueil</TabsTrigger><TabsTrigger value="commandes" className="relative">Commandes{ordersAlert.pendingCount > 0 && <span className="ml-1.5 rounded-full bg-primary px-1.5 py-0.5 text-[0.65rem] font-semibold text-primary-foreground">{ordersAlert.pendingCount}</span>}</TabsTrigger><TabsTrigger value="statistiques">Statistiques</TabsTrigger><TabsTrigger value="finances">Finances</TabsTrigger><TabsTrigger value="menu">Carte</TabsTrigger><TabsTrigger value="storefront">Site vitrine</TabsTrigger><TabsTrigger value="contact">Coordonnées</TabsTrigger><TabsTrigger value="settings">Paramètres</TabsTrigger></TabsList>
+        <TabsList className="h-auto w-full flex-nowrap justify-start gap-1 overflow-x-auto bg-transparent p-0 [scrollbar-width:none] sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden"><TabsTrigger value="accueil" className="shrink-0">Accueil</TabsTrigger><TabsTrigger value="commandes" className="relative shrink-0">Commandes{ordersAlert.pendingCount > 0 && <span className="ml-1.5 rounded-full bg-primary px-1.5 py-0.5 text-[0.65rem] font-semibold text-primary-foreground">{ordersAlert.pendingCount}</span>}</TabsTrigger><TabsTrigger value="statistiques" className="shrink-0">Statistiques</TabsTrigger><TabsTrigger value="finances" className="shrink-0">Finances</TabsTrigger><TabsTrigger value="menu" className="shrink-0">Carte</TabsTrigger><TabsTrigger value="promotions" className="shrink-0">Promotions</TabsTrigger><TabsTrigger value="storefront" className="shrink-0">Site vitrine</TabsTrigger><TabsTrigger value="contact" className="shrink-0">Coordonnées</TabsTrigger><TabsTrigger value="settings" className="shrink-0">Paramètres</TabsTrigger></TabsList>
         <TabsContent value="accueil"><DashboardHome restaurantId={restaurantId} publicHref={publicHref} onNavigateTab={setTab} /></TabsContent>
         <TabsContent value="commandes"><OrdersPanel restaurantId={restaurantId} {...ordersAlert} /></TabsContent>
         <TabsContent value="statistiques"><StatisticsPanel /></TabsContent>
         <TabsContent value="finances"><FinancialPanel /></TabsContent>
-        <TabsContent value="menu" className="space-y-6"><Card className="p-5"><MenuCategoriesPanel categories={data?.categories ?? []} counts={categoryCounts} busy={busy} onAdd={() => { setEditingCategory(null); setCategoryLabel(""); setCategoryDialogOpen(true); }} onEdit={(cat) => { setEditingCategory(cat); setCategoryLabel(cat.label); setCategoryDialogOpen(true); }} onDelete={setCategoryDelete} /></Card><Card className="p-5"><MenuItemsPanel rows={filteredRows} categories={data?.categories ?? []} busy={busy} search={search} setSearch={setSearch} categoryFilter={categoryFilter} setCategoryFilter={setCategoryFilter} onAdd={() => { setEditingItem(null); setItemPreview(null); setItemForm({ name: "", subtitle: "", description: "", price: "", category_id: data?.categories[0]?.id ?? "", position: String((data?.rows.length ?? 0) + 1), available: true, daily: false, image_path: "" }); setItemDialogOpen(true); }} onEdit={(row) => { setEditingItem(row); setItemForm({ name: row.name, subtitle: row.subtitle ?? "", description: row.description, price: row.price === null ? "" : String(row.price), category_id: row.category_id ?? "", position: String(row.position), available: row.available, daily: row.daily, image_path: row.image_path ?? "" }); setItemDialogOpen(true); }} onDelete={setItemDelete} /></Card></TabsContent>
+        <TabsContent value="menu" className="space-y-6"><Card className="p-5"><MenuCategoriesPanel categories={data?.categories ?? []} counts={categoryCounts} busy={busy} onAdd={() => { setEditingCategory(null); setCategoryLabel(""); setCategoryDialogOpen(true); }} onEdit={(cat) => { setEditingCategory(cat); setCategoryLabel(cat.label); setCategoryDialogOpen(true); }} onDelete={setCategoryDelete} /></Card><Card className="p-5"><MenuItemsPanel rows={filteredRows} categories={data?.categories ?? []} busy={busy} search={search} setSearch={setSearch} categoryFilter={categoryFilter} setCategoryFilter={setCategoryFilter} onAdd={() => { setEditingItem(null); setItemPreview(null); setExistingPromotion(null); setItemForm(emptyItemForm({ categoryId: data?.categories[0]?.id, position: String((data?.rows.length ?? 0) + 1) })); setItemDialogOpen(true); }} onEdit={(row) => { setEditingItem(row); setExistingPromotion(null); setItemForm({ name: row.name, subtitle: row.subtitle ?? "", description: row.description, price: row.price === null ? "" : String(row.price), category_id: row.category_id ?? "", position: String(row.position), available: row.available, daily: row.daily, image_path: row.image_path ?? "", promotionEnabled: false, promotionalPrice: "" }); setItemDialogOpen(true); void loadItemPromotion(row.id, row.price); }} onDelete={setItemDelete} /></Card></TabsContent>
+        <TabsContent value="promotions"><PromotionsPanel restaurantId={restaurantId} products={data?.rows ?? []} refreshSignal={promotionsRefreshSignal} /></TabsContent>
         <TabsContent value="storefront" className="grid gap-6 lg:grid-cols-2"><Card className="space-y-5 p-5"><div><h2 className="font-display text-2xl font-semibold">Site vitrine</h2><p className="text-sm text-muted-foreground">Nom, visibilité publique, logo, cover et coordonnées.</p></div><div className="space-y-4"><Field label="Nom du restaurant"><Input value={restaurantForm.name} onChange={(e) => setRestaurantForm((c) => ({ ...c, name: e.target.value }))} /></Field><div className="grid gap-4 md:grid-cols-2"><AssetField label="Logo" preview={logoPreview} onPick={(file) => void uploadRestaurantAsset(file, "logo_url")} busy={busy} accept={ACCEPTED_IMAGE_TYPES.join(",")} /><AssetField label="Cover" preview={coverPreview} onPick={(file) => void uploadRestaurantAsset(file, "cover_url")} busy={busy} fullWidth accept={ACCEPTED_IMAGE_TYPES.join(",")} /></div><div className="flex items-center gap-3 rounded-2xl border border-border px-4 py-3"><Switch checked={restaurantForm.is_public} onCheckedChange={(checked) => setRestaurantForm((c) => ({ ...c, is_public: checked }))} /><div><p className="text-sm font-medium">Visibilité publique</p><p className="text-xs text-muted-foreground">Le site du tenant est exposé publiquement.</p></div></div></div><Button onClick={() => void saveRestaurant()} disabled={busy}>{busy ? "Enregistrement..." : "Enregistrer la vitrine"}</Button></Card><Card className="space-y-4 p-5"><h3 className="font-semibold">Aperçu</h3><div className="overflow-hidden rounded-3xl border border-border"><div className="min-h-48 bg-muted" style={coverPreview ? { backgroundImage: `url(${coverPreview})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}>{!coverPreview && <div className="flex min-h-48 items-center justify-center text-sm text-muted-foreground">Fond neutre générique</div>}</div></div><div className="flex items-center gap-3 rounded-2xl border border-border p-4">{logoPreview ? <img src={logoPreview} alt="Logo" className="h-14 w-14 rounded-2xl object-cover" /> : <div className="h-14 w-14 rounded-2xl bg-muted" />}<div><p className="font-medium">{restaurantForm.name || restaurant?.name || "Restaurant"}</p><p className="text-sm text-muted-foreground">{`/r/${restaurant?.slug ?? "slug"}`}</p></div></div></Card></TabsContent>
         <TabsContent value="contact" className="grid gap-6 lg:grid-cols-2"><Card className="space-y-4 p-5"><div><h2 className="font-display text-2xl font-semibold">Coordonnées</h2><p className="text-sm text-muted-foreground">Adresse, téléphone, WhatsApp et email.</p></div><div className="grid gap-4 md:grid-cols-2"><Field label="Adresse"><Textarea value={restaurantForm.address} onChange={(e) => setRestaurantForm((c) => ({ ...c, address: e.target.value }))} /></Field><Field label="Commune"><Input value={restaurantForm.commune} onChange={(e) => setRestaurantForm((c) => ({ ...c, commune: e.target.value }))} /></Field><Field label="Ville"><Input value={restaurantForm.city} onChange={(e) => setRestaurantForm((c) => ({ ...c, city: e.target.value }))} /></Field><Field label="Téléphone"><Input value={restaurantForm.phone} onChange={(e) => setRestaurantForm((c) => ({ ...c, phone: e.target.value }))} /></Field><Field label="WhatsApp"><Input value={restaurantForm.whatsapp_phone} onChange={(e) => setRestaurantForm((c) => ({ ...c, whatsapp_phone: e.target.value }))} /></Field><Field label="Email"><Input type="email" value={restaurantForm.email} onChange={(e) => setRestaurantForm((c) => ({ ...c, email: e.target.value }))} /></Field></div><Button onClick={() => void saveRestaurant()} disabled={busy}>{busy ? "Enregistrement..." : "Enregistrer les coordonnées"}</Button></Card><Card className="space-y-4 p-5"><div><h3 className="font-semibold">Localisation</h3><p className="text-sm text-muted-foreground">La carte est masquée si aucune adresse exploitable n’existe.</p></div>{mapPreview ? <iframe title="Prévisualisation Google Maps" src={mapPreview} className="h-80 w-full rounded-3xl border border-border" loading="lazy" referrerPolicy="no-referrer-when-downgrade" /> : <div className="flex h-80 items-center justify-center rounded-3xl border border-dashed border-border text-sm text-muted-foreground">Aucune carte</div>}<div className="rounded-2xl border border-border p-4 text-sm text-muted-foreground"><MapPin className="mb-2 h-4 w-4" />{mapsQuery(restaurantForm) || "Renseignez une adresse, une commune ou une ville."}</div><div className="space-y-2 rounded-2xl border border-border p-4"><p className="text-sm font-medium">Coordonnées GPS</p><p className="text-xs text-muted-foreground">Position exacte du restaurant, utilisée pour trouver automatiquement le livreur le plus proche. Sans elle, la recherche de livreur ne peut pas démarrer.</p><div className="grid gap-3 sm:grid-cols-2"><Field label="Latitude"><Input type="number" step="any" placeholder="5.379" value={restaurantForm.lat} onChange={(e) => setRestaurantForm((c) => ({ ...c, lat: e.target.value }))} /></Field><Field label="Longitude"><Input type="number" step="any" placeholder="-3.988" value={restaurantForm.lng} onChange={(e) => setRestaurantForm((c) => ({ ...c, lng: e.target.value }))} /></Field></div><Button size="sm" variant="outline" onClick={() => void saveRestaurant()} disabled={busy}>{busy ? "Enregistrement..." : "Enregistrer la position"}</Button></div></Card></TabsContent>
         <TabsContent value="settings" className="space-y-6"><Card className="p-5"><h2 className="font-display text-2xl font-semibold">Paramètres</h2><p className="mt-2 text-sm text-muted-foreground">Section réservée aux réglages complémentaires sans toucher à l’isolation multi-tenant.</p></Card><SubscriptionCard restaurantId={restaurantId} /><SecurityCard email={user.email ?? null} /></TabsContent>
       </Tabs>
       <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}><DialogContent><DialogHeader><DialogTitle>{editingCategory ? "Modifier la catégorie" : "Ajouter une catégorie"}</DialogTitle><DialogDescription>Formulaire compact dédié aux catégories.</DialogDescription></DialogHeader><Field label="Nom"><Input value={categoryLabel} onChange={(e) => setCategoryLabel(e.target.value)} /></Field><DialogFooter><Button variant="outline" onClick={() => setCategoryDialogOpen(false)} disabled={busy}>Annuler</Button><Button onClick={() => void saveCategory()} disabled={busy}>{busy ? "Sauvegarde..." : "Enregistrer"}</Button></DialogFooter></DialogContent></Dialog>
-      <Dialog open={itemDialogOpen} onOpenChange={setItemDialogOpen}><DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl"><DialogHeader><DialogTitle>{editingItem ? "Modifier le plat" : "Ajouter un plat"}</DialogTitle><DialogDescription>Le même formulaire sert à la création et à l’édition.</DialogDescription></DialogHeader><div className="grid gap-4 md:grid-cols-2"><Field label="Nom"><Input value={itemForm.name} onChange={(e) => setItemForm((c) => ({ ...c, name: e.target.value }))} /></Field><Field label="Sous-titre"><Input value={itemForm.subtitle} onChange={(e) => setItemForm((c) => ({ ...c, subtitle: e.target.value }))} /></Field><div className="md:col-span-2"><Field label="Description"><Textarea value={itemForm.description} onChange={(e) => setItemForm((c) => ({ ...c, description: e.target.value }))} /></Field></div><Field label="Prix"><Input type="number" min={0} value={itemForm.price} onChange={(e) => setItemForm((c) => ({ ...c, price: e.target.value }))} /></Field><Field label="Catégorie"><select value={itemForm.category_id} onChange={(e) => setItemForm((c) => ({ ...c, category_id: e.target.value }))} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="">Sans catégorie</option>{data?.categories.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}</select></Field><Field label="Ordre"><Input type="number" value={itemForm.position} onChange={(e) => setItemForm((c) => ({ ...c, position: e.target.value }))} /></Field><div className="flex items-end gap-6 md:col-span-2"><label className="flex items-center gap-2 text-sm"><Switch checked={itemForm.available} onCheckedChange={(v) => setItemForm((c) => ({ ...c, available: v }))} /> Disponible</label><label className="flex items-center gap-2 text-sm"><Switch checked={itemForm.daily} onCheckedChange={(v) => setItemForm((c) => ({ ...c, daily: v }))} /> Menu du jour</label></div><div className="md:col-span-2"><AssetField label="Photo" preview={itemPreview || itemForm.image_path} onPick={(file) => void uploadItemImage(file)} busy={busy} /></div></div><DialogFooter><Button variant="outline" onClick={() => setItemDialogOpen(false)} disabled={busy}>Annuler</Button><Button onClick={() => void saveItem()} disabled={busy}>{busy ? "Sauvegarde..." : "Enregistrer"}</Button></DialogFooter></DialogContent></Dialog>
+      <Dialog open={itemDialogOpen} onOpenChange={setItemDialogOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{editingItem ? "Modifier le plat" : "Ajouter un plat"}</DialogTitle>
+            <DialogDescription>Le même formulaire sert à la création et à l'édition.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-5">
+            <ItemPhotoField preview={itemPreview} onPick={(file) => void uploadItemImage(file)} busy={busy} />
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Nom"><Input value={itemForm.name} onChange={(e) => setItemForm((c) => ({ ...c, name: e.target.value }))} /></Field>
+              <Field label="Sous-titre"><Input value={itemForm.subtitle} onChange={(e) => setItemForm((c) => ({ ...c, subtitle: e.target.value }))} /></Field>
+            </div>
+
+            <Field label="Description"><Textarea rows={3} value={itemForm.description} onChange={(e) => setItemForm((c) => ({ ...c, description: e.target.value }))} /></Field>
+
+            <Field label="Prix (FCFA)"><Input type="number" min={0} value={itemForm.price} onChange={(e) => setItemForm((c) => ({ ...c, price: e.target.value }))} /></Field>
+
+            <div className="space-y-3 rounded-2xl border border-border p-4">
+              <label className="flex items-center justify-between gap-3">
+                <span className="text-sm font-medium">Promotion</span>
+                <Switch
+                  checked={itemForm.promotionEnabled}
+                  disabled={Boolean(existingPromotion) && existingPromotion?.type !== "fixed_amount"}
+                  onCheckedChange={(v) => setItemForm((c) => ({ ...c, promotionEnabled: v }))}
+                />
+              </label>
+              {existingPromotion && existingPromotion.type !== "fixed_amount" ? (
+                <p className="text-xs text-muted-foreground">
+                  Une promotion ({existingPromotion.type === "percentage" ? `-${existingPromotion.value}%` : "livraison gratuite"}) est déjà active sur ce plat. Gérez-la depuis l'onglet Promotions.
+                </p>
+              ) : itemForm.promotionEnabled ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label="Prix normal"><Input type="number" value={itemForm.price} disabled className="bg-muted" /></Field>
+                  <Field label="Prix promotionnel"><Input type="number" min={0} value={itemForm.promotionalPrice} onChange={(e) => setItemForm((c) => ({ ...c, promotionalPrice: e.target.value }))} /></Field>
+                  {itemForm.price.trim() !== "" && itemForm.promotionalPrice.trim() !== "" && Number(itemForm.promotionalPrice) > 0 && Number(itemForm.promotionalPrice) < Number(itemForm.price) && (
+                    <p className="text-xs text-muted-foreground sm:col-span-2">
+                      Aperçu client : <span className="line-through">{Number(itemForm.price).toLocaleString("fr-FR")} FCFA</span>{" "}
+                      <span className="font-semibold text-primary">{Number(itemForm.promotionalPrice).toLocaleString("fr-FR")} FCFA</span>
+                    </p>
+                  )}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Catégorie">
+                <select value={itemForm.category_id} onChange={(e) => setItemForm((c) => ({ ...c, category_id: e.target.value }))} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+                  <option value="">Sans catégorie</option>
+                  {data?.categories.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+                </select>
+              </Field>
+              <Field label="Ordre"><Input type="number" value={itemForm.position} onChange={(e) => setItemForm((c) => ({ ...c, position: e.target.value }))} /></Field>
+            </div>
+
+            <div className="flex flex-wrap gap-6">
+              <label className="flex items-center gap-2 text-sm"><Switch checked={itemForm.available} onCheckedChange={(v) => setItemForm((c) => ({ ...c, available: v }))} /> Disponible</label>
+              <label className="flex items-center gap-2 text-sm"><Switch checked={itemForm.daily} onCheckedChange={(v) => setItemForm((c) => ({ ...c, daily: v }))} /> Menu du jour</label>
+            </div>
+
+            {restaurantId && <OptionGroupsManager restaurantId={restaurantId} productId={editingItem?.id ?? null} />}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setItemDialogOpen(false)} disabled={busy}>Annuler</Button>
+            <Button onClick={() => void saveItem()} disabled={busy}>{busy ? "Sauvegarde..." : "Enregistrer"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <AlertDialog open={Boolean(categoryDelete)} onOpenChange={(open) => !open && setCategoryDelete(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Supprimer cette catégorie ?</AlertDialogTitle><AlertDialogDescription>Cette action est définitive.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={busy}>Annuler</AlertDialogCancel><AlertDialogAction onClick={() => void removeCategory()} disabled={busy}>Supprimer</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
       <AlertDialog open={Boolean(itemDelete)} onOpenChange={(open) => !open && setItemDelete(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Supprimer ce plat ?</AlertDialogTitle><AlertDialogDescription>Cette action est définitive.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={busy}>Annuler</AlertDialogCancel><AlertDialogAction onClick={() => void removeItem()} disabled={busy}>Supprimer</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
     </main>
@@ -244,6 +389,46 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 
 function AssetField({ label, preview, onPick, busy, fullWidth = false, accept = "image/*" }: { label: string; preview: string | null; onPick: (file: File) => void; busy: boolean; fullWidth?: boolean; accept?: string }) {
   return (<div className={`space-y-2 ${fullWidth ? "md:col-span-2" : ""}`}><Label>{label}</Label><div className="rounded-2xl border border-dashed border-border p-4">{preview ? <img src={preview} alt={label} className="mb-3 h-24 w-full rounded-2xl object-cover" /> : <div className="mb-3 h-24 rounded-2xl bg-muted" />}<Input type="file" accept={accept} disabled={busy} onChange={(e) => { const file = e.target.files?.[0]; if (file) onPick(file); e.target.value = ""; }} /></div></div>);
+}
+
+/** Large, modern photo dropzone for the item editor -- distinct from AssetField (used for the small logo/cover thumbnails) so enlarging this one doesn't affect those. */
+function ItemPhotoField({ preview, onPick, busy }: { preview: string | null; onPick: (file: File) => void; busy: boolean }) {
+  const inputId = "item-photo-input";
+  return (
+    <div className="space-y-2">
+      <Label>Photo</Label>
+      <label
+        htmlFor={inputId}
+        className="group relative flex h-[280px] w-full cursor-pointer items-center justify-center overflow-hidden rounded-3xl border-2 border-dashed border-border bg-muted transition-colors hover:border-primary sm:h-[340px] lg:h-[380px]"
+      >
+        {preview ? (
+          <>
+            <img src={preview} alt="Photo du plat" className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]" />
+            <span className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-2 bg-gradient-to-t from-black/75 via-black/40 to-transparent px-4 py-4 text-sm font-semibold text-white">
+              <ImagePlus className="h-4 w-4" /> Modifier la photo
+            </span>
+          </>
+        ) : (
+          <span className="flex flex-col items-center gap-3 text-sm text-muted-foreground">
+            <ImagePlus className="h-10 w-10" />
+            Ajouter une photo
+          </span>
+        )}
+      </label>
+      <input
+        id={inputId}
+        type="file"
+        accept={ACCEPTED_IMAGE_TYPES.join(",")}
+        disabled={busy}
+        className="sr-only"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) onPick(file);
+          e.target.value = "";
+        }}
+      />
+    </div>
+  );
 }
 
 function MenuCategoriesPanel({ categories, counts, busy, onAdd, onEdit, onDelete }: { categories: Cat[]; counts: Map<string | null, number>; busy: boolean; onAdd: () => void; onEdit: (cat: Cat) => void; onDelete: (cat: Cat) => void; }) {
