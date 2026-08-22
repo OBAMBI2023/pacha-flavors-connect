@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import type { OrdersAlert, RealtimeConnectionState } from "@/hooks/useOrdersAlert";
 import { useDeliveryDispatch } from "@/hooks/useDeliveryDispatch";
 import { createRefund, fetchOrderPaymentSummary, markCashPaymentReceived, updateOrderStatus, type Order, type OrderStatus } from "@/lib/orders-db";
+import { fetchDriverLocationFreshnessMinutes } from "@/lib/delivery";
 import { playTestChime } from "@/lib/order-audio";
 import { OrderCard } from "./OrderCard";
 import { OrderDetailSheet } from "./OrderDetailSheet";
 import { RejectOrderDialog } from "./RejectOrderDialog";
 import { RefundDialog } from "./RefundDialog";
+import { DriverTrackingModal } from "./DriverTrackingModal";
 import { FILTER_TABS, TERMINAL_STATUSES } from "./orderStatusMeta";
 
 const CONNECTION_META: Record<RealtimeConnectionState, { label: string; dot: string }> = {
@@ -39,6 +41,8 @@ export function OrdersPanel({
   const [rejectTarget, setRejectTarget] = useState<Order | null>(null);
   const [refundTarget, setRefundTarget] = useState<Order | null>(null);
   const [refundRemaining, setRefundRemaining] = useState(0);
+  const [trackingTarget, setTrackingTarget] = useState<Order | null>(null);
+  const [freshnessMinutes, setFreshnessMinutes] = useState(5);
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null);
   const [, setTick] = useState(0);
 
@@ -46,6 +50,11 @@ export function OrdersPanel({
     const id = setInterval(() => setTick((t) => t + 1), TICK_MS);
     return () => clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    if (!restaurantId) return;
+    void fetchDriverLocationFreshnessMinutes(restaurantId).then(setFreshnessMinutes);
+  }, [restaurantId]);
 
   async function handleAdvance(order: Order, nextStatus: OrderStatus) {
     setBusyOrderId(order.id);
@@ -217,6 +226,7 @@ export function OrdersPanel({
               onAdvance={(o, next) => void handleAdvance(o, next)}
               onReject={(o) => setRejectTarget(o)}
               onMarkPaid={(o) => void handleMarkPaid(o)}
+              onTrack={(o) => setTrackingTarget(o)}
             />
           ))}
         </div>
@@ -245,6 +255,13 @@ export function OrdersPanel({
         busy={busyOrderId === refundTarget?.id}
         onCancel={() => setRefundTarget(null)}
         onConfirm={(o, amount, reason) => void handleRefund(o, amount, reason)}
+      />
+
+      <DriverTrackingModal
+        order={trackingTarget}
+        driverName={trackingTarget ? (dispatchByOrderId.get(trackingTarget.id)?.driver_name ?? null) : null}
+        freshnessMinutes={freshnessMinutes}
+        onClose={() => setTrackingTarget(null)}
       />
     </div>
   );

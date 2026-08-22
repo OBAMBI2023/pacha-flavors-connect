@@ -17,7 +17,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const TITLE = "Espace livreur | SAOVIA";
-const LOCATION_PUSH_INTERVAL_MS = 45_000;
+const LOCATION_PUSH_INTERVAL_ACTIVE_MS = 15_000;
+const LOCATION_PUSH_INTERVAL_IDLE_MS = 45_000;
 
 export const Route = createFileRoute("/livreur")({
   ssr: false,
@@ -104,11 +105,24 @@ function DriverDashboard({ driverId, initiallyAvailable }: { driverId: string; i
   useAudioUnlock();
   useDriverProposalAlert(pendingProposal);
 
-  // Pushes a fresh position every 45s while the driver is available -- well
-  // under the 5-minute freshness window dispatch requires, so a driver who
-  // stays online never falls out of "nearest" consideration for staleness.
+  // Pushes a fresh position while the driver is available (dispatch needs
+  // this to consider them for new proposals, well under the 5-minute
+  // freshness window) OR while a delivery is actually active (tenant
+  // tracking needs this). `trackingActive` -- not `available` alone -- is
+  // the guard: if setDriverAvailability's own server-side no-op guard
+  // (status must be 'available'/'offline') silently rejects a
+  // "Passer hors ligne" click mid-delivery, `available` still flips
+  // optimistically client-side, but `activeDelivery` keeps this running
+  // regardless, so GPS never stops mid-delivery by accident. Cadence steps
+  // up to ~15s once there's a real active delivery (tenant map wants
+  // fresher updates than mere dispatch-eligibility needs); stopping at
+  // delivered/cancelled falls out for free since get_driver_active_delivery
+  // already excludes those statuses, so activeDelivery just becomes null.
+  const trackingActive = available || Boolean(activeDelivery);
+  const pushIntervalMs = activeDelivery ? LOCATION_PUSH_INTERVAL_ACTIVE_MS : LOCATION_PUSH_INTERVAL_IDLE_MS;
+
   useEffect(() => {
-    if (!available) return;
+    if (!trackingActive) return;
     let cancelled = false;
     let warnedOnce = false;
 
@@ -130,12 +144,12 @@ function DriverDashboard({ driverId, initiallyAvailable }: { driverId: string; i
     }
 
     pushLocation();
-    const id = setInterval(pushLocation, LOCATION_PUSH_INTERVAL_MS);
+    const id = setInterval(pushLocation, pushIntervalMs);
     return () => {
       cancelled = true;
       clearInterval(id);
     };
-  }, [available, driverId]);
+  }, [trackingActive, pushIntervalMs, driverId]);
 
   async function toggleAvailability() {
     const next = !available;

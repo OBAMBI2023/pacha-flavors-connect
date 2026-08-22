@@ -1,4 +1,4 @@
-import type { FulfillmentType, Order, OrderStatus } from "@/lib/orders-db";
+import type { DriverDeliveryStatus, FulfillmentType, Order, OrderStatus } from "@/lib/orders-db";
 
 export const STATUS_LABELS: Record<OrderStatus, string> = {
   pending: "Nouvelle",
@@ -32,6 +32,20 @@ export const FILTER_TABS: { id: "all" | OrderStatus; label: string }[] = [
 ];
 
 export const TERMINAL_STATUSES: OrderStatus[] = ["delivered", "cancelled"];
+
+/** Full driver_delivery_status -> label map for the tracking modal -- distinct from OrderCard's own driverStepLabel(), which is a deliberately partial subset for the card view. */
+export const DRIVER_DELIVERY_STATUS_LABELS: Record<DriverDeliveryStatus, string> = {
+  assigned: "Livreur assigné",
+  going_to_pickup: "En route vers le restaurant",
+  arrived_at_restaurant: "Arrivé au restaurant",
+  collecting: "Récupération en cours",
+  collected: "Commande récupérée",
+  en_route: "En route vers le client",
+  arrived_at_customer: "Arrivé chez le client",
+  cash_collection: "Encaissement en cours",
+  payment_confirmed: "Paiement confirmé",
+  delivered: "Livrée",
+};
 
 export type OrderAction = {
   label: string;

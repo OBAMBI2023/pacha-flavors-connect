@@ -54,6 +54,7 @@ export function OrderCard({
   onAdvance,
   onReject,
   onMarkPaid,
+  onTrack,
 }: {
   order: Order;
   isNew: boolean;
@@ -63,6 +64,7 @@ export function OrderCard({
   onAdvance: (order: Order, nextStatus: OrderStatus) => void;
   onReject: (order: Order) => void;
   onMarkPaid: (order: Order) => void;
+  onTrack: (order: Order) => void;
 }) {
   const dispatch = dispatchLabel(order, dispatchProposal);
   const driverStep = driverStepLabel(order);
@@ -149,6 +151,17 @@ export function OrderCard({
           </Button>
         </div>
       )}
+
+      {order.fulfillment_type === "delivery" &&
+        order.assigned_driver_id !== null &&
+        order.status !== "delivered" &&
+        order.status !== "cancelled" && (
+          <div className="pt-1">
+            <Button size="sm" variant="outline" className="h-11 w-full" onClick={() => onTrack(order)}>
+              <MapPin className="mr-2 h-4 w-4" /> Voir la position du livreur
+            </Button>
+          </div>
+        )}
 
       {actions.length > 0 && (
         <div className="flex flex-wrap gap-2 pt-1">

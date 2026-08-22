@@ -109,6 +109,36 @@ export async function updateDriverLocation(driverId: string, lat: number, lng: n
   if (error) throw error;
 }
 
+/** Tenant-side read of a driver's last known position -- RLS (driver_profiles_select_tenant_staff) already scopes this to the caller's own restaurant. */
+export async function fetchDriverPosition(
+  driverId: string,
+): Promise<{ lat: number | null; lng: number | null; last_location_at: string | null }> {
+  const { data, error } = await supabase
+    .from("driver_profiles")
+    .select("last_lat,last_lng,last_location_at")
+    .eq("id", driverId)
+    .maybeSingle();
+  if (error) throw error;
+  return { lat: data?.last_lat ?? null, lng: data?.last_lng ?? null, last_location_at: data?.last_location_at ?? null };
+}
+
+/** null when the restaurant hasn't been geocoded yet -- never invented, same defensive shape as the dispatch engine's own coords check. */
+export async function fetchRestaurantCoordinates(restaurantId: string): Promise<{ lat: number; lng: number } | null> {
+  const { data, error } = await supabase.from("restaurants").select("lat,lng").eq("id", restaurantId).maybeSingle();
+  if (error) throw error;
+  return data?.lat != null && data?.lng != null ? { lat: data.lat, lng: data.lng } : null;
+}
+
+/** Reuses the same per-restaurant setting the dispatch engine already uses for "is this position fresh enough" -- one source of truth. */
+export async function fetchDriverLocationFreshnessMinutes(restaurantId: string): Promise<number> {
+  const { data } = await supabase
+    .from("restaurant_settings")
+    .select("driver_location_freshness_minutes")
+    .eq("restaurant_id", restaurantId)
+    .maybeSingle();
+  return data?.driver_location_freshness_minutes ?? 5;
+}
+
 export async function fetchDriverPendingProposal(): Promise<DriverPendingProposal | null> {
   const { data, error } = await supabase.rpc("get_driver_pending_proposal");
   if (error) throw error;
