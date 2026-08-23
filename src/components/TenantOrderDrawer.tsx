@@ -21,6 +21,7 @@ import { QuantitySelector } from "@/components/tenant/QuantitySelector";
 import { AvailabilityBadge } from "@/components/tenant/AvailabilityBadge";
 import type { RestaurantAvailability } from "@/lib/businessHours";
 import { useDeliveryLocation } from "@/lib/deliveryLocation";
+import { lookupCustomerName } from "@/lib/customers-db";
 
 const CUSTOMER_PHONE_KEY = "saovia.customer.phone";
 const CUSTOMER_NAME_KEY = "saovia.customer.name";
@@ -117,6 +118,15 @@ export function TenantOrderDrawer({
   }, [lines]);
 
   if (!isOpen) return null;
+
+  // Covers a returning customer on a different device/browser than the one
+  // that saved their name to localStorage -- only fills a still-empty name,
+  // never overwrites whatever they've already typed themselves.
+  async function handlePhoneBlur() {
+    if (form.name.trim() || form.phone.replace(/[^0-9]/g, "").length < 6) return;
+    const found = await lookupCustomerName(restaurantSlug, form.phone);
+    if (found) setForm((current) => (current.name.trim() ? current : { ...current, name: found }));
+  }
 
   async function submit() {
     const errors: typeof fieldErrors = {};
@@ -278,7 +288,7 @@ export function TenantOrderDrawer({
               <div className="mt-6 space-y-3">
                 <h3 className="text-lg font-semibold text-foreground">Vos informations</h3>
                 <Field ref={nameInputRef} label="Nom" required placeholder="Votre nom" value={form.name} onChange={(value) => setForm((current) => ({ ...current, name: value }))} error={fieldErrors.name} />
-                <Field ref={phoneInputRef} label="Téléphone" required placeholder="07 XX XX XX XX" value={form.phone} onChange={(value) => setForm((current) => ({ ...current, phone: value }))} error={fieldErrors.phone} type="tel" />
+                <Field ref={phoneInputRef} label="Téléphone" required placeholder="07 XX XX XX XX" value={form.phone} onChange={(value) => setForm((current) => ({ ...current, phone: value }))} onBlur={() => void handlePhoneBlur()} error={fieldErrors.phone} type="tel" />
               </div>
 
               {mode === "delivery" && (
@@ -427,8 +437,8 @@ export function TenantOrderDrawer({
   );
 }
 
-const Field = forwardRef<HTMLInputElement, { label: string; value: string; onChange: (value: string) => void; type?: string; placeholder?: string; required?: boolean; error?: string | undefined }>(
-  function Field({ label, value, onChange, type = "text", placeholder, required, error }, ref) {
+const Field = forwardRef<HTMLInputElement, { label: string; value: string; onChange: (value: string) => void; onBlur?: () => void; type?: string; placeholder?: string; required?: boolean; error?: string | undefined }>(
+  function Field({ label, value, onChange, onBlur, type = "text", placeholder, required, error }, ref) {
     return (
       <label className="block">
         <span className="text-xs font-medium text-muted-foreground">{label}{required && " *"}</span>
@@ -438,6 +448,7 @@ const Field = forwardRef<HTMLInputElement, { label: string; value: string; onCha
           value={value}
           placeholder={placeholder}
           onChange={(e) => onChange(e.target.value)}
+          onBlur={onBlur}
           aria-invalid={Boolean(error)}
           className={`mt-1.5 h-[58px] w-full rounded-2xl border bg-card px-[18px] text-base outline-none focus:border-primary ${error ? "border-destructive" : "border-input"}`}
         />

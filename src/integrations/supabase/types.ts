@@ -55,6 +55,59 @@ export type Database = {
           },
         ]
       }
+      customers: {
+        Row: {
+          address: string | null
+          created_at: string
+          email: string | null
+          first_order_at: string | null
+          full_name: string
+          id: string
+          last_order_at: string | null
+          orders_count: number
+          phone: string
+          restaurant_id: string
+          total_spent: number
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          first_order_at?: string | null
+          full_name: string
+          id?: string
+          last_order_at?: string | null
+          orders_count?: number
+          phone: string
+          restaurant_id: string
+          total_spent?: number
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          first_order_at?: string | null
+          full_name?: string
+          id?: string
+          last_order_at?: string | null
+          orders_count?: number
+          phone?: string
+          restaurant_id?: string
+          total_spent?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       delivery_proposals: {
         Row: {
           created_at: string
@@ -402,6 +455,7 @@ export type Database = {
           confirmed_at: string | null
           created_at: string
           currency: string
+          customer_id: string | null
           customer_name: string
           customer_notes: string | null
           customer_phone: string
@@ -447,6 +501,7 @@ export type Database = {
           confirmed_at?: string | null
           created_at?: string
           currency?: string
+          customer_id?: string | null
           customer_name: string
           customer_notes?: string | null
           customer_phone: string
@@ -492,6 +547,7 @@ export type Database = {
           confirmed_at?: string | null
           created_at?: string
           currency?: string
+          customer_id?: string | null
           customer_name?: string
           customer_notes?: string | null
           customer_phone?: string
@@ -536,6 +592,13 @@ export type Database = {
             columns: ["assigned_driver_id"]
             isOneToOne: false
             referencedRelation: "driver_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
@@ -1538,10 +1601,19 @@ export type Database = {
         }
         Returns: undefined
       }
+      lookup_customer_name: {
+        Args: { p_phone: string; p_slug: string }
+        Returns: string
+      }
       mark_cash_payment_received: {
         Args: { p_order_id: string }
         Returns: Json
       }
+      merge_customers: {
+        Args: { p_source_id: string; p_target_id: string }
+        Returns: undefined
+      }
+      normalize_phone: { Args: { p_phone: string }; Returns: string }
       super_admin_add_restaurant_member: {
         Args: {
           _email: string
