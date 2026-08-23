@@ -55,6 +55,53 @@ export type Database = {
           },
         ]
       }
+      client_notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          is_read: boolean
+          link_id: string | null
+          link_type: string | null
+          restaurant_id: string
+          title: string
+          type: string
+          visitor_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link_id?: string | null
+          link_type?: string | null
+          restaurant_id: string
+          title: string
+          type: string
+          visitor_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link_id?: string | null
+          link_type?: string | null
+          restaurant_id?: string
+          title?: string
+          type?: string
+          visitor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_notifications_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           address: string | null
@@ -599,6 +646,7 @@ export type Database = {
           subtotal_amount: number
           total_amount: number
           updated_at: string
+          visitor_id: string | null
         }
         Insert: {
           assigned_driver_id?: string | null
@@ -647,6 +695,7 @@ export type Database = {
           subtotal_amount: number
           total_amount: number
           updated_at?: string
+          visitor_id?: string | null
         }
         Update: {
           assigned_driver_id?: string | null
@@ -695,6 +744,7 @@ export type Database = {
           subtotal_amount?: number
           total_amount?: number
           updated_at?: string
+          visitor_id?: string | null
         }
         Relationships: [
           {
@@ -1453,6 +1503,175 @@ export type Database = {
         }
         Relationships: []
       }
+      review_replies: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          restaurant_id: string
+          review_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          restaurant_id: string
+          review_id: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          restaurant_id?: string
+          review_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_replies_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_replies_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: true
+            referencedRelation: "reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      review_reports: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          reason: string
+          reporter_type: string
+          reporter_user_id: string | null
+          reporter_visitor_id: string | null
+          resolved_at: string | null
+          restaurant_id: string
+          review_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          reason: string
+          reporter_type: string
+          reporter_user_id?: string | null
+          reporter_visitor_id?: string | null
+          resolved_at?: string | null
+          restaurant_id: string
+          review_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          reason?: string
+          reporter_type?: string
+          reporter_user_id?: string | null
+          reporter_visitor_id?: string | null
+          resolved_at?: string | null
+          restaurant_id?: string
+          review_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_reports_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_reports_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          customer_id: string | null
+          customer_name: string
+          id: string
+          order_id: string
+          photos: Json
+          rating: number
+          restaurant_id: string
+          status: string
+          updated_at: string
+          visitor_id: string | null
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          customer_id?: string | null
+          customer_name: string
+          id?: string
+          order_id: string
+          photos?: Json
+          rating: number
+          restaurant_id: string
+          status?: string
+          updated_at?: string
+          visitor_id?: string | null
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string
+          id?: string
+          order_id?: string
+          photos?: Json
+          rating?: number
+          restaurant_id?: string
+          status?: string
+          updated_at?: string
+          visitor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_business_exceptions: {
         Row: {
           closing_time: string | null
@@ -1609,6 +1828,7 @@ export type Database = {
           p_payment_method?: string
           p_slug: string
           p_source_metadata?: Json
+          p_visitor_id?: string
         }
         Returns: Json
       }
@@ -1662,6 +1882,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_client_notifications: {
+        Args: { p_slug: string; p_visitor_id: string }
+        Returns: Json
+      }
       get_customer_order: {
         Args: { p_customer_phone: string; p_order_id: string }
         Returns: Json
@@ -1677,6 +1901,10 @@ export type Database = {
         Returns: string
       }
       get_offers_analytics: { Args: never; Returns: Json }
+      get_order_review: {
+        Args: { p_customer_phone: string; p_order_id: string }
+        Returns: Json
+      }
       get_public_cheap_products: {
         Args: { p_limit?: number; p_max_price?: number }
         Returns: Json
@@ -1691,9 +1919,18 @@ export type Database = {
         Args: { p_end_date: string; p_start_date: string }
         Returns: Json
       }
+      get_reviews_stats: { Args: never; Returns: Json }
       get_tenant_offers: {
         Args: { p_slug: string; p_visitor_id?: string }
         Returns: Json
+      }
+      get_tenant_reviews: {
+        Args: { p_limit?: number; p_slug: string }
+        Returns: Json
+      }
+      get_unread_client_notifications_count: {
+        Args: { p_slug: string; p_visitor_id: string }
+        Returns: number
       }
       get_unread_offers_count: {
         Args: { p_slug: string; p_visitor_id: string }
@@ -1736,6 +1973,10 @@ export type Database = {
         Args: { p_order_id: string }
         Returns: Json
       }
+      mark_client_notification_read: {
+        Args: { p_notification_id: string; p_visitor_id: string }
+        Returns: undefined
+      }
       mark_offer_read: {
         Args: { p_offer_id: string; p_visitor_id: string }
         Returns: undefined
@@ -1745,6 +1986,26 @@ export type Database = {
         Returns: undefined
       }
       normalize_phone: { Args: { p_phone: string }; Returns: string }
+      report_review: {
+        Args: {
+          p_description?: string
+          p_reason: string
+          p_review_id: string
+          p_visitor_id?: string
+        }
+        Returns: undefined
+      }
+      submit_review: {
+        Args: {
+          p_comment?: string
+          p_customer_phone: string
+          p_order_id: string
+          p_photos?: Json
+          p_rating: number
+          p_visitor_id?: string
+        }
+        Returns: Json
+      }
       super_admin_add_restaurant_member: {
         Args: {
           _email: string
@@ -1822,6 +2083,16 @@ export type Database = {
           p_order_id: string
         }
         Returns: Json
+      }
+      update_review: {
+        Args: {
+          p_comment?: string
+          p_customer_phone: string
+          p_photos?: Json
+          p_rating: number
+          p_review_id: string
+        }
+        Returns: undefined
       }
     }
     Enums: {

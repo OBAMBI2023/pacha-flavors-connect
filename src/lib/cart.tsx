@@ -8,7 +8,7 @@ import {
 } from "react";
 import type { MenuItem } from "@/data/menu";
 
-export type CartOptionSelection = { id: string; name: string; extra_price: number };
+export type CartOptionSelection = { id: string; name: string; extra_price: number; group_name: string };
 
 /** `key` (not the product id) identifies a line -- two lines for the same product with different selected options must never merge. */
 export type CartLine = { key: string; item: MenuItem; qty: number; options: CartOptionSelection[] };

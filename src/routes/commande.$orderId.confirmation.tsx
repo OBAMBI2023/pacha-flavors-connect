@@ -7,6 +7,7 @@ import { CartProvider } from "@/lib/cart";
 import { OrderStatusTimeline } from "@/components/tenant/OrderStatusTimeline";
 import { useStorefrontTheme } from "@/components/tenant/tenantTheme";
 import { PublicFooter } from "@/components/PublicFooter";
+import { OrderReviewSection } from "@/components/OrderReviewSection";
 
 const STORAGE_PHONE = "saovia.customer.phone";
 const STORAGE_RESTAURANT_SLUG = "saovia.restaurant.slug";
@@ -126,6 +127,8 @@ function ConfirmationPage() {
                   <span>{order.total_amount.toLocaleString("fr-FR")} FCFA</span>
                 </div>
               </div>
+
+              <OrderReviewSection orderId={order.id} customerPhone={phone} orderStatus={order.status} />
 
               {backSlug ? (
                 <Link

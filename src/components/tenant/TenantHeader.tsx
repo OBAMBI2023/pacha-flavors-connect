@@ -1,106 +1,33 @@
 import { useState } from "react";
-import { createPortal } from "react-dom";
-import { Link, useNavigate } from "@tanstack/react-router";
-import { ChevronDown, Menu, ShoppingCart, User, X } from "lucide-react";
+import { Bell, ChevronDown, Menu, X } from "lucide-react";
 import type { PublicRestaurant } from "@/lib/menu-db";
 import { useDeliveryLocation } from "@/lib/deliveryLocation";
-
-const CUSTOMER_PHONE_KEY = "saovia.customer.phone";
-const CUSTOMER_RESTAURANT_SLUG_KEY = "saovia.restaurant.slug";
+import { useUnreadClientNotificationsCount } from "@/lib/clientNotifications";
 
 function scrollToId(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function AccountLookupModal({ restaurantName, onClose, onSubmit }: { restaurantName: string; onClose: () => void; onSubmit: (phone: string) => void }) {
-  const [phone, setPhone] = useState("");
-
-  return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} aria-hidden />
-      <div className="relative w-full max-w-sm rounded-3xl bg-card p-6 shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="font-display text-xl font-semibold text-foreground">Mes commandes</h2>
-            <p className="mt-1 text-sm text-foreground/70">
-              Entrez le numero utilise lors de votre commande chez {restaurantName} pour la retrouver.
-            </p>
-          </div>
-          <button onClick={onClose} aria-label="Fermer" className="grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-muted">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <form
-          className="mt-5 space-y-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (phone.trim()) onSubmit(phone.trim());
-          }}
-        >
-          <input
-            type="tel"
-            autoFocus
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="Numero de telephone"
-            className="w-full rounded-xl border border-border px-4 py-3 text-sm outline-none focus:border-primary"
-          />
-          <button
-            type="submit"
-            disabled={!phone.trim()}
-            className="flex h-12 w-full items-center justify-center rounded-xl bg-primary px-6 text-sm font-bold text-primary-foreground shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            Voir mes commandes
-          </button>
-        </form>
-        <p className="mt-4 text-xs text-foreground/60">
-          Pas encore commande ? Fermez cette fenetre et ajoutez un plat au panier pour passer votre premiere commande.
-        </p>
-      </div>
-    </div>,
-    document.body,
-  );
-}
-
 export function TenantHeader({
   restaurant,
-  cartCount,
   hasContact,
   onOpenCart,
+  onOpenNotifications,
 }: {
   restaurant: PublicRestaurant;
-  cartCount: number;
   subtotalLabel: string;
   hasContact: boolean;
   onOpenCart: () => void;
+  onOpenNotifications: () => void;
 }) {
-  const navigate = useNavigate();
   const [navOpen, setNavOpen] = useState(false);
-  const [accountModalOpen, setAccountModalOpen] = useState(false);
   const { location, openModal: openLocationModal } = useDeliveryLocation();
+  const unreadNotifications = useUnreadClientNotificationsCount(restaurant.slug);
   const shortLocation = location ? (location.commune ?? location.neighborhood ?? location.city ?? location.address) : null;
   // Both states stay tappable to the same modal -- only the copy changes, so
   // the control never uses the ambiguous "Modifier" and always says what
   // tapping it does next.
   const locationSecondaryLabel = location ? "Changer ma zone" : "Choisir une adresse";
-
-  function handleAccountClick(e: React.MouseEvent) {
-    e.preventDefault();
-    const storedPhone = window.localStorage.getItem(CUSTOMER_PHONE_KEY);
-    const storedSlug = window.localStorage.getItem(CUSTOMER_RESTAURANT_SLUG_KEY);
-    if (storedPhone && storedSlug === restaurant.slug) {
-      navigate({ to: "/commandes" });
-    } else {
-      setAccountModalOpen(true);
-    }
-  }
-
-  function handlePhoneSubmit(phone: string) {
-    window.localStorage.setItem(CUSTOMER_PHONE_KEY, phone);
-    window.localStorage.setItem(CUSTOMER_RESTAURANT_SLUG_KEY, restaurant.slug);
-    setAccountModalOpen(false);
-    navigate({ to: "/commandes" });
-  }
 
   const navLinks = [
     { id: "accueil", label: "Accueil" },
@@ -139,14 +66,11 @@ export function TenantHeader({
           <span className="text-[0.7rem] font-medium text-primary">{locationSecondaryLabel}</span>
         </button>
         <div className="flex flex-1 items-center justify-end gap-2 lg:hidden">
-          <Link to="/commandes" onClick={handleAccountClick} aria-label="Mes commandes" className="grid h-10 w-10 place-items-center rounded-full border border-border text-foreground hover:bg-muted">
-            <User className="h-5 w-5" />
-          </Link>
-          <button onClick={onOpenCart} aria-label="Ouvrir le panier" className="relative grid h-10 w-10 place-items-center rounded-full border border-border text-foreground hover:bg-muted">
-            <ShoppingCart className="h-5 w-5" />
-            {cartCount > 0 && (
+          <button onClick={onOpenNotifications} aria-label="Notifications" className="relative grid h-10 w-10 place-items-center rounded-full border border-border text-foreground hover:bg-muted">
+            <Bell className="h-5 w-5" />
+            {unreadNotifications > 0 && (
               <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1 text-[0.65rem] font-bold text-primary-foreground">
-                {cartCount}
+                {unreadNotifications > 9 ? "9+" : unreadNotifications}
               </span>
             )}
           </button>
@@ -165,14 +89,11 @@ export function TenantHeader({
           ))}
         </nav>
         <div className="hidden shrink-0 items-center gap-2 lg:flex">
-          <Link to="/commandes" onClick={handleAccountClick} aria-label="Mes commandes" className="grid h-11 w-11 place-items-center rounded-full border border-border hover:bg-muted">
-            <User className="h-4 w-4" />
-          </Link>
-          <button onClick={onOpenCart} aria-label="Ouvrir le panier" className="relative grid h-11 w-11 place-items-center rounded-full border border-border hover:bg-muted">
-            <ShoppingCart className="h-4 w-4" />
-            {cartCount > 0 && (
+          <button onClick={onOpenNotifications} aria-label="Notifications" className="relative grid h-11 w-11 place-items-center rounded-full border border-border hover:bg-muted">
+            <Bell className="h-4 w-4" />
+            {unreadNotifications > 0 && (
               <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1 text-[0.65rem] font-bold text-primary-foreground">
-                {cartCount}
+                {unreadNotifications > 9 ? "9+" : unreadNotifications}
               </span>
             )}
           </button>
@@ -200,14 +121,6 @@ export function TenantHeader({
             ))}
           </ul>
         </nav>
-      )}
-
-      {accountModalOpen && (
-        <AccountLookupModal
-          restaurantName={restaurant.name}
-          onClose={() => setAccountModalOpen(false)}
-          onSubmit={handlePhoneSubmit}
-        />
       )}
     </header>
   );

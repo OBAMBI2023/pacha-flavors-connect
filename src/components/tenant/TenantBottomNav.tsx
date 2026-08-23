@@ -1,16 +1,27 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Phone, ShoppingBag, Tag, UtensilsCrossed } from "lucide-react";
+import { Home, ShoppingBag, Tag, User, UtensilsCrossed } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { useUnreadOffersCount } from "@/lib/offers";
+import { useAccountAccess } from "@/lib/accountAccess";
+import { AccountLookupModal } from "@/components/tenant/AccountLookupModal";
 
 function scrollToId(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-export function TenantBottomNav({ restaurantSlug, onOpenOffers }: { restaurantSlug: string; onOpenOffers: () => void }) {
+export function TenantBottomNav({
+  restaurantSlug,
+  restaurantName,
+  onOpenOffers,
+}: {
+  restaurantSlug: string;
+  restaurantName: string;
+  onOpenOffers: () => void;
+}) {
   const location = useLocation();
   const { count, openCart } = useCart();
   const unreadOffers = useUnreadOffersCount(restaurantSlug);
+  const { modalOpen: accountModalOpen, openAccount, closeModal: closeAccountModal, submitPhone } = useAccountAccess(restaurantSlug);
   const base = `/r/${restaurantSlug}`;
   const onHome = location.pathname === base;
 
@@ -55,11 +66,14 @@ export function TenantBottomNav({ restaurantSlug, onOpenOffers }: { restaurantSl
           </span>
           Offres
         </button>
-        <button onClick={() => scrollToId("localisation")} className={itemClass(false)}>
-          <span className={iconWrapClass(false)}><Phone className="h-5 w-5" /></span>
-          Contact
+        <button onClick={openAccount} className={itemClass(false)}>
+          <span className={iconWrapClass(false)}><User className="h-5 w-5" /></span>
+          Compte
         </button>
       </div>
+      {accountModalOpen && (
+        <AccountLookupModal restaurantName={restaurantName} onClose={closeAccountModal} onSubmit={submitPhone} />
+      )}
     </nav>
   );
 }

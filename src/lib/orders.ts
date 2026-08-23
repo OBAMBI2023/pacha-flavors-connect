@@ -73,6 +73,8 @@ export type CreateOrderInput = {
   items: CreateOrderItem[];
   /** Set when checkout was reached via an offer's "Profiter de l'offre" CTA. create_order re-validates it server-side (still active, still in-window) and silently ignores it if none of the ordered items match the offer's product -- it is never trusted for pricing on its own. */
   offer_id?: string | null;
+  /** This app's anonymous browser identity (see visitorTracking.ts) -- lets create_order attribute the order for client-facing lifecycle notifications (order confirmed / status changes). Optional: an order placed without one simply generates no client notifications. */
+  visitor_id?: string | null;
 };
 
 export type CreateOrderResult = {
@@ -114,6 +116,7 @@ export async function createRestaurantOrder(input: CreateOrderInput): Promise<Cr
     p_order_source: "web",
     p_source_metadata: { source: "saovia-mobile" },
     p_offer_id: input.offer_id ?? null,
+    p_visitor_id: input.visitor_id ?? null,
   });
 
   if (error) throw error;

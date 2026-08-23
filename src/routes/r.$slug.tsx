@@ -19,6 +19,8 @@ import { TenantProductModal } from "@/components/tenant/TenantProductModal";
 import { TenantCartBar } from "@/components/tenant/TenantCartBar";
 import { TenantBottomNav } from "@/components/tenant/TenantBottomNav";
 import { TenantOffersSheet } from "@/components/tenant/TenantOffersSheet";
+import type { TenantOffer } from "@/lib/offers";
+import { TenantNotificationsSheet } from "@/components/tenant/TenantNotificationsSheet";
 import { TenantTrustBar } from "@/components/tenant/TenantTrustBar";
 import { PublicFooter } from "@/components/PublicFooter";
 import { useVisitorTracking } from "@/lib/visitorTracking";
@@ -90,12 +92,16 @@ function TenantStorefrontPage() {
 
 function TenantStorefront({ slug }: { slug: string }) {
   const { data, isLoading, isError, refetch } = useMenuData(slug);
-  const { count, subtotal, hasUnpriced, openCart, add } = useCart();
+  const { count, subtotal, hasUnpriced, openCart, add, setActiveOfferId } = useCart();
   const [active, setActive] = useState("tous");
   const [query, setQuery] = useState("");
   const [openItem, setOpenItem] = useState<MenuItem | null>(null);
+  /** Set when openItem was opened via an offer's "Profiter de l'offre" CTA (product has option groups) -- the shared product modal below is used for both the regular menu and offer claims, so option selection always runs through the same, single Radix-safe instance. */
+  const [pendingOfferClaim, setPendingOfferClaim] = useState<TenantOffer | null>(null);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [offersOpen, setOffersOpen] = useState(false);
+  const [openOfferId, setOpenOfferId] = useState<string | null>(null);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   useStorefrontTheme(data?.settings?.primary_color);
   useVisitorTracking(slug);
 
@@ -130,7 +136,7 @@ function TenantStorefront({ slug }: { slug: string }) {
 
   return (
     <div className="min-h-screen bg-background pb-28 md:pb-0">
-      <TenantHeader restaurant={restaurant} cartCount={count} subtotalLabel={subtotalLabel} hasContact={hasContact} onOpenCart={openCart} />
+      <TenantHeader restaurant={restaurant} subtotalLabel={subtotalLabel} hasContact={hasContact} onOpenCart={openCart} onOpenNotifications={() => setNotificationsOpen(true)} />
       <TenantLocationBar />
       {hasMenu && <TenantSearchBar value={query} onChange={handleSearchChange} onOpenFilters={() => setCategoriesOpen(true)} />}
 
@@ -153,13 +159,37 @@ function TenantStorefront({ slug }: { slug: string }) {
 
       <PublicFooter restaurantName={restaurant.name} />
 
-      <TenantProductModal item={openItem} onClose={() => setOpenItem(null)} onAdd={(item, qty, options) => add(item, qty, options)} />
+      <TenantProductModal
+        item={openItem}
+        onClose={() => { setOpenItem(null); setPendingOfferClaim(null); }}
+        onAdd={(item, qty, options) => {
+          add(item, qty, options);
+          if (pendingOfferClaim) {
+            setActiveOfferId(pendingOfferClaim.id);
+            setPendingOfferClaim(null);
+            openCart();
+          }
+        }}
+      />
       <TenantCartBar count={count} subtotalLabel={subtotalLabel} onOpenCart={openCart} />
-      <TenantBottomNav restaurantSlug={restaurant.slug} onOpenOffers={() => setOffersOpen(true)} />
+      <TenantBottomNav restaurantSlug={restaurant.slug} restaurantName={restaurant.name} onOpenOffers={() => { setOpenOfferId(null); setOffersOpen(true); }} />
       <TenantOrderDrawer restaurantSlug={restaurant.slug} restaurantName={restaurant.name} availability={data.availability} timezone={restaurant.timezone ?? "Africa/Abidjan"} deliveryFee={settings?.delivery_fee ?? null} restaurantLat={restaurant.lat} restaurantLng={restaurant.lng} />
       <TenantLocationModal />
       <CategoriesSheet slug={slug} open={categoriesOpen} onOpenChange={setCategoriesOpen} onSelectCategory={setActive} />
-      <TenantOffersSheet slug={restaurant.slug} items={data.items} open={offersOpen} onOpenChange={setOffersOpen} />
+      <TenantOffersSheet
+        slug={restaurant.slug}
+        items={data.items}
+        open={offersOpen}
+        onOpenChange={(v) => { setOffersOpen(v); if (!v) setOpenOfferId(null); }}
+        openOfferId={openOfferId}
+        onNeedsOptions={(item, offer) => { setPendingOfferClaim(offer); setOpenItem(item); }}
+      />
+      <TenantNotificationsSheet
+        slug={restaurant.slug}
+        open={notificationsOpen}
+        onOpenChange={setNotificationsOpen}
+        onOpenOffer={(offerId) => { setOpenOfferId(offerId); setOffersOpen(true); }}
+      />
     </div>
   );
 }

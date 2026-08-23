@@ -32,12 +32,26 @@ export function TenantOffersSheet({
   items,
   open,
   onOpenChange,
+  openOfferId,
+  onNeedsOptions,
 }: {
   slug: string;
   /** Full storefront catalog, used to resolve an offer's product back into a cart-addable MenuItem. */
   items: MenuItem[];
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  /** Set (e.g. from a notification tap) to jump straight into that offer's detail once the list loads, instead of showing the list first. */
+  openOfferId?: string | null;
+  /**
+   * Called instead of adding directly when the claimed product has option
+   * groups -- the picker must run through the page's single top-level
+   * TenantProductModal (same one the regular menu uses), not a second
+   * instance nested inside this sheet: a modal rendered inside an open
+   * Radix Sheet inherits the sheet's `pointer-events: none` lockdown on
+   * everything outside its own layer, which is exactly what made the
+   * options unclickable before this fix.
+   */
+  onNeedsOptions: (item: MenuItem, offer: TenantOffer) => void;
 }) {
   const { add, openCart, setActiveOfferId } = useCart();
   const [offers, setOffers] = useState<TenantOffer[]>([]);
@@ -50,11 +64,17 @@ export function TenantOffersSheet({
     let cancelled = false;
     setLoading(true);
     fetchTenantOffers(slug, getOrCreateVisitorId())
-      .then((rows) => { if (!cancelled) setOffers(rows); })
+      .then((rows) => {
+        if (cancelled) return;
+        setOffers(rows);
+        const target = openOfferId ? rows.find((o) => o.id === openOfferId) : null;
+        if (target) openDetail(target);
+      })
       .catch((err: unknown) => toast.error(err instanceof Error ? err.message : "Impossible de charger les offres."))
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [open, slug]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, slug, openOfferId]);
 
   function openDetail(offer: TenantOffer) {
     setDetail(offer);
@@ -71,7 +91,21 @@ export function TenantOffersSheet({
       toast.error("Ce plat n'est plus disponible sur la carte.");
       return;
     }
-    add({ ...menuItem, price: offer.offer_price }, 1);
+    // The offer price replaces the product's normal price/promotion for
+    // display -- create_order independently re-applies the offer's price
+    // server-side, this is only ever a preview.
+    const offerItem: MenuItem = { ...menuItem, price: offer.offer_price, promotion: null };
+    if ((menuItem.optionGroups?.length ?? 0) > 0) {
+      // Required option groups must be chosen before adding to cart --
+      // skipping straight to add() left the line with no option_ids,
+      // which create_order's own required-group check then rejected. Hand
+      // off to the page's shared product modal (see onNeedsOptions) and
+      // close this sheet so nothing stays layered underneath it.
+      onOpenChange(false);
+      onNeedsOptions(offerItem, offer);
+      return;
+    }
+    add(offerItem, 1, []);
     setActiveOfferId(offer.id);
     onOpenChange(false);
     openCart();

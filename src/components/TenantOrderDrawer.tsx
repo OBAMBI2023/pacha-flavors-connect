@@ -15,7 +15,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
-import { useCart } from "@/lib/cart";
+import { useCart, type CartOptionSelection } from "@/lib/cart";
 import { createRestaurantOrder, cartLinesToOrderItems } from "@/lib/orders";
 import { QuantitySelector } from "@/components/tenant/QuantitySelector";
 import { AvailabilityBadge } from "@/components/tenant/AvailabilityBadge";
@@ -23,6 +23,7 @@ import type { RestaurantAvailability } from "@/lib/businessHours";
 import { useDeliveryLocation } from "@/lib/deliveryLocation";
 import { lookupCustomerName } from "@/lib/customers-db";
 import { computeDistanceBasedDelivery } from "@/lib/deliveryPricing";
+import { getOrCreateVisitorId } from "@/lib/visitorTracking";
 
 const CUSTOMER_PHONE_KEY = "saovia.customer.phone";
 const CUSTOMER_NAME_KEY = "saovia.customer.name";
@@ -65,6 +66,19 @@ type PaymentChoice = "cash" | "wave" | "orange_money" | "mtn_money";
 
 function toBackendPaymentMethod(choice: PaymentChoice): "cash" | "mobile_money" {
   return choice === "cash" ? "cash" : "mobile_money";
+}
+
+/** "Choix du tchep : Tchep poulet" -- groups selections by their option group so the checkout summary shows exactly what was picked, not just a bare list of option names. */
+function formatSelectedOptions(options: CartOptionSelection[]): string {
+  const byGroup = new Map<string, string[]>();
+  for (const o of options) {
+    const names = byGroup.get(o.group_name) ?? [];
+    names.push(o.name);
+    byGroup.set(o.group_name, names);
+  }
+  return Array.from(byGroup.entries())
+    .map(([group, names]) => `${group} : ${names.join(", ")}`)
+    .join(" · ");
 }
 
 function isValidPhone(value: string): boolean {
@@ -171,6 +185,7 @@ export function TenantOrderDrawer({
         payment_method: toBackendPaymentMethod(paymentChoice),
         items: cartLinesToOrderItems(lines),
         offer_id: activeOfferId,
+        visitor_id: getOrCreateVisitorId(),
       });
 
       window.localStorage.setItem(CUSTOMER_PHONE_KEY, form.phone.trim());
@@ -276,7 +291,7 @@ export function TenantOrderDrawer({
                         {l.item.image ? <img src={l.item.image} alt={l.item.name} className="h-14 w-14 shrink-0 rounded-xl object-cover" /> : <div className="h-14 w-14 shrink-0 rounded-xl bg-muted" />}
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-[15px] font-medium text-foreground">{l.item.name}</p>
-                          {l.options.length > 0 && <p className="truncate text-xs text-muted-foreground">{l.options.map((o) => o.name).join(", ")}</p>}
+                          {l.options.length > 0 && <p className="truncate text-xs text-muted-foreground">{formatSelectedOptions(l.options)}</p>}
                           <p className="text-[15px] font-semibold text-foreground">{((l.item.price ?? 0) + optionsExtra).toLocaleString("fr-FR")} FCFA</p>
                           <div className="mt-1.5 flex items-center gap-2">
                             <QuantitySelector value={l.qty} onDecrement={() => decrement(l.key)} onIncrement={() => increment(l.key)} />

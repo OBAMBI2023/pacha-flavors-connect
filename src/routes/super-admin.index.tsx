@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { DEFAULT_THEME } from "@/lib/theme";
 import { createTenant, fetchTenants, type RestaurantStatus, type TenantRow } from "@/lib/superAdminTenants";
+import { ReviewReportsSection } from "@/components/superadmin/ReviewReportsSection";
 
 const STATUSES = ["trial", "active", "suspended", "archived"] as const;
 const STATUS_LABELS: Record<RestaurantStatus, string> = {
@@ -61,6 +62,7 @@ function SuperAdminIndexPage() {
       <OverviewBlock tenants={tenants} loading={loading} onStatusChanged={load} />
       <CreateTenantForm onCreated={load} />
       <UsersBlock tenants={tenants} />
+      <ReviewReportsSection />
       <ThemesBlock />
       <PlatformSettingsBlock />
     </>

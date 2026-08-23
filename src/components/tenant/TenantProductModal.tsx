@@ -34,7 +34,7 @@ export function TenantProductModal({
     (selected[group.id] ?? [])
       .map((optionId) => group.options.find((o) => o.id === optionId))
       .filter((o): o is NonNullable<typeof o> => Boolean(o))
-      .map((o) => ({ id: o.id, name: o.name, extra_price: o.extra_price })),
+      .map((o) => ({ id: o.id, name: o.name, extra_price: o.extra_price, group_name: group.name })),
   );
   const optionsExtra = selectedFlat.reduce((sum, o) => sum + o.extra_price, 0);
   const total = (unitPrice + optionsExtra) * qty;
