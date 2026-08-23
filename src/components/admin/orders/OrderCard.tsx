@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Order, OrderStatus } from "@/lib/orders-db";
 import type { DispatchProposalWithDriver } from "@/lib/delivery";
-import { STATUS_BADGE_CLASS, STATUS_LABELS, elapsedLabel, fulfillmentLabel, nextActions } from "./orderStatusMeta";
+import { STATUS_BADGE_CLASS, STATUS_LABELS, deliveryAddressLine, elapsedLabel, fulfillmentLabel, googleMapsUrl, nextActions } from "./orderStatusMeta";
 import { PAYMENT_STATUS_BADGE_CLASS, PAYMENT_STATUS_LABELS } from "./paymentStatusMeta";
 
 function dispatchLabel(order: Order, proposal: DispatchProposalWithDriver | undefined): string | null {
@@ -113,6 +113,36 @@ export function OrderCard({
           </p>
         )}
       </div>
+
+      {order.fulfillment_type === "delivery" && (
+        <div className="rounded-xl border border-border bg-muted/40 p-2.5 text-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">📍 Adresse de livraison</p>
+          {(() => {
+            const addressLine = deliveryAddressLine(order);
+            if (addressLine) {
+              return <p className="mt-1 text-foreground">{addressLine}</p>;
+            }
+            if (order.delivery_latitude !== null && order.delivery_longitude !== null) {
+              return (
+                <div className="mt-1 space-y-1">
+                  <p className="text-muted-foreground">
+                    {order.delivery_latitude.toFixed(5)}, {order.delivery_longitude.toFixed(5)}
+                  </p>
+                  <a
+                    href={googleMapsUrl(order.delivery_latitude, order.delivery_longitude)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                  >
+                    <MapPin className="h-3 w-3" /> Voir sur la carte
+                  </a>
+                </div>
+              );
+            }
+            return <p className="mt-1 text-destructive">⚠️ Adresse de livraison non renseignée</p>;
+          })()}
+        </div>
+      )}
 
       <div className="space-y-1.5 border-t border-border pt-3 text-sm">
         {order.items_summary && order.items_summary.length > 0 ? (

@@ -84,6 +84,30 @@ export function fulfillmentLabel(type: FulfillmentType): string {
   return type === "delivery" ? "Livraison" : "Retrait sur place";
 }
 
+/**
+ * The human-readable line for the delivery address block -- combines every
+ * delivery_* text field the storefront may have captured (address, quartier,
+ * commune, ville), skipping whichever are null so partially-filled data
+ * (e.g. an older order captured before quartier/ville existed) still reads
+ * cleanly instead of showing empty commas.
+ */
+export function deliveryAddressLine(
+  order: Pick<Order, "delivery_address" | "delivery_neighborhood" | "delivery_commune" | "delivery_city">,
+): string | null {
+  const parts = [order.delivery_address, order.delivery_neighborhood, order.delivery_commune, order.delivery_city].filter(
+    (part): part is string => Boolean(part && part.trim()),
+  );
+  return parts.length > 0 ? parts.join(", ") : null;
+}
+
+/**
+ * Real Google Maps deep link built only from coordinates already stored on
+ * the order -- never a fabricated or geocoded-on-the-fly address.
+ */
+export function googleMapsUrl(latitude: number, longitude: number): string {
+  return `https://www.google.com/maps?q=${latitude},${longitude}`;
+}
+
 export function elapsedLabel(fromIso: string): string {
   const minutes = Math.max(0, Math.floor((Date.now() - new Date(fromIso).getTime()) / 60000));
   if (minutes < 1) return "à l'instant";

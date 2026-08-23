@@ -167,6 +167,10 @@ export type Order = {
   customer_phone: string;
   delivery_commune: string | null;
   delivery_address: string | null;
+  delivery_neighborhood: string | null;
+  delivery_city: string | null;
+  delivery_latitude: number | null;
+  delivery_longitude: number | null;
   delivery_instructions: string | null;
   customer_notes: string | null;
   currency: string;

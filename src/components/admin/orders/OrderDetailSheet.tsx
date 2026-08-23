@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { Banknote, Undo2 } from "lucide-react";
+import { Banknote, MapPin, Undo2 } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { fetchOrderDetail, type Order, type OrderDetail, type OrderStatus } from "@/lib/orders-db";
-import { STATUS_BADGE_CLASS, STATUS_LABELS, fulfillmentLabel, nextActions } from "./orderStatusMeta";
+import { STATUS_BADGE_CLASS, STATUS_LABELS, deliveryAddressLine, fulfillmentLabel, googleMapsUrl, nextActions } from "./orderStatusMeta";
 import { PAYMENT_METHOD_LABELS, PAYMENT_STATUS_BADGE_CLASS, PAYMENT_STATUS_LABELS } from "./paymentStatusMeta";
 
 function money(amount: number, currency: string) {
@@ -96,16 +96,44 @@ export function OrderDetailSheet({
                 <p>{detail.customer_name}</p>
                 <p className="text-muted-foreground">{detail.customer_phone}</p>
                 <p className="text-muted-foreground">{fulfillmentLabel(detail.fulfillment_type)}</p>
-                {detail.fulfillment_type === "delivery" && (
-                  <p className="text-muted-foreground">
-                    {[detail.delivery_commune, detail.delivery_address].filter(Boolean).join(", ") || "Adresse non renseignée"}
-                  </p>
-                )}
-                {detail.delivery_instructions && (
-                  <p className="text-muted-foreground">Instructions : {detail.delivery_instructions}</p>
-                )}
                 {detail.customer_notes && <p className="text-muted-foreground">Notes client : {detail.customer_notes}</p>}
               </section>
+
+              {detail.fulfillment_type === "delivery" && (
+                <section className="space-y-1.5 rounded-2xl border border-border p-4">
+                  <h3 className="font-semibold">📍 Adresse de livraison</h3>
+                  {(() => {
+                    const addressLine = deliveryAddressLine(detail);
+                    const hasCoordinates = detail.delivery_latitude !== null && detail.delivery_longitude !== null;
+                    if (!addressLine && !hasCoordinates) {
+                      return <p className="text-destructive">⚠️ Adresse de livraison non renseignée</p>;
+                    }
+                    return (
+                      <>
+                        <p>{addressLine ?? "Adresse non disponible"}</p>
+                        {hasCoordinates && (
+                          <div className="space-y-1">
+                            <p className="text-xs text-muted-foreground">
+                              {detail.delivery_latitude!.toFixed(5)}, {detail.delivery_longitude!.toFixed(5)}
+                            </p>
+                            <a
+                              href={googleMapsUrl(detail.delivery_latitude!, detail.delivery_longitude!)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
+                            >
+                              <MapPin className="h-3.5 w-3.5" /> Voir sur la carte
+                            </a>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                  {detail.delivery_instructions && (
+                    <p className="text-muted-foreground">Instructions : {detail.delivery_instructions}</p>
+                  )}
+                </section>
+              )}
 
               <section className="space-y-3">
                 <h3 className="font-semibold">Produits</h3>
