@@ -116,9 +116,6 @@ function TenantStorefront({ slug }: { slug: string }) {
         <TenantPromoBanner restaurant={restaurant} settings={settings} />
         <section id="carte" className="section-pad bg-background">
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
-            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-primary">La carte</p>
-            <h2 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">Notre carte</h2>
-            <p className="mt-3 max-w-xl text-sm text-muted-foreground">Sélectionnez vos plats, ajoutez-les au panier et commandez en quelques secondes.</p>
             {!hasMenu ? <TenantEmptyMenuState /> : items.length === 0 ? (
               <p className="mt-8 rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">Aucun plat ne correspond à votre recherche.</p>
             ) : (

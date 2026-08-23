@@ -112,16 +112,13 @@ export function TenantHeader({
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-card text-foreground">
       <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6 lg:justify-between">
-        {/* Mobile: hamburger | centered logo+name | profile+cart, each flex-1 so the center group stays visually centered. */}
+        {/* Mobile: hamburger | empty centered spacer (logo/name intentionally removed on mobile) | profile+cart, each flex-1 so the layout balance is unchanged. */}
         <div className="flex flex-1 items-center lg:hidden">
           <button onClick={() => setNavOpen((v) => !v)} aria-label="Menu" className="grid h-10 w-10 place-items-center rounded-full border border-border">
             {navOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
-        <div className="flex flex-1 min-w-0 items-center justify-center gap-2 lg:hidden">
-          {logo}
-          <span className="min-w-0 truncate font-display text-base font-bold">{restaurant.name}</span>
-        </div>
+        <div className="flex flex-1 min-w-0 items-center justify-center gap-2 lg:hidden" />
         <div className="flex flex-1 items-center justify-end gap-2 lg:hidden">
           <Link to="/commandes" onClick={handleAccountClick} aria-label="Mes commandes" className="grid h-10 w-10 place-items-center rounded-full border border-border text-foreground hover:bg-muted">
             <User className="h-5 w-5" />
