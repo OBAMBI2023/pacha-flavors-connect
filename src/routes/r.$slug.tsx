@@ -131,7 +131,7 @@ function TenantStorefront({ slug }: { slug: string }) {
       {hasMenu && <TenantSearchBar value={query} onChange={handleSearchChange} onOpenFilters={() => setCategoriesOpen(true)} />}
 
       <main>
-        <TenantHero restaurant={restaurant} settings={settings} availability={data.availability} />
+        <TenantHero restaurant={restaurant} />
         {hasMenu && <TenantCategoryNav tabs={tabs} active={active} onSelect={setActive} onOpenCategories={() => setCategoriesOpen(true)} />}
         {hasMenu && <TenantPopularSection items={data.items} onOpen={setOpenItem} />}
         <section id="carte" className="pb-16 pt-3 md:pb-24 bg-background">

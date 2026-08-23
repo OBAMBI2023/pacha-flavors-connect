@@ -60,7 +60,7 @@ function PopularCard({ item, onOpen }: { item: MenuItem; onOpen: (item: MenuItem
         <h3 className="line-clamp-2 text-sm font-bold text-foreground">{item.name}</h3>
         {item.description && <p className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground">{item.description}</p>}
         <div className="mt-2 flex items-center justify-between">
-          <span className="text-base font-extrabold text-foreground">{item.price === null ? "À confirmer" : `${item.price.toLocaleString("fr-FR")} FCFA`}</span>
+          <span className="text-base font-extrabold text-primary">{item.price === null ? "À confirmer" : `${item.price.toLocaleString("fr-FR")} FCFA`}</span>
           {item.available &&
             (qty > 0 ? (
               <div className="flex items-center gap-1.5 rounded-full border border-border bg-background px-0.5 py-0.5">
@@ -106,7 +106,7 @@ export function TenantPopularSection({ items, onOpen }: { items: MenuItem[]; onO
     <section id="populaires" className="bg-background pt-5">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-xl font-extrabold text-foreground">Plats populaires</h2>
+          <h2 className="font-display text-xl font-extrabold text-foreground">Nos incontournables</h2>
           <button onClick={scrollToMenu} className="inline-flex items-center gap-1 text-sm font-semibold text-primary">
             Voir tout <ArrowRight className="h-3.5 w-3.5" />
           </button>

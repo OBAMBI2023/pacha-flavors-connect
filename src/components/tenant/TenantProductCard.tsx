@@ -88,11 +88,11 @@ export function TenantProductCard({ item, onOpen }: { item: MenuItem; onOpen: (i
           {item.available ? (
             hasPriceDiscount ? (
               <span className="flex flex-col">
-                <span className="text-sm font-semibold text-primary">{promotion!.final_price.toLocaleString("fr-FR")} FCFA</span>
+                <span className="text-base font-bold text-primary">{promotion!.final_price.toLocaleString("fr-FR")} FCFA</span>
                 <span className="text-xs font-medium text-muted-foreground line-through">{item.price!.toLocaleString("fr-FR")} FCFA</span>
               </span>
             ) : (
-              <span className="text-sm font-semibold text-primary">{item.price === null ? "À confirmer" : `${item.price.toLocaleString("fr-FR")} FCFA`}</span>
+              <span className="text-base font-bold text-primary">{item.price === null ? "À confirmer" : `${item.price.toLocaleString("fr-FR")} FCFA`}</span>
             )
           ) : (
             <span className="rounded-full bg-muted px-2 py-1 text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">Indisponible</span>

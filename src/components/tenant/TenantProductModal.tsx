@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { ArrowLeft, ShoppingCart } from "lucide-react";
 import { formatPrepTime, getPromotionBadgeLabel, type MenuItem } from "@/data/menu";
 import type { CartOptionSelection } from "@/lib/cart";
 import { QuantitySelector } from "@/components/tenant/QuantitySelector";
@@ -64,15 +64,12 @@ export function TenantProductModal({
   return (
     <div className="fixed inset-0 z-[110] flex items-end justify-center bg-cocoa/50 px-3 py-3 backdrop-blur-sm sm:items-center" onClick={onClose}>
       <div className="w-full max-w-lg overflow-hidden rounded-[28px] bg-background shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary">Produit</p>
-            <h2 className="mt-2 font-display text-2xl font-semibold">{item.name}</h2>
-          </div>
-          <button onClick={onClose} aria-label="Fermer" className="grid h-10 w-10 place-items-center rounded-full hover:bg-accent"><X className="h-4 w-4" /></button>
+        <div className="flex items-center gap-3 px-5 py-4">
+          <button onClick={onClose} aria-label="Retour" className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-border bg-card hover:bg-accent"><ArrowLeft className="h-5 w-5" /></button>
+          <p className="truncate text-sm font-semibold text-foreground">{item.name}</p>
         </div>
         <div className="max-h-[75vh] overflow-y-auto">
-          <div className="relative aspect-[16/10] bg-muted">
+          <div className="relative mx-4 h-[220px] overflow-hidden rounded-[24px] bg-muted sm:h-[280px]">
             {item.image ? <img src={item.image} alt={item.name} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Aucune image</div>}
             {promotion && (
               <span className="absolute left-3 top-3 rounded-full bg-primary px-3 py-1 text-[0.65rem] font-bold uppercase tracking-wide text-primary-foreground shadow-sm">
@@ -81,28 +78,25 @@ export function TenantProductModal({
             )}
           </div>
           <div className="space-y-4 px-5 py-5">
-            {item.subtitle ? <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary">{item.subtitle}</p> : null}
-            <p className="text-sm text-muted-foreground">{item.description}</p>
+            <div>
+              {item.subtitle ? <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary">{item.subtitle}</p> : null}
+              <h2 className="mt-1 font-display text-[28px] font-semibold leading-tight text-foreground">{item.name}</h2>
+              <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{item.description}</p>
+            </div>
             {!item.available && (
               <span className="inline-block rounded-full bg-muted px-3 py-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">Indisponible pour le moment</span>
             )}
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Prix unitaire</span>
+            <div className="flex items-center justify-between">
               {hasPriceDiscount ? (
-                <span className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground line-through">{item.price!.toLocaleString("fr-FR")} FCFA</span>
-                  <span className="font-semibold text-primary">{unitPrice.toLocaleString("fr-FR")} FCFA</span>
+                <span className="flex items-baseline gap-2">
+                  <span className="text-[21px] font-bold text-primary">{unitPrice.toLocaleString("fr-FR")} FCFA</span>
+                  <span className="text-sm text-muted-foreground line-through">{item.price!.toLocaleString("fr-FR")} FCFA</span>
                 </span>
               ) : (
-                <span className="font-semibold">{item.price === null ? "À confirmer" : `${unitPrice.toLocaleString("fr-FR")} FCFA`}</span>
+                <span className="text-[21px] font-bold text-primary">{item.price === null ? "À confirmer" : `${unitPrice.toLocaleString("fr-FR")} FCFA`}</span>
               )}
+              {prepTimeLabel && <span className="text-sm font-medium text-muted-foreground">{prepTimeLabel}</span>}
             </div>
-            {prepTimeLabel && (
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Préparation</span>
-                <span className="font-medium">{prepTimeLabel}</span>
-              </div>
-            )}
 
             {optionGroups.length > 0 && (
               <div className="space-y-4">
@@ -114,7 +108,11 @@ export function TenantProductModal({
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm font-semibold">
                           {group.name}
-                          {group.is_required && <span className="ml-1.5 text-xs font-medium text-destructive">Obligatoire</span>}
+                          {group.is_required ? (
+                            <span className="ml-1.5 text-xs font-medium text-destructive">Obligatoire</span>
+                          ) : (
+                            <span className="ml-1.5 text-xs font-medium text-muted-foreground">Optionnel</span>
+                          )}
                         </p>
                         {group.selection_type === "multiple" && group.max_select && (
                           <span className="shrink-0 text-xs text-muted-foreground">Max {group.max_select}</span>
@@ -155,14 +153,13 @@ export function TenantProductModal({
                 incrementDisabled={!item.available}
               />
             </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Total</span>
-              <span className="font-semibold">{total.toLocaleString("fr-FR")} FCFA</span>
-            </div>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-2 border-t border-border px-5 py-4">
-          <button onClick={onClose} className="h-12 rounded-2xl border border-border text-sm font-semibold">Fermer</button>
+        <div className="border-t border-border px-5 py-4">
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-medium text-muted-foreground">Total</span>
+            <span className="text-lg font-bold text-foreground">{total.toLocaleString("fr-FR")} FCFA</span>
+          </div>
           <button
             onClick={() => {
               // Cart display only -- the server independently recomputes the
@@ -175,8 +172,9 @@ export function TenantProductModal({
               onClose();
             }}
             disabled={!canAdd}
-            className="h-12 rounded-2xl bg-primary text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-40"
+            className="mt-3 flex h-[58px] w-full items-center justify-center gap-2 rounded-2xl bg-primary text-base font-bold text-primary-foreground shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
           >
+            <ShoppingCart className="h-5 w-5" />
             {!item.available ? "Indisponible" : !allRequiredSatisfied ? "Sélection requise" : "Ajouter au panier"}
           </button>
         </div>
