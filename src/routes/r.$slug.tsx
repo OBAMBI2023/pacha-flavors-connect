@@ -3,7 +3,10 @@ import { useState } from "react";
 import { MapPin, Navigation } from "lucide-react";
 import { useMenuData } from "@/lib/menu-db";
 import { CartProvider, useCart } from "@/lib/cart";
+import { DeliveryLocationProvider } from "@/lib/deliveryLocation";
 import { TenantOrderDrawer } from "@/components/TenantOrderDrawer";
+import { TenantLocationBar } from "@/components/tenant/TenantLocationBar";
+import { TenantLocationModal } from "@/components/tenant/TenantLocationModal";
 import { CategoriesSheet } from "@/components/CategoriesSheet";
 import { useStorefrontTheme } from "@/components/tenant/tenantTheme";
 import { TenantHeader } from "@/components/tenant/TenantHeader";
@@ -76,7 +79,9 @@ function TenantStorefrontPage() {
   const { slug } = Route.useParams();
   return (
     <CartProvider>
-      <TenantStorefront slug={slug} />
+      <DeliveryLocationProvider>
+        <TenantStorefront slug={slug} />
+      </DeliveryLocationProvider>
     </CartProvider>
   );
 }
@@ -122,6 +127,7 @@ function TenantStorefront({ slug }: { slug: string }) {
   return (
     <div className="min-h-screen bg-background pb-28 md:pb-0">
       <TenantHeader restaurant={restaurant} cartCount={count} subtotalLabel={subtotalLabel} hasContact={hasContact} onOpenCart={openCart} />
+      <TenantLocationBar />
       {hasMenu && <TenantSearchBar value={query} onChange={handleSearchChange} onOpenFilters={() => setCategoriesOpen(true)} />}
 
       <main>
@@ -150,6 +156,7 @@ function TenantStorefront({ slug }: { slug: string }) {
       <TenantCartBar count={count} subtotalLabel={subtotalLabel} onOpenCart={openCart} />
       <TenantBottomNav restaurantSlug={restaurant.slug} />
       <TenantOrderDrawer restaurantSlug={restaurant.slug} restaurantName={restaurant.name} availability={data.availability} timezone={restaurant.timezone ?? "Africa/Abidjan"} />
+      <TenantLocationModal />
       <CategoriesSheet slug={slug} open={categoriesOpen} onOpenChange={setCategoriesOpen} onSelectCategory={setActive} />
     </div>
   );

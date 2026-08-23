@@ -1,4 +1,3 @@
-import { MapPin, Phone } from "lucide-react";
 import type { PublicRestaurant, PublicRestaurantSettings } from "@/lib/menu-db";
 import type { RestaurantAvailability } from "@/lib/businessHours";
 import { AvailabilityBadge } from "@/components/tenant/AvailabilityBadge";
@@ -15,7 +14,6 @@ export function TenantHero({
   settings: PublicRestaurantSettings | null;
   availability: RestaurantAvailability | null;
 }) {
-  const location = [restaurant.address, restaurant.commune, restaurant.city].filter(Boolean).join(", ");
   const hasCover = Boolean(restaurant.cover_url);
 
   return (
@@ -35,21 +33,6 @@ export function TenantHero({
           </button>
         </div>
       </div>
-
-      {(location || restaurant.phone) && (
-        <div className="mx-4 mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 px-1 text-xs text-muted-foreground sm:mx-6">
-          {location && (
-            <span className="flex min-w-0 items-center gap-1.5">
-              <MapPin className="h-3.5 w-3.5 shrink-0 text-primary" /> {location}
-            </span>
-          )}
-          {restaurant.phone && (
-            <a href={`tel:${restaurant.phone}`} className="flex items-center gap-1.5 hover:text-foreground">
-              <Phone className="h-3.5 w-3.5 shrink-0 text-primary" /> {restaurant.phone}
-            </a>
-          )}
-        </div>
-      )}
     </section>
   );
 }

@@ -1,16 +1,16 @@
 import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { Banknote, ShoppingBag, X } from "lucide-react";
+import { AlertCircle, Banknote, LocateFixed, MapPin, ShoppingBag, X } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useCart } from "@/lib/cart";
 import { createRestaurantOrder, cartLinesToOrderItems } from "@/lib/orders";
 import { QuantitySelector } from "@/components/tenant/QuantitySelector";
 import { AvailabilityBadge } from "@/components/tenant/AvailabilityBadge";
 import type { RestaurantAvailability } from "@/lib/businessHours";
+import { useDeliveryLocation } from "@/lib/deliveryLocation";
 
 const CUSTOMER_PHONE_KEY = "saovia.customer.phone";
 const CUSTOMER_NAME_KEY = "saovia.customer.name";
-const CUSTOMER_ADDRESS_KEY = "saovia.customer.address";
 const CUSTOMER_INSTRUCTIONS_KEY = "saovia.customer.instructions";
 
 export function TenantOrderDrawer({
@@ -26,9 +26,10 @@ export function TenantOrderDrawer({
 }) {
   const navigate = useNavigate();
   const { lines, count, subtotal, hasUnpriced, isOpen, closeCart, increment, decrement, remove, clear } = useCart();
+  const { location, openModal: openLocationModal } = useDeliveryLocation();
   const [mode, setMode] = useState<"delivery" | "pickup">("delivery");
-  const [form, setForm] = useState({ name: "", phone: "", address: "", instructions: "" });
-  const [fieldErrors, setFieldErrors] = useState<{ name?: string; phone?: string; address?: string }>({});
+  const [form, setForm] = useState({ name: "", phone: "", instructions: "" });
+  const [fieldErrors, setFieldErrors] = useState<{ name?: string; phone?: string }>({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,7 +37,10 @@ export function TenantOrderDrawer({
   // "unconfigured = open" default -- the cart is never cleared or blocked
   // by a transient fetch issue, only by a real, confirmed closure.
   const isClosed = availability !== null && !availability.is_open;
-  const canSubmit = lines.length > 0 && !submitting && !isClosed;
+  // A delivery order without a confirmed drop-off point can't be fulfilled --
+  // pickup never needs one, matching the server's own delivery-only address check.
+  const needsLocation = mode === "delivery" && !location?.confirmed;
+  const canSubmit = lines.length > 0 && !submitting && !isClosed && !needsLocation;
   const itemCountLabel = useMemo(() => `${count} article${count > 1 ? "s" : ""}`, [count]);
 
   if (!isOpen) return null;
@@ -46,7 +50,6 @@ export function TenantOrderDrawer({
     const errors: typeof fieldErrors = {};
     if (!form.name.trim()) errors.name = "Merci d'indiquer votre nom.";
     if (!form.phone.trim()) errors.phone = "Merci d'indiquer votre téléphone.";
-    if (mode === "delivery" && !form.address.trim()) errors.address = "Merci d'indiquer votre adresse.";
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       return;
@@ -62,14 +65,18 @@ export function TenantOrderDrawer({
         fulfillment_type: mode,
         customer_name: form.name.trim(),
         customer_phone: form.phone.trim(),
-        delivery_address: mode === "delivery" ? form.address.trim() : null,
+        delivery_address: mode === "delivery" ? location?.address ?? null : null,
         delivery_instructions: mode === "delivery" ? form.instructions.trim() || null : null,
+        delivery_latitude: mode === "delivery" ? location?.latitude ?? null : null,
+        delivery_longitude: mode === "delivery" ? location?.longitude ?? null : null,
+        delivery_neighborhood: mode === "delivery" ? location?.neighborhood ?? null : null,
+        delivery_commune: mode === "delivery" ? location?.commune ?? null : null,
+        delivery_city: mode === "delivery" ? location?.city ?? null : null,
         items: cartLinesToOrderItems(lines),
       });
 
       window.localStorage.setItem(CUSTOMER_PHONE_KEY, form.phone.trim());
       window.localStorage.setItem(CUSTOMER_NAME_KEY, form.name.trim());
-      window.localStorage.setItem(CUSTOMER_ADDRESS_KEY, form.address.trim());
       window.localStorage.setItem(CUSTOMER_INSTRUCTIONS_KEY, form.instructions.trim());
       window.localStorage.setItem("saovia.restaurant.slug", restaurantSlug);
 
@@ -150,7 +157,33 @@ export function TenantOrderDrawer({
                 <Field label="Téléphone *" value={form.phone} onChange={(value) => setForm((current) => ({ ...current, phone: value }))} error={fieldErrors.phone} type="tel" />
                 {mode === "delivery" && (
                   <>
-                    <Field label="Adresse / indication *" value={form.address} onChange={(value) => setForm((current) => ({ ...current, address: value }))} error={fieldErrors.address} />
+                    <div className="rounded-xl border border-border bg-card p-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Adresse de livraison</p>
+                      {location ? (
+                        <div className="mt-1.5 flex items-start gap-2">
+                          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                          <p className="text-sm text-foreground">
+                            {[location.address, location.neighborhood, location.commune, location.city].filter((part, index) => part && (index === 0 || part !== location.address)).join(", ")}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="mt-1.5 text-sm text-muted-foreground">Aucune adresse définie.</p>
+                      )}
+                      <div className="mt-2 flex gap-3">
+                        <button type="button" onClick={openLocationModal} className="text-xs font-semibold text-primary hover:underline">
+                          Modifier l'adresse
+                        </button>
+                        <button type="button" onClick={openLocationModal} className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
+                          <LocateFixed className="h-3 w-3" /> Utiliser ma position
+                        </button>
+                      </div>
+                      {needsLocation && (
+                        <div className="mt-2 flex items-start gap-1.5 text-xs font-medium text-destructive">
+                          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                          <span>Veuillez confirmer votre adresse de livraison avant de commander.</span>
+                        </div>
+                      )}
+                    </div>
                     <label className="block">
                       <span className="text-xs font-medium text-muted-foreground">Instructions de livraison</span>
                       <textarea rows={3} value={form.instructions} onChange={(e) => setForm((current) => ({ ...current, instructions: e.target.value }))} className="mt-1 w-full rounded-xl border border-input bg-card px-3 py-2 text-sm outline-none focus:border-primary" />
@@ -177,7 +210,7 @@ export function TenantOrderDrawer({
           <div className="sticky bottom-0 border-t border-border bg-background px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
             <div className="flex items-center justify-between gap-3 text-sm"><span className="text-muted-foreground">Sous-total</span><span className="text-right font-semibold">{subtotalLabel}</span></div>
             <button onClick={submit} disabled={!canSubmit} className="mt-3 flex h-[54px] w-full items-center justify-center rounded-2xl bg-primary px-6 text-base font-bold text-primary-foreground shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60">
-              {submitting ? "Création en cours..." : isClosed ? "Fermé pour le moment" : "Commander"}
+              {submitting ? "Création en cours..." : isClosed ? "Fermé pour le moment" : needsLocation ? "Confirmez votre adresse" : "Commander"}
             </button>
           </div>
         )}

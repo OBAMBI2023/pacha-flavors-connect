@@ -60,6 +60,11 @@ export type CreateOrderInput = {
   customer_phone: string;
   delivery_address?: string | null;
   delivery_instructions?: string | null;
+  delivery_latitude?: number | null;
+  delivery_longitude?: number | null;
+  delivery_neighborhood?: string | null;
+  delivery_commune?: string | null;
+  delivery_city?: string | null;
   customer_notes?: string | null;
   items: CreateOrderItem[];
 };
@@ -92,6 +97,11 @@ export async function createRestaurantOrder(input: CreateOrderInput): Promise<Cr
     p_items: input.items,
     p_delivery_address: input.delivery_address ?? null,
     p_delivery_instructions: input.delivery_instructions ?? null,
+    p_delivery_latitude: input.delivery_latitude ?? null,
+    p_delivery_longitude: input.delivery_longitude ?? null,
+    p_delivery_neighborhood: input.delivery_neighborhood ?? null,
+    p_delivery_commune: input.delivery_commune ?? null,
+    p_delivery_city: input.delivery_city ?? null,
     p_customer_notes: input.customer_notes ?? null,
     p_order_source: "web",
     p_source_metadata: { source: "saovia-mobile" },
