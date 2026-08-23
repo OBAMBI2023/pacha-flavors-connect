@@ -12,7 +12,7 @@ export function TenantCartBar({
   if (count === 0) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-[calc(70px+env(safe-area-inset-bottom))] z-40 px-3 pb-2 pt-2 md:hidden">
+    <div className="fixed inset-x-0 bottom-[calc(76px+env(safe-area-inset-bottom))] z-40 px-3 pb-2 pt-2 md:hidden">
       <button
         onClick={onOpenCart}
         className="flex w-full items-center gap-3 rounded-2xl bg-primary px-4 py-3 text-primary-foreground shadow-xl transition-opacity hover:opacity-95"

@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Menu, ShoppingCart, User, X } from "lucide-react";
+import { ChevronDown, Menu, ShoppingCart, User, X } from "lucide-react";
 import type { PublicRestaurant } from "@/lib/menu-db";
+import { useDeliveryLocation } from "@/lib/deliveryLocation";
 
 const CUSTOMER_PHONE_KEY = "saovia.customer.phone";
 const CUSTOMER_RESTAURANT_SLUG_KEY = "saovia.restaurant.slug";
@@ -76,6 +77,8 @@ export function TenantHeader({
   const navigate = useNavigate();
   const [navOpen, setNavOpen] = useState(false);
   const [accountModalOpen, setAccountModalOpen] = useState(false);
+  const { location, openModal: openLocationModal } = useDeliveryLocation();
+  const shortLocation = location ? (location.commune ?? location.neighborhood ?? location.city ?? location.address) : null;
 
   function handleAccountClick(e: React.MouseEvent) {
     e.preventDefault();
@@ -112,13 +115,25 @@ export function TenantHeader({
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-card text-foreground">
       <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6 lg:justify-between">
-        {/* Mobile: hamburger | empty centered spacer (logo/name intentionally removed on mobile) | profile+cart, each flex-1 so the layout balance is unchanged. */}
+        {/* Mobile: hamburger | delivery location (opens the same location modal as the storefront bar) | profile+cart, each flex-1 so the layout balance is unchanged. */}
         <div className="flex flex-1 items-center lg:hidden">
           <button onClick={() => setNavOpen((v) => !v)} aria-label="Menu" className="grid h-10 w-10 place-items-center rounded-full border border-border">
             {navOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
-        <div className="flex flex-1 min-w-0 items-center justify-center gap-2 lg:hidden" />
+        <button
+          type="button"
+          onClick={openLocationModal}
+          className="flex flex-1 min-w-0 flex-col items-center justify-center gap-0 lg:hidden"
+          aria-label="Adresse de livraison"
+        >
+          <span className="flex min-w-0 items-center gap-1 text-sm font-semibold text-foreground">
+            <span aria-hidden="true">📍</span>
+            <span className="truncate">{shortLocation ?? "Livrer à"}</span>
+            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          </span>
+          <span className="text-[0.7rem] font-medium text-primary">Modifier</span>
+        </button>
         <div className="flex flex-1 items-center justify-end gap-2 lg:hidden">
           <Link to="/commandes" onClick={handleAccountClick} aria-label="Mes commandes" className="grid h-10 w-10 place-items-center rounded-full border border-border text-foreground hover:bg-muted">
             <User className="h-5 w-5" />

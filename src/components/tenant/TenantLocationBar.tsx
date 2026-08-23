@@ -10,7 +10,7 @@ export function TenantLocationBar() {
       type="button"
       onClick={openModal}
       aria-label="Adresse de livraison"
-      className="mx-4 mt-2 flex w-[calc(100%-2rem)] items-center gap-2.5 rounded-full border border-border bg-card px-4 py-2.5 text-left transition-colors hover:bg-accent sm:mx-6 sm:w-[calc(100%-3rem)]"
+      className="mx-4 mt-2 hidden w-[calc(100%-2rem)] items-center gap-2.5 rounded-full border border-border bg-card px-4 py-2.5 text-left transition-colors hover:bg-accent lg:flex lg:mx-6 lg:w-[calc(100%-3rem)]"
     >
       <MapPin className="h-4 w-4 shrink-0 text-primary" />
       <div className="min-w-0 flex-1">

@@ -14,7 +14,6 @@ import { TenantSearchBar } from "@/components/tenant/TenantSearchBar";
 import { TenantHero } from "@/components/tenant/TenantHero";
 import { TenantCategoryNav } from "@/components/tenant/TenantCategoryNav";
 import { TenantPopularSection } from "@/components/tenant/TenantPopularSection";
-import { TenantPromoBanner } from "@/components/tenant/TenantPromoBanner";
 import { TenantProductCard } from "@/components/tenant/TenantProductCard";
 import { TenantProductModal } from "@/components/tenant/TenantProductModal";
 import { TenantCartBar } from "@/components/tenant/TenantCartBar";
@@ -134,13 +133,12 @@ function TenantStorefront({ slug }: { slug: string }) {
         <TenantHero restaurant={restaurant} settings={settings} availability={data.availability} />
         {hasMenu && <TenantCategoryNav tabs={tabs} active={active} onSelect={setActive} onOpenCategories={() => setCategoriesOpen(true)} />}
         {hasMenu && <TenantPopularSection items={data.items} onOpen={setOpenItem} />}
-        <TenantPromoBanner restaurant={restaurant} settings={settings} />
-        <section id="carte" className="section-pad bg-background">
+        <section id="carte" className="pb-16 pt-3 md:pb-24 bg-background">
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
             {!hasMenu ? <TenantEmptyMenuState /> : items.length === 0 ? (
-              <p className="mt-8 rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">Aucun plat ne correspond à votre recherche.</p>
+              <p className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">Aucun plat ne correspond à votre recherche.</p>
             ) : (
-              <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{items.map((item) => <TenantProductCard key={item.id} item={item} onOpen={setOpenItem} />)}</div>
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{items.map((item) => <TenantProductCard key={item.id} item={item} onOpen={setOpenItem} />)}</div>
             )}
           </div>
         </section>

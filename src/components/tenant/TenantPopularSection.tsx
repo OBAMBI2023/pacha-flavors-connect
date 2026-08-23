@@ -1,4 +1,5 @@
-import { ArrowRight, Plus } from "lucide-react";
+import { ArrowRight, Minus, Plus } from "lucide-react";
+import { useCart, computeLineKey } from "@/lib/cart";
 import type { MenuItem } from "@/data/menu";
 
 function scrollToMenu() {
@@ -6,8 +7,34 @@ function scrollToMenu() {
 }
 
 function PopularCard({ item, onOpen }: { item: MenuItem; onOpen: (item: MenuItem) => void }) {
+  const { lines, add, increment, decrement } = useCart();
+
   function open() {
     if (item.available) onOpen(item);
+  }
+
+  const hasOptions = (item.optionGroups ?? []).length > 0;
+  const lineKey = computeLineKey(item.id, []);
+  const qty = !hasOptions ? (lines.find((l) => l.key === lineKey)?.qty ?? 0) : 0;
+
+  function handleQuickAdd(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!item.available) return;
+    if (hasOptions) {
+      onOpen(item);
+      return;
+    }
+    add(item, 1);
+  }
+
+  function handleIncrement(e: React.MouseEvent) {
+    e.stopPropagation();
+    increment(lineKey);
+  }
+
+  function handleDecrement(e: React.MouseEvent) {
+    e.stopPropagation();
+    decrement(lineKey);
   }
 
   return (
@@ -34,11 +61,37 @@ function PopularCard({ item, onOpen }: { item: MenuItem; onOpen: (item: MenuItem
         {item.description && <p className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground">{item.description}</p>}
         <div className="mt-2 flex items-center justify-between">
           <span className="text-base font-extrabold text-foreground">{item.price === null ? "À confirmer" : `${item.price.toLocaleString("fr-FR")} FCFA`}</span>
-          {item.available && (
-            <span aria-hidden="true" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground">
-              <Plus className="h-4 w-4" />
-            </span>
-          )}
+          {item.available &&
+            (qty > 0 ? (
+              <div className="flex items-center gap-1.5 rounded-full border border-border bg-background px-0.5 py-0.5">
+                <button
+                  type="button"
+                  onClick={handleDecrement}
+                  aria-label="Retirer un article"
+                  className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-muted text-foreground transition-colors hover:bg-accent"
+                >
+                  <Minus className="h-3 w-3" />
+                </button>
+                <span className="min-w-2.5 text-center text-xs font-bold">{qty}</span>
+                <button
+                  type="button"
+                  onClick={handleIncrement}
+                  aria-label="Ajouter un article"
+                  className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground transition-colors hover:opacity-90"
+                >
+                  <Plus className="h-3 w-3" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handleQuickAdd}
+                aria-label={`Ajouter ${item.name} au panier`}
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground transition-transform hover:scale-105"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            ))}
         </div>
       </div>
     </article>

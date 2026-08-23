@@ -1,13 +1,45 @@
-import { Plus } from "lucide-react";
+import { Minus, Plus } from "lucide-react";
+import { useCart, computeLineKey } from "@/lib/cart";
 import { getPromotionBadgeLabel, type MenuItem } from "@/data/menu";
 
 export function TenantProductCard({ item, onOpen }: { item: MenuItem; onOpen: (item: MenuItem) => void }) {
+  const { lines, add, increment, decrement } = useCart();
+
   function open() {
     if (item.available) onOpen(item);
   }
 
   const promotion = item.promotion;
   const hasPriceDiscount = promotion && promotion.type !== "free_delivery" && item.price !== null;
+
+  // Products with option groups must go through the modal to choose them --
+  // the card can only quick-add (skip straight to the cart) when there is
+  // nothing to configure. `computeLineKey` with an empty array is exactly
+  // the key that line would have, so it's a safe, single-source-of-truth
+  // way to find an existing quantity for it.
+  const hasOptions = (item.optionGroups ?? []).length > 0;
+  const lineKey = computeLineKey(item.id, []);
+  const qty = !hasOptions ? (lines.find((l) => l.key === lineKey)?.qty ?? 0) : 0;
+
+  function handleQuickAdd(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!item.available) return;
+    if (hasOptions) {
+      onOpen(item);
+      return;
+    }
+    add(item, 1);
+  }
+
+  function handleIncrement(e: React.MouseEvent) {
+    e.stopPropagation();
+    increment(lineKey);
+  }
+
+  function handleDecrement(e: React.MouseEvent) {
+    e.stopPropagation();
+    decrement(lineKey);
+  }
 
   return (
     <article
@@ -22,7 +54,7 @@ export function TenantProductCard({ item, onOpen }: { item: MenuItem; onOpen: (i
           open();
         }
       }}
-      className={`group overflow-hidden rounded-[28px] border border-border bg-card shadow-sm transition-transform duration-300 ${
+      className={`group overflow-hidden rounded-3xl border border-border bg-card shadow-sm transition-transform duration-300 ${
         item.available ? "cursor-pointer hover:-translate-y-1" : "cursor-not-allowed opacity-90"
       }`}
     >
@@ -44,32 +76,56 @@ export function TenantProductCard({ item, onOpen }: { item: MenuItem; onOpen: (i
             </span>
           )}
         </div>
-        {item.available && (
-          <span
-            aria-hidden="true"
-            className="absolute right-3 top-3 grid h-11 w-11 place-items-center rounded-full bg-background/90 shadow-lg backdrop-blur-sm transition-transform group-hover:scale-105"
-          >
-            <Plus className="h-5 w-5" />
-          </span>
-        )}
       </div>
-      <div className="space-y-2 p-4">
-        <div className="flex items-start justify-between gap-3">
-          <h3 className="line-clamp-1 font-semibold">{item.name}</h3>
+      <div className="space-y-1.5 p-4">
+        <h3 className="line-clamp-1 font-semibold">{item.name}</h3>
+        <p className="line-clamp-2 text-sm text-muted-foreground">{item.description}</p>
+        <div className="flex items-center justify-between pt-1">
           {item.available ? (
             hasPriceDiscount ? (
-              <span className="flex shrink-0 flex-col items-end">
-                <span className="text-xs font-medium text-muted-foreground line-through">{item.price!.toLocaleString("fr-FR")} FCFA</span>
+              <span className="flex flex-col">
                 <span className="text-sm font-semibold text-primary">{promotion!.final_price.toLocaleString("fr-FR")} FCFA</span>
+                <span className="text-xs font-medium text-muted-foreground line-through">{item.price!.toLocaleString("fr-FR")} FCFA</span>
               </span>
             ) : (
-              <span className="shrink-0 text-sm font-semibold text-primary">{item.price === null ? "À confirmer" : `${item.price.toLocaleString("fr-FR")} FCFA`}</span>
+              <span className="text-sm font-semibold text-primary">{item.price === null ? "À confirmer" : `${item.price.toLocaleString("fr-FR")} FCFA`}</span>
             )
           ) : (
-            <span className="shrink-0 rounded-full bg-muted px-2 py-1 text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">Indisponible</span>
+            <span className="rounded-full bg-muted px-2 py-1 text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">Indisponible</span>
           )}
+
+          {item.available &&
+            (qty > 0 ? (
+              <div className="flex items-center gap-2.5 rounded-full border border-border bg-background px-1 py-1 transition-all">
+                <button
+                  type="button"
+                  onClick={handleDecrement}
+                  aria-label="Retirer un article"
+                  className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-muted text-foreground transition-colors hover:bg-accent"
+                >
+                  <Minus className="h-3.5 w-3.5" />
+                </button>
+                <span className="min-w-3 text-center text-sm font-bold">{qty}</span>
+                <button
+                  type="button"
+                  onClick={handleIncrement}
+                  aria-label="Ajouter un article"
+                  className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground transition-colors hover:opacity-90"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handleQuickAdd}
+                aria-label={`Ajouter ${item.name} au panier`}
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground shadow-sm transition-transform hover:scale-105"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            ))}
         </div>
-        <p className="line-clamp-2 text-sm text-muted-foreground">{item.description}</p>
       </div>
     </article>
   );

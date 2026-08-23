@@ -13,7 +13,8 @@ export type CartOptionSelection = { id: string; name: string; extra_price: numbe
 /** `key` (not the product id) identifies a line -- two lines for the same product with different selected options must never merge. */
 export type CartLine = { key: string; item: MenuItem; qty: number; options: CartOptionSelection[] };
 
-function computeLineKey(itemId: string, options: CartOptionSelection[]): string {
+/** Exported so callers (e.g. a product card's own quick-add stepper) can look up an existing line for a product with no selected options, without duplicating this scheme. */
+export function computeLineKey(itemId: string, options: CartOptionSelection[]): string {
   return `${itemId}::${options.map((o) => o.id).sort().join(",")}`;
 }
 

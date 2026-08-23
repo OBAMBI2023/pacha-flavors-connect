@@ -25,7 +25,7 @@ export function TenantSearchBar({
         type="button"
         onClick={onOpenFilters}
         aria-label="Filtrer par catégorie"
-        className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground transition-opacity hover:opacity-90"
+        className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-border bg-card text-foreground transition-colors hover:bg-accent"
       >
         <SlidersHorizontal className="h-4 w-4" />
       </button>
