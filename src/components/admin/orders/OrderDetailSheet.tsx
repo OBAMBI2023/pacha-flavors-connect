@@ -1,16 +1,26 @@
 import { useEffect, useState } from "react";
-import { Banknote, MapPin, Undo2 } from "lucide-react";
+import { Banknote, Copy, MapPin, Share2, Undo2 } from "lucide-react";
+import { toast } from "sonner";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { fetchOrderDetail, type Order, type OrderDetail, type OrderStatus } from "@/lib/orders-db";
-import { STATUS_BADGE_CLASS, STATUS_LABELS, deliveryAddressLine, fulfillmentLabel, googleMapsUrl, nextActions } from "./orderStatusMeta";
+import { STATUS_BADGE_CLASS, STATUS_LABELS, buildDeliveryDetailsText, deliveryAddressLine, fulfillmentLabel, googleMapsUrl, nextActions } from "./orderStatusMeta";
 import { PAYMENT_METHOD_LABELS, PAYMENT_STATUS_BADGE_CLASS, PAYMENT_STATUS_LABELS } from "./paymentStatusMeta";
 
 function money(amount: number, currency: string) {
   return `${amount.toLocaleString("fr-FR")} ${currency}`;
+}
+
+async function copyText(text: string, successMessage: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast.success(successMessage);
+  } catch {
+    toast.error("Impossible de copier -- copiez manuellement.");
+  }
 }
 
 export function OrderDetailSheet({
@@ -100,8 +110,8 @@ export function OrderDetailSheet({
               </section>
 
               {detail.fulfillment_type === "delivery" && (
-                <section className="space-y-1.5 rounded-2xl border border-border p-4">
-                  <h3 className="font-semibold">📍 Adresse de livraison</h3>
+                <section className="space-y-2 rounded-2xl border border-border p-4">
+                  <h3 className="font-semibold">📍 Position de livraison</h3>
                   {(() => {
                     const addressLine = deliveryAddressLine(detail);
                     const hasCoordinates = detail.delivery_latitude !== null && detail.delivery_longitude !== null;
@@ -111,20 +121,13 @@ export function OrderDetailSheet({
                     return (
                       <>
                         <p>{addressLine ?? "Adresse non disponible"}</p>
+                        {detail.delivery_landmark && (
+                          <p className="text-muted-foreground">Point de repère : {detail.delivery_landmark}</p>
+                        )}
                         {hasCoordinates && (
-                          <div className="space-y-1">
-                            <p className="text-xs text-muted-foreground">
-                              {detail.delivery_latitude!.toFixed(5)}, {detail.delivery_longitude!.toFixed(5)}
-                            </p>
-                            <a
-                              href={googleMapsUrl(detail.delivery_latitude!, detail.delivery_longitude!)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
-                            >
-                              <MapPin className="h-3.5 w-3.5" /> Voir sur la carte
-                            </a>
-                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            GPS : {detail.delivery_latitude!.toFixed(5)}, {detail.delivery_longitude!.toFixed(5)}
+                          </p>
                         )}
                       </>
                     );
@@ -132,6 +135,57 @@ export function OrderDetailSheet({
                   {detail.delivery_instructions && (
                     <p className="text-muted-foreground">Instructions : {detail.delivery_instructions}</p>
                   )}
+
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {detail.delivery_latitude !== null && detail.delivery_longitude !== null && (
+                      <>
+                        <a
+                          href={googleMapsUrl(detail.delivery_latitude, detail.delivery_longitude)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border px-3 text-xs font-semibold hover:bg-accent"
+                        >
+                          <MapPin className="h-3.5 w-3.5" /> Ouvrir dans Google Maps
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => void copyText(`${detail.delivery_latitude},${detail.delivery_longitude}`, "Coordonnées copiées")}
+                          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border px-3 text-xs font-semibold hover:bg-accent"
+                        >
+                          <Copy className="h-3.5 w-3.5" /> Copier les coordonnées
+                        </button>
+                      </>
+                    )}
+                    {deliveryAddressLine(detail) && (
+                      <button
+                        type="button"
+                        onClick={() => void copyText(deliveryAddressLine(detail) ?? "", "Adresse copiée")}
+                        className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border px-3 text-xs font-semibold hover:bg-accent"
+                      >
+                        <Copy className="h-3.5 w-3.5" /> Copier l'adresse
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => void copyText(buildDeliveryDetailsText(detail), "Informations de livraison copiées")}
+                      className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border px-3 text-xs font-semibold hover:bg-accent"
+                    >
+                      <Copy className="h-3.5 w-3.5" /> Copier les informations de livraison
+                    </button>
+                    {typeof navigator !== "undefined" && "share" in navigator && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void navigator.share({ text: buildDeliveryDetailsText(detail) }).catch(() => {
+                            // User cancelled the share sheet -- not an error worth surfacing.
+                          });
+                        }}
+                        className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border px-3 text-xs font-semibold hover:bg-accent"
+                      >
+                        <Share2 className="h-3.5 w-3.5" /> Partager
+                      </button>
+                    )}
+                  </div>
                 </section>
               )}
 

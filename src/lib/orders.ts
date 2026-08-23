@@ -65,6 +65,7 @@ export type CreateOrderInput = {
   delivery_neighborhood?: string | null;
   delivery_commune?: string | null;
   delivery_city?: string | null;
+  delivery_landmark?: string | null;
   customer_notes?: string | null;
   items: CreateOrderItem[];
 };
@@ -102,6 +103,7 @@ export async function createRestaurantOrder(input: CreateOrderInput): Promise<Cr
     p_delivery_neighborhood: input.delivery_neighborhood ?? null,
     p_delivery_commune: input.delivery_commune ?? null,
     p_delivery_city: input.delivery_city ?? null,
+    p_delivery_landmark: input.delivery_landmark ?? null,
     p_customer_notes: input.customer_notes ?? null,
     p_order_source: "web",
     p_source_metadata: { source: "saovia-mobile" },

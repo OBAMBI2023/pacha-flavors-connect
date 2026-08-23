@@ -8,6 +8,7 @@ export type DeliveryLocation = {
   commune: string | null;
   city: string | null;
   country: string | null;
+  landmark: string | null;
   confirmed: boolean;
   updated_at: string;
 };
@@ -28,6 +29,7 @@ function loadStoredLocation(): DeliveryLocation | null {
       commune: parsed.commune ?? null,
       city: parsed.city ?? null,
       country: parsed.country ?? null,
+      landmark: parsed.landmark ?? null,
       confirmed: Boolean(parsed.confirmed),
       updated_at: parsed.updated_at ?? new Date().toISOString(),
     };

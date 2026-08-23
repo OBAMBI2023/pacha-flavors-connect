@@ -120,7 +120,14 @@ export function OrderCard({
           {(() => {
             const addressLine = deliveryAddressLine(order);
             if (addressLine) {
-              return <p className="mt-1 text-foreground">{addressLine}</p>;
+              return (
+                <>
+                  <p className="mt-1 text-foreground">{addressLine}</p>
+                  {order.delivery_landmark && (
+                    <p className="text-xs text-muted-foreground">Repère : {order.delivery_landmark}</p>
+                  )}
+                </>
+              );
             }
             if (order.delivery_latitude !== null && order.delivery_longitude !== null) {
               return (

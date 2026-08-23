@@ -412,6 +412,7 @@ export type Database = {
           delivery_dispatch_status: Database["public"]["Enums"]["delivery_dispatch_status"]
           delivery_fee_amount: number
           delivery_instructions: string | null
+          delivery_landmark: string | null
           delivery_latitude: number | null
           delivery_longitude: number | null
           delivery_neighborhood: string | null
@@ -455,6 +456,7 @@ export type Database = {
           delivery_dispatch_status?: Database["public"]["Enums"]["delivery_dispatch_status"]
           delivery_fee_amount?: number
           delivery_instructions?: string | null
+          delivery_landmark?: string | null
           delivery_latitude?: number | null
           delivery_longitude?: number | null
           delivery_neighborhood?: string | null
@@ -498,6 +500,7 @@ export type Database = {
           delivery_dispatch_status?: Database["public"]["Enums"]["delivery_dispatch_status"]
           delivery_fee_amount?: number
           delivery_instructions?: string | null
+          delivery_landmark?: string | null
           delivery_latitude?: number | null
           delivery_longitude?: number | null
           delivery_neighborhood?: string | null
@@ -1371,45 +1374,28 @@ export type Database = {
         }
         Returns: undefined
       }
-      create_order:
-        | {
-            Args: {
-              p_customer_name: string
-              p_customer_notes?: string
-              p_customer_phone: string
-              p_delivery_address?: string
-              p_delivery_commune?: string
-              p_delivery_instructions?: string
-              p_fulfillment_type: Database["public"]["Enums"]["order_fulfillment_type"]
-              p_items: Json
-              p_order_source?: string
-              p_payment_method?: string
-              p_slug: string
-              p_source_metadata?: Json
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_customer_name: string
-              p_customer_notes?: string
-              p_customer_phone: string
-              p_delivery_address?: string
-              p_delivery_city?: string
-              p_delivery_commune?: string
-              p_delivery_instructions?: string
-              p_delivery_latitude?: number
-              p_delivery_longitude?: number
-              p_delivery_neighborhood?: string
-              p_fulfillment_type: Database["public"]["Enums"]["order_fulfillment_type"]
-              p_items: Json
-              p_order_source?: string
-              p_payment_method?: string
-              p_slug: string
-              p_source_metadata?: Json
-            }
-            Returns: Json
-          }
+      create_order: {
+        Args: {
+          p_customer_name: string
+          p_customer_notes?: string
+          p_customer_phone: string
+          p_delivery_address?: string
+          p_delivery_city?: string
+          p_delivery_commune?: string
+          p_delivery_instructions?: string
+          p_delivery_landmark?: string
+          p_delivery_latitude?: number
+          p_delivery_longitude?: number
+          p_delivery_neighborhood?: string
+          p_fulfillment_type: Database["public"]["Enums"]["order_fulfillment_type"]
+          p_items: Json
+          p_order_source?: string
+          p_payment_method?: string
+          p_slug: string
+          p_source_metadata?: Json
+        }
+        Returns: Json
+      }
       create_refund: {
         Args: { p_amount: number; p_order_id: string; p_reason?: string }
         Returns: Json

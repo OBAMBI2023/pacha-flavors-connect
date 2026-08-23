@@ -7,12 +7,12 @@ function scrollToMenu() {
   document.getElementById("carte")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-/** Small white plate for the logo, overlaid top-left on the cover -- keeps the
- * logo readable (object-contain, no crop/deform) against an arbitrary photo. */
+/** Small white plate for the logo -- object-contain so it's never cropped or
+ * deformed. Sits in the identity row below the cover, not on the image. */
 function TenantHeroLogo({ restaurant, failed, onError }: { restaurant: PublicRestaurant; failed: boolean; onError: () => void }) {
   const showImage = Boolean(restaurant.logo_url) && !failed;
   return (
-    <div className="absolute left-4 top-4 flex h-[76px] w-[76px] shrink-0 items-center justify-center rounded-2xl bg-white p-2 shadow-[0_4px_12px_rgba(0,0,0,0.18)] sm:h-[88px] sm:w-[88px] lg:h-24 lg:w-24">
+    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white p-1.5 shadow-[0_2px_8px_rgba(0,0,0,0.1)] ring-1 ring-border sm:h-16 sm:w-16">
       {showImage ? (
         <img
           src={restaurant.logo_url ?? undefined}
@@ -22,7 +22,7 @@ function TenantHeroLogo({ restaurant, failed, onError }: { restaurant: PublicRes
           onError={onError}
         />
       ) : (
-        <span className="font-display text-lg font-bold text-primary sm:text-xl lg:text-2xl">{restaurant.name.charAt(0).toUpperCase()}</span>
+        <span className="font-display text-lg font-bold text-primary">{restaurant.name.charAt(0).toUpperCase()}</span>
       )}
     </div>
   );
@@ -58,34 +58,35 @@ export function TenantHero({
 
   return (
     <section id="accueil" className="bg-background pt-1">
+      {/* Cover: image only -- no text, logo, badge, or gradient on top of it. */}
       <div
-        className={`relative mx-4 h-[210px] overflow-hidden rounded-3xl shadow-[0_8px_24px_rgba(0,0,0,0.12)] sm:mx-6 sm:h-[280px] lg:h-[320px] ${hasCover ? "bg-cover bg-center" : "bg-gradient-to-br from-primary to-foreground"}`}
+        className={`mx-4 h-[210px] overflow-hidden rounded-3xl shadow-[0_8px_24px_rgba(0,0,0,0.12)] sm:mx-6 sm:h-[280px] lg:h-[320px] ${hasCover ? "bg-cover bg-center" : "bg-gradient-to-br from-primary to-foreground"}`}
         style={hasCover ? { backgroundImage: `url(${restaurant.cover_url})` } : undefined}
       >
         {restaurant.cover_url && !coverFailed && (
           <img src={restaurant.cover_url} alt="" aria-hidden="true" className="hidden" onError={() => setCoverFailed(true)} />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-        <TenantHeroLogo restaurant={restaurant} failed={logoFailed} onError={() => setLogoFailed(true)} />
-        {availability && (
-          <AvailabilityBadge
-            availability={availability}
-            timezone={restaurant.timezone ?? "Africa/Abidjan"}
-            className="absolute right-4 top-4 max-w-[calc(100%-2rem)] shadow-sm"
-          />
-        )}
-        <div className="relative flex h-full max-w-2xl flex-col justify-end gap-2.5 p-5">
-          <p className="text-[0.65rem] font-bold uppercase tracking-[0.25em] text-gold">{restaurant.name}</p>
-          {fulfillmentLine && (
-            <h1 className="font-display text-2xl font-extrabold leading-tight text-white sm:text-3xl">{fulfillmentLine}</h1>
-          )}
-          <button
-            onClick={scrollToMenu}
-            className="inline-flex h-11 w-fit items-center gap-2 rounded-full bg-primary px-6 text-sm font-bold text-primary-foreground shadow-lg transition-opacity hover:opacity-90"
-          >
-            Commander maintenant
-          </button>
+      </div>
+
+      {/* Identity block: name, logo, status, and the CTA now live in the
+          normal page flow below the cover instead of overlaid on it. */}
+      <div className="mx-4 mt-4 space-y-3 sm:mx-6">
+        <div className="flex items-center gap-3">
+          <TenantHeroLogo restaurant={restaurant} failed={logoFailed} onError={() => setLogoFailed(true)} />
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-display text-xl font-semibold text-foreground sm:text-2xl">{restaurant.name}</p>
+            {availability && (
+              <AvailabilityBadge availability={availability} timezone={restaurant.timezone ?? "Africa/Abidjan"} className="mt-1" />
+            )}
+          </div>
         </div>
+        {fulfillmentLine && <p className="text-sm font-medium text-muted-foreground">{fulfillmentLine}</p>}
+        <button
+          onClick={scrollToMenu}
+          className="inline-flex h-11 w-fit items-center gap-2 rounded-full bg-primary px-6 text-sm font-bold text-primary-foreground shadow-lg transition-opacity hover:opacity-90"
+        >
+          Commander maintenant
+        </button>
       </div>
     </section>
   );

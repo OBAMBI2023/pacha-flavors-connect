@@ -7,10 +7,10 @@ import { getCurrentPosition, reverseGeocode, GeoError, type GeoErrorKind } from 
 type Step = "idle" | "locating" | "found" | "error";
 
 const ERROR_MESSAGES: Record<GeoErrorKind, string> = {
-  denied: "Autorisation de localisation refusée. Saisissez votre adresse de livraison manuellement.",
-  unavailable: "Impossible de récupérer votre position. Vérifiez que la localisation de votre appareil est activée.",
-  timeout: "La récupération de votre position a pris trop de temps. Réessayez ou saisissez votre adresse manuellement.",
-  unsupported: "La géolocalisation n'est pas disponible sur cet appareil. Saisissez votre adresse manuellement.",
+  denied: "La localisation est bloquée pour cette application. Autorisez l'accès à votre position dans les paramètres de votre navigateur ou de votre appareil, puis réessayez.",
+  unavailable: "Votre position actuelle est momentanément indisponible. Vérifiez que la localisation de votre appareil est activée.",
+  timeout: "La récupération de votre position a pris trop de temps. Réessayez.",
+  unsupported: "La géolocalisation n'est pas disponible sur cet appareil.",
 };
 
 const GEOCODE_FAILURE_MESSAGE = "Position détectée, mais l'adresse n'a pas pu être déterminée. Vous pouvez saisir votre adresse manuellement.";
@@ -20,9 +20,12 @@ export function TenantLocationModal() {
   const [step, setStep] = useState<Step>("idle");
   const [errorKind, setErrorKind] = useState<GeoErrorKind | null>(null);
   const [draft, setDraft] = useState<Omit<DeliveryLocation, "confirmed" | "updated_at"> | null>(
-    location ? { latitude: location.latitude, longitude: location.longitude, address: location.address, neighborhood: location.neighborhood, commune: location.commune, city: location.city, country: location.country } : null,
+    location
+      ? { latitude: location.latitude, longitude: location.longitude, address: location.address, neighborhood: location.neighborhood, commune: location.commune, city: location.city, country: location.country, landmark: location.landmark }
+      : null,
   );
   const [manualAddress, setManualAddress] = useState(location?.address ?? "");
+  const [manualLandmark, setManualLandmark] = useState(location?.landmark ?? "");
   const [manualMode, setManualMode] = useState(false);
   // Reverse geocoding is a separate step from GPS capture: the position can
   // succeed while the address lookup fails. Tracked apart from `errorKind`
@@ -42,10 +45,10 @@ export function TenantLocationModal() {
       const { latitude, longitude } = await getCurrentPosition();
       try {
         const geo = await reverseGeocode(latitude, longitude);
-        setDraft({ latitude, longitude, address: geo.address, neighborhood: geo.neighborhood, commune: geo.commune, city: geo.city, country: geo.country });
+        setDraft({ latitude, longitude, address: geo.address, neighborhood: geo.neighborhood, commune: geo.commune, city: geo.city, country: geo.country, landmark: manualLandmark.trim() || null });
         setManualAddress(geo.address);
       } catch {
-        setDraft({ latitude, longitude, address: "", neighborhood: null, commune: null, city: null, country: null });
+        setDraft({ latitude, longitude, address: "", neighborhood: null, commune: null, city: null, country: null, landmark: manualLandmark.trim() || null });
         setManualAddress("");
         setGeocodeFailed(true);
       }
@@ -75,6 +78,7 @@ export function TenantLocationModal() {
       commune: draft?.commune ?? null,
       city: draft?.city ?? null,
       country: draft?.country ?? null,
+      landmark: manualLandmark.trim() || null,
       confirmed: true,
       updated_at: new Date().toISOString(),
     });
@@ -153,6 +157,16 @@ export function TenantLocationModal() {
                   value={manualAddress}
                   onChange={(e) => setManualAddress(e.target.value)}
                   placeholder="Ex: Angré 8e Tranche, Cocody, Abidjan"
+                  className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                />
+              </label>
+              <label className="block">
+                <span className="text-xs font-medium text-muted-foreground">Point de repère (optionnel)</span>
+                <input
+                  type="text"
+                  value={manualLandmark}
+                  onChange={(e) => setManualLandmark(e.target.value)}
+                  placeholder="Ex: près du Feu du SICOMEX"
                   className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary"
                 />
               </label>

@@ -72,6 +72,7 @@ export function TenantOrderDrawer({
         delivery_neighborhood: mode === "delivery" ? location?.neighborhood ?? null : null,
         delivery_commune: mode === "delivery" ? location?.commune ?? null : null,
         delivery_city: mode === "delivery" ? location?.city ?? null : null,
+        delivery_landmark: mode === "delivery" ? location?.landmark ?? null : null,
         items: cartLinesToOrderItems(lines),
       });
 
@@ -169,6 +170,9 @@ export function TenantOrderDrawer({
                       ) : (
                         <p className="mt-1.5 text-sm text-muted-foreground">Aucune adresse définie.</p>
                       )}
+                      {location?.landmark && (
+                        <p className="mt-1.5 text-xs text-muted-foreground">Point de repère : {location.landmark}</p>
+                      )}
                       <div className="mt-2 flex gap-3">
                         <button type="button" onClick={openLocationModal} className="text-xs font-semibold text-primary hover:underline">
                           Modifier l'adresse
@@ -185,7 +189,7 @@ export function TenantOrderDrawer({
                       )}
                     </div>
                     <label className="block">
-                      <span className="text-xs font-medium text-muted-foreground">Instructions de livraison</span>
+                      <span className="text-xs font-medium text-muted-foreground">Instructions pour le livreur</span>
                       <textarea rows={3} value={form.instructions} onChange={(e) => setForm((current) => ({ ...current, instructions: e.target.value }))} className="mt-1 w-full rounded-xl border border-input bg-card px-3 py-2 text-sm outline-none focus:border-primary" />
                     </label>
                   </>

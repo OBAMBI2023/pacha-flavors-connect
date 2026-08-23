@@ -108,6 +108,40 @@ export function googleMapsUrl(latitude: number, longitude: number): string {
   return `https://www.google.com/maps?q=${latitude},${longitude}`;
 }
 
+/**
+ * Everything a restaurant needs to hand a delivery off to a driver or a
+ * third-party delivery app, as one plain-text block -- built only from
+ * fields already snapshotted on the order, never re-derived or guessed.
+ */
+export function buildDeliveryDetailsText(
+  order: Pick<
+    Order,
+    | "customer_name"
+    | "customer_phone"
+    | "delivery_address"
+    | "delivery_neighborhood"
+    | "delivery_commune"
+    | "delivery_city"
+    | "delivery_landmark"
+    | "delivery_instructions"
+    | "delivery_latitude"
+    | "delivery_longitude"
+  >,
+): string {
+  const lines: string[] = [];
+  lines.push(`Client : ${order.customer_name}`);
+  if (order.customer_phone) lines.push(`Téléphone : ${order.customer_phone}`);
+  const addressLine = deliveryAddressLine(order);
+  if (addressLine) lines.push(`Adresse : ${addressLine}`);
+  if (order.delivery_landmark) lines.push(`Point de repère : ${order.delivery_landmark}`);
+  if (order.delivery_instructions) lines.push(`Instructions : ${order.delivery_instructions}`);
+  if (order.delivery_latitude !== null && order.delivery_longitude !== null) {
+    lines.push(`GPS : ${order.delivery_latitude.toFixed(5)}, ${order.delivery_longitude.toFixed(5)}`);
+    lines.push(`Google Maps : ${googleMapsUrl(order.delivery_latitude, order.delivery_longitude)}`);
+  }
+  return lines.join("\n");
+}
+
 export function elapsedLabel(fromIso: string): string {
   const minutes = Math.max(0, Math.floor((Date.now() - new Date(fromIso).getTime()) / 60000));
   if (minutes < 1) return "à l'instant";
