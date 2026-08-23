@@ -110,7 +110,25 @@ export function OrderDetailSheet({
                   <p className="text-muted-foreground">Préparation estimée : ⏱️ {detail.estimated_preparation_minutes} min</p>
                 )}
                 {detail.customer_notes && <p className="text-muted-foreground">Notes client : {detail.customer_notes}</p>}
+                <p className={detail.allergy_information ? "text-destructive" : "text-muted-foreground"}>
+                  {detail.allergy_information ? `⚠️ Allergies : ${detail.allergy_information}` : "Allergies : aucune signalée"}
+                </p>
+                <p className="text-muted-foreground">Couverts : {detail.cutlery_requested ? "OUI" : "NON"}</p>
               </section>
+
+              {detail.is_for_someone_else && (
+                <section className="space-y-1.5 rounded-2xl border border-primary/30 bg-primary/5 p-4">
+                  <h3 className="font-semibold">🎁 Commande pour quelqu'un d'autre</h3>
+                  <p>{detail.recipient_name}</p>
+                  {detail.recipient_phone && <p className="text-muted-foreground">{detail.recipient_phone}</p>}
+                  {detail.customer_profile_address && (
+                    <p className="text-xs text-muted-foreground">Adresse habituelle du client : {detail.customer_profile_address}</p>
+                  )}
+                  {detail.recipient_additional_info && (
+                    <p className="text-muted-foreground">Informations complémentaires : {detail.recipient_additional_info}</p>
+                  )}
+                </section>
+              )}
 
               {detail.fulfillment_type === "delivery" && (
                 <section className="space-y-2 rounded-2xl border border-border p-4">
@@ -137,6 +155,15 @@ export function OrderDetailSheet({
                   })()}
                   {detail.delivery_instructions && (
                     <p className="text-muted-foreground">Instructions : {detail.delivery_instructions}</p>
+                  )}
+                  {detail.driver_note && detail.driver_note !== detail.delivery_instructions && (
+                    <p className="text-muted-foreground">Consigne au livreur : {detail.driver_note}</p>
+                  )}
+                  {detail.delivery_distance_km !== null && (
+                    <p className="text-xs text-muted-foreground">
+                      Distance : {detail.delivery_distance_km.toFixed(2)} km
+                      {detail.delivery_fee_calculation_method === "fallback" && " (tarif forfaitaire, position non déterminée)"}
+                    </p>
                   )}
 
                   <div className="flex flex-wrap gap-2 pt-1">
@@ -223,15 +250,21 @@ export function OrderDetailSheet({
 
               <section className="space-y-1.5 rounded-2xl border border-border p-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Sous-total</span>
+                  <span className="text-muted-foreground">Sous-total des plats</span>
                   <span>{money(detail.subtotal_amount, detail.currency)}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Frais de livraison</span>
                   <span>{money(detail.delivery_fee_amount, detail.currency)}</span>
                 </div>
+                {detail.discount_amount > 0 && (
+                  <div className="flex items-center justify-between text-emerald-700">
+                    <span>Réduction</span>
+                    <span>-{money(detail.discount_amount, detail.currency)}</span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between border-t border-border pt-1.5 font-semibold">
-                  <span>Total</span>
+                  <span>TOTAL À PAYER</span>
                   <span>{money(detail.total_amount, detail.currency)}</span>
                 </div>
               </section>

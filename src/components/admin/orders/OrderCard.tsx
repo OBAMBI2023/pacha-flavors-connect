@@ -1,4 +1,4 @@
-import { Banknote, Bike, MapPin, Phone, ShoppingBag } from "lucide-react";
+import { AlertTriangle, Banknote, Bike, MapPin, Phone, ShoppingBag, Utensils } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Order, OrderStatus } from "@/lib/orders-db";
@@ -93,7 +93,12 @@ export function OrderCard({
       </button>
 
       <div className="space-y-1 text-sm">
-        <p className="truncate font-medium">{order.customer_name}</p>
+        <p className="flex items-center gap-1.5 truncate font-medium">
+          {order.customer_name}
+          {order.is_for_someone_else && (
+            <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[0.65rem] font-semibold text-primary">Pour {order.recipient_name}</span>
+          )}
+        </p>
         {order.customer_phone && (
           <p className="flex items-center gap-1.5 text-muted-foreground">
             <Phone className="h-3.5 w-3.5 shrink-0" /> {order.customer_phone}
@@ -110,6 +115,16 @@ export function OrderCard({
         {driverStep && (
           <p className="flex items-center gap-1.5 text-primary">
             <Bike className="h-3.5 w-3.5 shrink-0" /> {driverStep}
+          </p>
+        )}
+        {order.cutlery_requested && (
+          <p className="flex items-center gap-1.5 text-muted-foreground">
+            <Utensils className="h-3.5 w-3.5 shrink-0" /> Couverts : OUI
+          </p>
+        )}
+        {order.allergy_information && (
+          <p className="flex items-center gap-1.5 text-destructive">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> Allergie signalée
           </p>
         )}
       </div>

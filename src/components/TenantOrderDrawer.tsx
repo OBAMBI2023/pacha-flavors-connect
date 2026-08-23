@@ -27,6 +27,7 @@ import type { RestaurantAvailability } from "@/lib/businessHours";
 import { useDeliveryLocation } from "@/lib/deliveryLocation";
 import { lookupCustomerName } from "@/lib/customers-db";
 import { computeDistanceBasedDelivery } from "@/lib/deliveryPricing";
+import { geocodeAddress } from "@/lib/geolocation";
 import { getOrCreateVisitorId } from "@/lib/visitorTracking";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Switch } from "@/components/ui/switch";
@@ -202,6 +203,7 @@ export function TenantOrderDrawer({
   const [paymentChoice, setPaymentChoice] = useState<PaymentChoice>("cash");
   const [fieldErrors, setFieldErrors] = useState<{ name?: string; phone?: string }>({});
   const [submitting, setSubmitting] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const phoneInputRef = useRef<HTMLInputElement>(null);
@@ -215,6 +217,10 @@ export function TenantOrderDrawer({
   const [recipientName, setRecipientName] = useState("");
   const [recipientPhone, setRecipientPhone] = useState("");
   const [recipientAddress, setRecipientAddress] = useState("");
+  const [recipientCity, setRecipientCity] = useState("");
+  const [recipientNeighborhood, setRecipientNeighborhood] = useState("");
+  const [recipientLandmark, setRecipientLandmark] = useState("");
+  const [recipientAdditionalInfo, setRecipientAdditionalInfo] = useState("");
   const [recipientErrors, setRecipientErrors] = useState<{ name?: string; phone?: string; address?: string }>({});
   const recipientNameRef = useRef<HTMLInputElement>(null);
   const recipientPhoneRef = useRef<HTMLInputElement>(null);
@@ -234,7 +240,7 @@ export function TenantOrderDrawer({
   const needsLocation = mode === "delivery" && !orderingForSomeone && !location?.confirmed;
   const nameEmpty = !form.name.trim();
   const phoneEmpty = !form.phone.trim();
-  const canSubmit = lines.length > 0 && !submitting && !isClosed && !needsLocation && !nameEmpty && !phoneEmpty;
+  const canSubmit = lines.length > 0 && !submitting && !geocoding && !isClosed && !needsLocation && !nameEmpty && !phoneEmpty;
   const itemCountLabel = useMemo(() => `${count} article${count > 1 ? "s" : ""}`, [count]);
   // Cart items typically prepare in parallel in the kitchen, not one after
   // another -- the longest single dish is a more honest "when will this be
@@ -296,17 +302,27 @@ export function TenantOrderDrawer({
     setRecipientErrors({});
 
     // Ordering for someone else: the recipient's typed address replaces
-    // the delivery point, and since it's plain text (never geocoded), no
-    // GPS coordinates travel with it -- create_order correctly falls back
-    // to the flat delivery fee rather than pricing a distance it can't
-    // verify. The recipient's name/phone are prepended to the delivery
-    // instructions so the restaurant/driver can actually reach them.
-    const recipientNote = orderingForSomeone ? `Destinataire : ${recipientName.trim()} (${recipientPhone.trim()})` : "";
-    const effectiveInstructions =
-      mode === "delivery" ? [recipientNote, form.instructions.trim()].filter(Boolean).join(" — ") || null : null;
+    // the delivery point. It's attempted through the same forward-geocoding
+    // used nowhere else in the checkout flow (see geocodeAddress) so a
+    // distance-based fee can still apply -- a manually-typed address isn't
+    // automatically untrustworthy, it just isn't pre-verified like a pinned
+    // GPS location is. Geocoding failing (no match, network down) is not an
+    // error: it just means no coordinates travel with the order, and
+    // create_order's own fallback (flat fee) applies exactly as it already
+    // does for any other address it can't place -- checkout is never blocked.
+    let recipientLat: number | null = null;
+    let recipientLng: number | null = null;
+    if (orderingForSomeone) {
+      setGeocoding(true);
+      const query = [recipientAddress, recipientNeighborhood, recipientCity, "Côte d'Ivoire"].filter((p) => p.trim()).join(", ");
+      const geocoded = await geocodeAddress(query).catch(() => null);
+      setGeocoding(false);
+      recipientLat = geocoded?.latitude ?? null;
+      recipientLng = geocoded?.longitude ?? null;
+    }
+
     const notesParts: string[] = [];
     if (mode === "pickup") notesParts.push(`Retrait : ${pickupTime}`);
-    if (allergies.trim()) notesParts.push(`Allergies : ${allergies.trim()}`);
 
     try {
       const order = await createRestaurantOrder({
@@ -315,19 +331,30 @@ export function TenantOrderDrawer({
         customer_name: form.name.trim(),
         customer_phone: form.phone.trim(),
         delivery_address: mode === "delivery" ? (orderingForSomeone ? recipientAddress.trim() : location?.address ?? null) : null,
-        delivery_instructions: effectiveInstructions,
-        delivery_latitude: mode === "delivery" && !orderingForSomeone ? location?.latitude ?? null : null,
-        delivery_longitude: mode === "delivery" && !orderingForSomeone ? location?.longitude ?? null : null,
-        delivery_neighborhood: mode === "delivery" && !orderingForSomeone ? location?.neighborhood ?? null : null,
+        delivery_instructions: mode === "delivery" ? form.instructions.trim() || null : null,
+        delivery_latitude: mode === "delivery" ? (orderingForSomeone ? recipientLat : location?.latitude ?? null) : null,
+        delivery_longitude: mode === "delivery" ? (orderingForSomeone ? recipientLng : location?.longitude ?? null) : null,
+        delivery_neighborhood: mode === "delivery" ? (orderingForSomeone ? recipientNeighborhood.trim() || null : location?.neighborhood ?? null) : null,
         delivery_commune: mode === "delivery" && !orderingForSomeone ? location?.commune ?? null : null,
-        delivery_city: mode === "delivery" && !orderingForSomeone ? location?.city ?? null : null,
-        delivery_landmark: mode === "delivery" && !orderingForSomeone ? location?.landmark ?? null : null,
+        delivery_city: mode === "delivery" ? (orderingForSomeone ? recipientCity.trim() || null : location?.city ?? null) : null,
+        delivery_landmark: mode === "delivery" ? (orderingForSomeone ? recipientLandmark.trim() || null : location?.landmark ?? null) : null,
         customer_notes: notesParts.length > 0 ? notesParts.join(" · ") : null,
         payment_method: toBackendPaymentMethod(paymentChoice),
         items: cartLinesToOrderItems(lines),
         offer_id: activeOfferId,
         visitor_id: getOrCreateVisitorId(),
-        needs_cutlery: needsCutlery,
+        cutlery_requested: needsCutlery,
+        is_for_someone_else: orderingForSomeone,
+        recipient_name: orderingForSomeone ? recipientName.trim() : null,
+        recipient_phone: orderingForSomeone ? recipientPhone.trim() : null,
+        recipient_address: orderingForSomeone ? recipientAddress.trim() : null,
+        recipient_city: orderingForSomeone ? recipientCity.trim() || null : null,
+        recipient_neighborhood: orderingForSomeone ? recipientNeighborhood.trim() || null : null,
+        recipient_landmark: orderingForSomeone ? recipientLandmark.trim() || null : null,
+        recipient_additional_info: orderingForSomeone ? recipientAdditionalInfo.trim() || null : null,
+        allergy_information: allergies.trim() || null,
+        driver_note: mode === "delivery" ? form.instructions.trim() || null : null,
+        customer_profile_address: mode === "delivery" ? location?.address ?? null : null,
       });
 
       window.localStorage.setItem(CUSTOMER_PHONE_KEY, form.phone.trim());
@@ -374,7 +401,9 @@ export function TenantOrderDrawer({
   const deliveryFeeLabel = `${(resolvedDeliveryFee ?? 0).toLocaleString("fr-FR")} FCFA`;
   const totalAmount = subtotal + (mode === "delivery" ? resolvedDeliveryFee ?? 0 : 0);
   const totalLabel = hasUnpriced ? (subtotal > 0 ? `${totalAmount.toLocaleString("fr-FR")} FCFA` : "À confirmer") : `${totalAmount.toLocaleString("fr-FR")} FCFA`;
-  const orderButtonLabel = submitting
+  const orderButtonLabel = geocoding
+    ? "Recherche de l'adresse..."
+    : submitting
     ? "Création en cours..."
     : isClosed
       ? "Fermé pour le moment"
@@ -655,6 +684,21 @@ export function TenantOrderDrawer({
                         className={`mt-1.5 w-full resize-none rounded-xl border bg-card p-3 text-sm outline-none focus:border-primary ${recipientErrors.address ? "border-destructive" : "border-input"}`}
                       />
                       {recipientErrors.address && <span className="mt-1 block text-xs font-medium text-destructive">{recipientErrors.address}</span>}
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Field label="Quartier" placeholder="Ex. Cocody" value={recipientNeighborhood} onChange={setRecipientNeighborhood} />
+                      <Field label="Ville" placeholder="Ex. Abidjan" value={recipientCity} onChange={setRecipientCity} />
+                    </div>
+                    <Field label="Point de repère" placeholder="Ex. Près de la pharmacie" value={recipientLandmark} onChange={setRecipientLandmark} />
+                    <label className="block">
+                      <span className="text-xs font-medium text-muted-foreground">Informations complémentaires</span>
+                      <textarea
+                        value={recipientAdditionalInfo}
+                        onChange={(e) => setRecipientAdditionalInfo(e.target.value)}
+                        placeholder="Ex. Portail vert, sonner deux fois..."
+                        rows={2}
+                        className="mt-1.5 w-full resize-none rounded-xl border border-input bg-card p-3 text-sm outline-none focus:border-primary"
+                      />
                     </label>
                   </ExpandableOption>
                 )}

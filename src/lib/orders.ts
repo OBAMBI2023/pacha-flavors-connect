@@ -75,8 +75,21 @@ export type CreateOrderInput = {
   offer_id?: string | null;
   /** This app's anonymous browser identity (see visitorTracking.ts) -- lets create_order attribute the order for client-facing lifecycle notifications (order confirmed / status changes). Optional: an order placed without one simply generates no client notifications. */
   visitor_id?: string | null;
-  /** Folded into source_metadata rather than a new create_order param -- purely informational for the kitchen/packing step, nothing downstream (pricing, RLS, notifications) depends on it. */
-  needs_cutlery?: boolean;
+  /** Persisted as a real column (orders.cutlery_requested) and surfaced in the admin order detail + the new_order notification -- see the cutlery_requested_column migration. */
+  cutlery_requested?: boolean;
+  /** True snapshot fields persisted directly on the order (not squeezed into customer_notes/delivery_instructions text) -- see the order_recipient_and_delivery_snapshot migration. */
+  is_for_someone_else?: boolean;
+  recipient_name?: string | null;
+  recipient_phone?: string | null;
+  recipient_address?: string | null;
+  recipient_city?: string | null;
+  recipient_neighborhood?: string | null;
+  recipient_landmark?: string | null;
+  recipient_additional_info?: string | null;
+  allergy_information?: string | null;
+  driver_note?: string | null;
+  /** The orderer's own confirmed checkout address, kept distinct from delivery_address (which becomes the recipient's address when is_for_someone_else is true) so both are preserved. */
+  customer_profile_address?: string | null;
 };
 
 export type CreateOrderResult = {
@@ -116,9 +129,21 @@ export async function createRestaurantOrder(input: CreateOrderInput): Promise<Cr
     p_customer_notes: input.customer_notes ?? null,
     p_payment_method: input.payment_method ?? "cash",
     p_order_source: "web",
-    p_source_metadata: input.needs_cutlery ? { source: "saovia-mobile", needs_cutlery: true } : { source: "saovia-mobile" },
+    p_source_metadata: { source: "saovia-mobile" },
+    p_cutlery_requested: input.cutlery_requested ?? false,
     p_offer_id: input.offer_id ?? null,
     p_visitor_id: input.visitor_id ?? null,
+    p_is_for_someone_else: input.is_for_someone_else ?? false,
+    p_recipient_name: input.recipient_name ?? null,
+    p_recipient_phone: input.recipient_phone ?? null,
+    p_recipient_address: input.recipient_address ?? null,
+    p_recipient_city: input.recipient_city ?? null,
+    p_recipient_neighborhood: input.recipient_neighborhood ?? null,
+    p_recipient_landmark: input.recipient_landmark ?? null,
+    p_recipient_additional_info: input.recipient_additional_info ?? null,
+    p_allergy_information: input.allergy_information ?? null,
+    p_driver_note: input.driver_note ?? null,
+    p_customer_profile_address: input.customer_profile_address ?? null,
   });
 
   if (error) throw error;

@@ -600,6 +600,7 @@ export type Database = {
       }
       orders: {
         Row: {
+          allergy_information: string | null
           assigned_driver_id: string | null
           cancel_reason: string | null
           cancelled_at: string | null
@@ -610,12 +611,16 @@ export type Database = {
           customer_name: string
           customer_notes: string | null
           customer_phone: string
+          customer_profile_address: string | null
+          cutlery_requested: boolean
           delivered_at: string | null
           delivery_address: string | null
           delivery_city: string | null
           delivery_commune: string | null
           delivery_dispatch_status: Database["public"]["Enums"]["delivery_dispatch_status"]
+          delivery_distance_km: number | null
           delivery_fee_amount: number
+          delivery_fee_calculation_method: string | null
           delivery_instructions: string | null
           delivery_landmark: string | null
           delivery_latitude: number | null
@@ -625,9 +630,11 @@ export type Database = {
           driver_delivery_status:
             | Database["public"]["Enums"]["driver_delivery_status"]
             | null
+          driver_note: string | null
           estimated_preparation_minutes: number | null
           fulfillment_type: Database["public"]["Enums"]["order_fulfillment_type"]
           id: string
+          is_for_someone_else: boolean
           item_count: number
           offer_id: string | null
           offer_title_snapshot: string | null
@@ -640,7 +647,16 @@ export type Database = {
           payment_status: Database["public"]["Enums"]["payment_status"]
           preparing_at: string | null
           ready_at: string | null
+          recipient_additional_info: string | null
+          recipient_address: string | null
+          recipient_city: string | null
+          recipient_landmark: string | null
+          recipient_name: string | null
+          recipient_neighborhood: string | null
+          recipient_phone: string | null
           restaurant_id: string
+          restaurant_lat_snapshot: number | null
+          restaurant_lng_snapshot: number | null
           source_metadata: Json
           status: Database["public"]["Enums"]["order_status"]
           subtotal_amount: number
@@ -649,6 +665,7 @@ export type Database = {
           visitor_id: string | null
         }
         Insert: {
+          allergy_information?: string | null
           assigned_driver_id?: string | null
           cancel_reason?: string | null
           cancelled_at?: string | null
@@ -659,12 +676,16 @@ export type Database = {
           customer_name: string
           customer_notes?: string | null
           customer_phone: string
+          customer_profile_address?: string | null
+          cutlery_requested?: boolean
           delivered_at?: string | null
           delivery_address?: string | null
           delivery_city?: string | null
           delivery_commune?: string | null
           delivery_dispatch_status?: Database["public"]["Enums"]["delivery_dispatch_status"]
+          delivery_distance_km?: number | null
           delivery_fee_amount?: number
+          delivery_fee_calculation_method?: string | null
           delivery_instructions?: string | null
           delivery_landmark?: string | null
           delivery_latitude?: number | null
@@ -674,9 +695,11 @@ export type Database = {
           driver_delivery_status?:
             | Database["public"]["Enums"]["driver_delivery_status"]
             | null
+          driver_note?: string | null
           estimated_preparation_minutes?: number | null
           fulfillment_type: Database["public"]["Enums"]["order_fulfillment_type"]
           id?: string
+          is_for_someone_else?: boolean
           item_count?: number
           offer_id?: string | null
           offer_title_snapshot?: string | null
@@ -689,7 +712,16 @@ export type Database = {
           payment_status?: Database["public"]["Enums"]["payment_status"]
           preparing_at?: string | null
           ready_at?: string | null
+          recipient_additional_info?: string | null
+          recipient_address?: string | null
+          recipient_city?: string | null
+          recipient_landmark?: string | null
+          recipient_name?: string | null
+          recipient_neighborhood?: string | null
+          recipient_phone?: string | null
           restaurant_id: string
+          restaurant_lat_snapshot?: number | null
+          restaurant_lng_snapshot?: number | null
           source_metadata?: Json
           status?: Database["public"]["Enums"]["order_status"]
           subtotal_amount: number
@@ -698,6 +730,7 @@ export type Database = {
           visitor_id?: string | null
         }
         Update: {
+          allergy_information?: string | null
           assigned_driver_id?: string | null
           cancel_reason?: string | null
           cancelled_at?: string | null
@@ -708,12 +741,16 @@ export type Database = {
           customer_name?: string
           customer_notes?: string | null
           customer_phone?: string
+          customer_profile_address?: string | null
+          cutlery_requested?: boolean
           delivered_at?: string | null
           delivery_address?: string | null
           delivery_city?: string | null
           delivery_commune?: string | null
           delivery_dispatch_status?: Database["public"]["Enums"]["delivery_dispatch_status"]
+          delivery_distance_km?: number | null
           delivery_fee_amount?: number
+          delivery_fee_calculation_method?: string | null
           delivery_instructions?: string | null
           delivery_landmark?: string | null
           delivery_latitude?: number | null
@@ -723,9 +760,11 @@ export type Database = {
           driver_delivery_status?:
             | Database["public"]["Enums"]["driver_delivery_status"]
             | null
+          driver_note?: string | null
           estimated_preparation_minutes?: number | null
           fulfillment_type?: Database["public"]["Enums"]["order_fulfillment_type"]
           id?: string
+          is_for_someone_else?: boolean
           item_count?: number
           offer_id?: string | null
           offer_title_snapshot?: string | null
@@ -738,7 +777,16 @@ export type Database = {
           payment_status?: Database["public"]["Enums"]["payment_status"]
           preparing_at?: string | null
           ready_at?: string | null
+          recipient_additional_info?: string | null
+          recipient_address?: string | null
+          recipient_city?: string | null
+          recipient_landmark?: string | null
+          recipient_name?: string | null
+          recipient_neighborhood?: string | null
+          recipient_phone?: string | null
           restaurant_id?: string
+          restaurant_lat_snapshot?: number | null
+          restaurant_lng_snapshot?: number | null
           source_metadata?: Json
           status?: Database["public"]["Enums"]["order_status"]
           subtotal_amount?: number
@@ -1813,9 +1861,12 @@ export type Database = {
       }
       create_order: {
         Args: {
+          p_allergy_information?: string
           p_customer_name: string
           p_customer_notes?: string
           p_customer_phone: string
+          p_customer_profile_address?: string
+          p_cutlery_requested?: boolean
           p_delivery_address?: string
           p_delivery_city?: string
           p_delivery_commune?: string
@@ -1824,11 +1875,20 @@ export type Database = {
           p_delivery_latitude?: number
           p_delivery_longitude?: number
           p_delivery_neighborhood?: string
+          p_driver_note?: string
           p_fulfillment_type: Database["public"]["Enums"]["order_fulfillment_type"]
+          p_is_for_someone_else?: boolean
           p_items: Json
           p_offer_id?: string
           p_order_source?: string
           p_payment_method?: string
+          p_recipient_additional_info?: string
+          p_recipient_address?: string
+          p_recipient_city?: string
+          p_recipient_landmark?: string
+          p_recipient_name?: string
+          p_recipient_neighborhood?: string
+          p_recipient_phone?: string
           p_slug: string
           p_source_metadata?: Json
           p_visitor_id?: string

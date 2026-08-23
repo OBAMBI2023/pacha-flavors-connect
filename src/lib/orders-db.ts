@@ -174,6 +174,23 @@ export type Order = {
   delivery_landmark: string | null;
   delivery_instructions: string | null;
   customer_notes: string | null;
+  /** True snapshots persisted at checkout -- never re-derived from a customer/tenant profile later. delivery_address above already holds the *effective* address (the recipient's, when is_for_someone_else is true) -- customer_profile_address is what the orderer's own checkout location was instead, kept only for reference. */
+  is_for_someone_else: boolean;
+  recipient_name: string | null;
+  recipient_phone: string | null;
+  recipient_address: string | null;
+  recipient_city: string | null;
+  recipient_neighborhood: string | null;
+  recipient_landmark: string | null;
+  recipient_additional_info: string | null;
+  allergy_information: string | null;
+  cutlery_requested: boolean;
+  driver_note: string | null;
+  customer_profile_address: string | null;
+  delivery_distance_km: number | null;
+  delivery_fee_calculation_method: "distance" | "fallback" | null;
+  restaurant_lat_snapshot: number | null;
+  restaurant_lng_snapshot: number | null;
   estimated_preparation_minutes: number | null;
   currency: string;
   subtotal_amount: number;

@@ -78,6 +78,15 @@ export type DriverActiveDelivery = {
   driver_delivery_status: DriverDeliveryStatus | null;
   payment_status: PaymentStatus;
   payment_method: PaymentMethod;
+  is_for_someone_else: boolean;
+  recipient_name: string | null;
+  recipient_phone: string | null;
+  delivery_landmark: string | null;
+  delivery_neighborhood: string | null;
+  delivery_instructions: string | null;
+  driver_note: string | null;
+  allergy_information: string | null;
+  delivery_distance_km: number | null;
 };
 
 /** The driver's own row -- RLS (driver_profiles_select_own) only ever lets this resolve `id = auth.uid()`. */

@@ -117,3 +117,34 @@ export async function reverseGeocode(latitude: number, longitude: number): Promi
   if (!address) throw new Error("reverse_geocode_empty");
   return { address, neighborhood, commune, city, country };
 }
+
+/**
+ * Forward geocoding (address text -> coordinates), same provider/rationale
+ * as reverseGeocode above: OpenStreetMap Nominatim is the only geocoding
+ * service reachable with no API key/provider already configured in this
+ * project. Used only for a recipient's typed delivery address ("commander
+ * pour quelqu'un d'autre") -- there is no bulk/automated use here, only
+ * one lookup per checkout, which stays well within Nominatim's usage
+ * policy (max ~1 req/s, no heavy automated querying). Returns null on any
+ * failure or no-match rather than throwing: geocoding failing must never
+ * block checkout, it just means the order falls back to the tenant's flat
+ * delivery fee instead of a distance-based one (see create_order).
+ */
+export async function geocodeAddress(query: string): Promise<{ latitude: number; longitude: number } | null> {
+  const trimmed = query.trim();
+  if (!trimmed) return null;
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(trimmed)}&limit=1`;
+    const response = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!response.ok) return null;
+    const results = (await response.json()) as Array<{ lat?: string; lon?: string }>;
+    const first = results[0];
+    if (!first?.lat || !first?.lon) return null;
+    const latitude = Number(first.lat);
+    const longitude = Number(first.lon);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+    return { latitude, longitude };
+  } catch {
+    return null;
+  }
+}
