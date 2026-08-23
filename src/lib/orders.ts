@@ -75,6 +75,8 @@ export type CreateOrderInput = {
   offer_id?: string | null;
   /** This app's anonymous browser identity (see visitorTracking.ts) -- lets create_order attribute the order for client-facing lifecycle notifications (order confirmed / status changes). Optional: an order placed without one simply generates no client notifications. */
   visitor_id?: string | null;
+  /** Folded into source_metadata rather than a new create_order param -- purely informational for the kitchen/packing step, nothing downstream (pricing, RLS, notifications) depends on it. */
+  needs_cutlery?: boolean;
 };
 
 export type CreateOrderResult = {
@@ -114,7 +116,7 @@ export async function createRestaurantOrder(input: CreateOrderInput): Promise<Cr
     p_customer_notes: input.customer_notes ?? null,
     p_payment_method: input.payment_method ?? "cash",
     p_order_source: "web",
-    p_source_metadata: { source: "saovia-mobile" },
+    p_source_metadata: input.needs_cutlery ? { source: "saovia-mobile", needs_cutlery: true } : { source: "saovia-mobile" },
     p_offer_id: input.offer_id ?? null,
     p_visitor_id: input.visitor_id ?? null,
   });

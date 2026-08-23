@@ -3,13 +3,17 @@ import { createPortal } from "react-dom";
 import {
   AlertCircle,
   Banknote,
+  ChevronDown,
   Clock,
+  Gift,
   LocateFixed,
   MapPin,
   Navigation,
   Pencil,
+  ShieldAlert,
   ShoppingBag,
   Truck,
+  UtensilsCrossed,
   Wallet,
   X,
   type LucideIcon,
@@ -24,6 +28,8 @@ import { useDeliveryLocation } from "@/lib/deliveryLocation";
 import { lookupCustomerName } from "@/lib/customers-db";
 import { computeDistanceBasedDelivery } from "@/lib/deliveryPricing";
 import { getOrCreateVisitorId } from "@/lib/visitorTracking";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Switch } from "@/components/ui/switch";
 
 const CUSTOMER_PHONE_KEY = "saovia.customer.phone";
 const CUSTOMER_NAME_KEY = "saovia.customer.name";
@@ -85,6 +91,88 @@ function isValidPhone(value: string): boolean {
   return value.replace(/[^0-9]/g, "").length >= 8;
 }
 
+/**
+ * Compact row (icon + title + short description + chevron) that reveals
+ * its content only once tapped, per the "options se déplient uniquement
+ * lorsque le client les active" requirement -- collapsed by default,
+ * independent of every other row (no accordion-style exclusivity).
+ * animate-collapsible-down/up (tw-animate-css, already imported globally)
+ * drives the height transition off Radix's own measured content height,
+ * so no extra CSS had to be added for this.
+ */
+function ExpandableOption({
+  icon: Icon,
+  title,
+  description,
+  open,
+  onOpenChange,
+  children,
+}: {
+  icon: LucideIcon;
+  title: string;
+  description?: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <Collapsible open={open} onOpenChange={onOpenChange} className="rounded-2xl border border-border bg-card">
+      <CollapsibleTrigger asChild>
+        <button type="button" className="flex min-h-[56px] w-full items-center gap-3 px-4 py-3 text-left">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+            <Icon className="h-[18px] w-[18px]" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-foreground">{title}</span>
+            {description && <span className="mt-0.5 block text-xs text-muted-foreground">{description}</span>}
+          </span>
+          <ChevronDown className={`h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-300 ${open ? "rotate-180" : ""}`} />
+        </button>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
+        <div className="space-y-3 border-t border-border px-4 pb-4 pt-3">{children}</div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
+/** Same compact row shape as ExpandableOption, but a switch instead of a chevron/expanding content -- for a plain yes/no option like cutlery. */
+function SwitchOption({
+  icon: Icon,
+  title,
+  description,
+  checked,
+  onCheckedChange,
+}: {
+  icon: LucideIcon;
+  title: string;
+  description?: string;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+}) {
+  // The whole row toggles (not just the visual switch, which is only
+  // 20x36px on its own -- well under the 44px minimum touch target) --
+  // the Switch itself is inert (tabIndex -1, pointer-events-none) so a tap
+  // never fires onCheckedChange twice via bubbling.
+  return (
+    <button
+      type="button"
+      onClick={() => onCheckedChange(!checked)}
+      aria-pressed={checked}
+      className="flex min-h-[56px] w-full items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-left"
+    >
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+        <Icon className="h-[18px] w-[18px]" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold text-foreground">{title}</span>
+        {description && <span className="mt-0.5 block text-xs text-muted-foreground">{description}</span>}
+      </span>
+      <Switch checked={checked} tabIndex={-1} className="pointer-events-none shrink-0" />
+    </button>
+  );
+}
+
 export function TenantOrderDrawer({
   restaurantSlug,
   restaurantName,
@@ -118,13 +206,32 @@ export function TenantOrderDrawer({
   const nameInputRef = useRef<HTMLInputElement>(null);
   const phoneInputRef = useRef<HTMLInputElement>(null);
 
+  // Checkout options -- all collapsed/off by default, independent of each
+  // other (no accordion-style exclusivity).
+  const [allergiesOpen, setAllergiesOpen] = useState(false);
+  const [allergies, setAllergies] = useState("");
+  const [needsCutlery, setNeedsCutlery] = useState(false);
+  const [orderForSomeoneOpen, setOrderForSomeoneOpen] = useState(false);
+  const [recipientName, setRecipientName] = useState("");
+  const [recipientPhone, setRecipientPhone] = useState("");
+  const [recipientAddress, setRecipientAddress] = useState("");
+  const [recipientErrors, setRecipientErrors] = useState<{ name?: string; phone?: string; address?: string }>({});
+  const recipientNameRef = useRef<HTMLInputElement>(null);
+  const recipientPhoneRef = useRef<HTMLInputElement>(null);
+  const recipientAddressRef = useRef<HTMLTextAreaElement>(null);
+
   // Fails open on missing/loading data, matching the server's own
   // "unconfigured = open" default -- the cart is never cleared or blocked
   // by a transient fetch issue, only by a real, confirmed closure.
   const isClosed = availability !== null && !availability.is_open;
   // A delivery order without a confirmed drop-off point can't be fulfilled --
   // pickup never needs one, matching the server's own delivery-only address check.
-  const needsLocation = mode === "delivery" && !location?.confirmed;
+  // Ordering for someone else replaces the delivery point with the
+  // recipient's typed address -- the orderer's own confirmed location is
+  // irrelevant in that case, only the recipient fields (validated
+  // separately below) matter.
+  const orderingForSomeone = mode === "delivery" && orderForSomeoneOpen;
+  const needsLocation = mode === "delivery" && !orderingForSomeone && !location?.confirmed;
   const nameEmpty = !form.name.trim();
   const phoneEmpty = !form.phone.trim();
   const canSubmit = lines.length > 0 && !submitting && !isClosed && !needsLocation && !nameEmpty && !phoneEmpty;
@@ -154,9 +261,29 @@ export function TenantOrderDrawer({
     if (!form.name.trim()) errors.name = "Merci d'indiquer votre nom.";
     if (!form.phone.trim()) errors.phone = "Merci d'indiquer votre téléphone.";
     else if (!isValidPhone(form.phone)) errors.phone = "Numéro de téléphone invalide.";
-    if (Object.keys(errors).length > 0) {
+
+    const recErrors: typeof recipientErrors = {};
+    if (orderingForSomeone) {
+      if (!recipientName.trim()) recErrors.name = "Merci d'indiquer le nom du destinataire.";
+      if (!recipientPhone.trim()) recErrors.phone = "Merci d'indiquer le téléphone du destinataire.";
+      else if (!isValidPhone(recipientPhone)) recErrors.phone = "Numéro de téléphone invalide.";
+      if (!recipientAddress.trim()) recErrors.address = "Merci d'indiquer l'adresse du destinataire.";
+    }
+
+    if (Object.keys(errors).length > 0 || Object.keys(recErrors).length > 0) {
       setFieldErrors(errors);
-      const target = errors.name ? nameInputRef.current : phoneInputRef.current;
+      setRecipientErrors(recErrors);
+      const target = errors.name
+        ? nameInputRef.current
+        : errors.phone
+          ? phoneInputRef.current
+          : recErrors.name
+            ? recipientNameRef.current
+            : recErrors.phone
+              ? recipientPhoneRef.current
+              : recErrors.address
+                ? recipientAddressRef.current
+                : null;
       target?.scrollIntoView({ behavior: "smooth", block: "center" });
       target?.focus();
       return;
@@ -166,6 +293,20 @@ export function TenantOrderDrawer({
     setSubmitting(true);
     setError(null);
     setFieldErrors({});
+    setRecipientErrors({});
+
+    // Ordering for someone else: the recipient's typed address replaces
+    // the delivery point, and since it's plain text (never geocoded), no
+    // GPS coordinates travel with it -- create_order correctly falls back
+    // to the flat delivery fee rather than pricing a distance it can't
+    // verify. The recipient's name/phone are prepended to the delivery
+    // instructions so the restaurant/driver can actually reach them.
+    const recipientNote = orderingForSomeone ? `Destinataire : ${recipientName.trim()} (${recipientPhone.trim()})` : "";
+    const effectiveInstructions =
+      mode === "delivery" ? [recipientNote, form.instructions.trim()].filter(Boolean).join(" — ") || null : null;
+    const notesParts: string[] = [];
+    if (mode === "pickup") notesParts.push(`Retrait : ${pickupTime}`);
+    if (allergies.trim()) notesParts.push(`Allergies : ${allergies.trim()}`);
 
     try {
       const order = await createRestaurantOrder({
@@ -173,19 +314,20 @@ export function TenantOrderDrawer({
         fulfillment_type: mode,
         customer_name: form.name.trim(),
         customer_phone: form.phone.trim(),
-        delivery_address: mode === "delivery" ? location?.address ?? null : null,
-        delivery_instructions: mode === "delivery" ? form.instructions.trim() || null : null,
-        delivery_latitude: mode === "delivery" ? location?.latitude ?? null : null,
-        delivery_longitude: mode === "delivery" ? location?.longitude ?? null : null,
-        delivery_neighborhood: mode === "delivery" ? location?.neighborhood ?? null : null,
-        delivery_commune: mode === "delivery" ? location?.commune ?? null : null,
-        delivery_city: mode === "delivery" ? location?.city ?? null : null,
-        delivery_landmark: mode === "delivery" ? location?.landmark ?? null : null,
-        customer_notes: mode === "pickup" ? `Retrait : ${pickupTime}` : null,
+        delivery_address: mode === "delivery" ? (orderingForSomeone ? recipientAddress.trim() : location?.address ?? null) : null,
+        delivery_instructions: effectiveInstructions,
+        delivery_latitude: mode === "delivery" && !orderingForSomeone ? location?.latitude ?? null : null,
+        delivery_longitude: mode === "delivery" && !orderingForSomeone ? location?.longitude ?? null : null,
+        delivery_neighborhood: mode === "delivery" && !orderingForSomeone ? location?.neighborhood ?? null : null,
+        delivery_commune: mode === "delivery" && !orderingForSomeone ? location?.commune ?? null : null,
+        delivery_city: mode === "delivery" && !orderingForSomeone ? location?.city ?? null : null,
+        delivery_landmark: mode === "delivery" && !orderingForSomeone ? location?.landmark ?? null : null,
+        customer_notes: notesParts.length > 0 ? notesParts.join(" · ") : null,
         payment_method: toBackendPaymentMethod(paymentChoice),
         items: cartLinesToOrderItems(lines),
         offer_id: activeOfferId,
         visitor_id: getOrCreateVisitorId(),
+        needs_cutlery: needsCutlery,
       });
 
       window.localStorage.setItem(CUSTOMER_PHONE_KEY, form.phone.trim());
@@ -448,6 +590,75 @@ export function TenantOrderDrawer({
                   </label>
                 </div>
               )}
+
+              <div className="mt-5 space-y-2.5">
+                <ExpandableOption
+                  icon={ShieldAlert}
+                  title="Allergies ou instructions alimentaires"
+                  description="Facultatif"
+                  open={allergiesOpen}
+                  onOpenChange={setAllergiesOpen}
+                >
+                  <textarea
+                    value={allergies}
+                    onChange={(e) => setAllergies(e.target.value)}
+                    placeholder="Ex. Sans arachides, allergie aux crevettes..."
+                    rows={2}
+                    className="w-full resize-none rounded-xl border border-input bg-card p-3 text-sm outline-none focus:border-primary"
+                  />
+                </ExpandableOption>
+
+                <SwitchOption
+                  icon={UtensilsCrossed}
+                  title="Des couverts ?"
+                  description="Ajoutez des couverts à votre commande"
+                  checked={needsCutlery}
+                  onCheckedChange={setNeedsCutlery}
+                />
+
+                {mode === "delivery" && (
+                  <ExpandableOption
+                    icon={Gift}
+                    title="Vous commandez pour quelqu'un ?"
+                    description="Faites livrer à une autre personne"
+                    open={orderForSomeoneOpen}
+                    onOpenChange={setOrderForSomeoneOpen}
+                  >
+                    <Field
+                      ref={recipientNameRef}
+                      label="Nom du destinataire"
+                      required
+                      placeholder="Nom et prénom"
+                      value={recipientName}
+                      onChange={setRecipientName}
+                      error={recipientErrors.name}
+                    />
+                    <Field
+                      ref={recipientPhoneRef}
+                      label="Numéro de téléphone"
+                      required
+                      type="tel"
+                      placeholder="Ex. 07 XX XX XX XX"
+                      value={recipientPhone}
+                      onChange={setRecipientPhone}
+                      error={recipientErrors.phone}
+                    />
+                    <label className="block">
+                      <span className="text-xs font-medium text-muted-foreground">Adresse de livraison *</span>
+                      <textarea
+                        ref={recipientAddressRef}
+                        value={recipientAddress}
+                        onChange={(e) => setRecipientAddress(e.target.value)}
+                        placeholder="Adresse complète du destinataire"
+                        rows={2}
+                        aria-invalid={Boolean(recipientErrors.address)}
+                        className={`mt-1.5 w-full resize-none rounded-xl border bg-card p-3 text-sm outline-none focus:border-primary ${recipientErrors.address ? "border-destructive" : "border-input"}`}
+                      />
+                      {recipientErrors.address && <span className="mt-1 block text-xs font-medium text-destructive">{recipientErrors.address}</span>}
+                    </label>
+                  </ExpandableOption>
+                )}
+              </div>
 
               <div className="mt-6 space-y-3">
                 <h3 className="text-lg font-semibold text-foreground">Mode de paiement</h3>
