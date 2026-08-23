@@ -29,6 +29,26 @@ const CUSTOMER_INSTRUCTIONS_KEY = "saovia.customer.instructions";
 const PICKUP_TIME_OPTIONS = ["Dès que possible", "Dans 30 minutes", "Dans 1 heure"];
 
 /**
+ * A returning customer isn't a real logged-in account here -- it's whoever
+ * this browser last placed an order as, saved to localStorage right after
+ * checkout (see submit() below). That save already existed; nothing ever
+ * read it back, so the name/phone fields started blank on every visit even
+ * for someone who had just ordered. Only name/phone are restored -- not
+ * instructions, which are specific to a single delivery, not the customer.
+ */
+function loadStoredCustomer(): { name: string; phone: string } {
+  if (typeof window === "undefined") return { name: "", phone: "" };
+  try {
+    return {
+      name: window.localStorage.getItem(CUSTOMER_NAME_KEY) ?? "",
+      phone: window.localStorage.getItem(CUSTOMER_PHONE_KEY) ?? "",
+    };
+  } catch {
+    return { name: "", phone: "" };
+  }
+}
+
+/**
  * The customer's payment *preference*, distinct from the backend's
  * payment_method enum ("cash" | "mobile_money" | "card" | "online"). Only
  * "cash" resolves anywhere today -- mark_cash_payment_received (the only
@@ -67,7 +87,7 @@ export function TenantOrderDrawer({
   const { lines, count, subtotal, hasUnpriced, isOpen, closeCart, increment, decrement, remove, clear } = useCart();
   const { location, openModal: openLocationModal } = useDeliveryLocation();
   const [mode, setMode] = useState<"delivery" | "pickup">("delivery");
-  const [form, setForm] = useState({ name: "", phone: "", instructions: "" });
+  const [form, setForm] = useState(() => ({ ...loadStoredCustomer(), instructions: "" }));
   const [pickupTime, setPickupTime] = useState(PICKUP_TIME_OPTIONS[0]);
   const [paymentChoice, setPaymentChoice] = useState<PaymentChoice>("cash");
   const [fieldErrors, setFieldErrors] = useState<{ name?: string; phone?: string }>({});
