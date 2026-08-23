@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { FALLBACK_IMAGES, type MenuItem, type ProductOptionGroup, type ProductPromotion } from "@/data/menu";
+import type { RestaurantAvailability } from "@/lib/businessHours";
 
 export type DbCategory = {
   id: string;
@@ -56,6 +57,7 @@ export type PublicRestaurantSettings = {
 export type MenuData = {
   restaurant: PublicRestaurant | null;
   settings: PublicRestaurantSettings | null;
+  availability: RestaurantAvailability | null;
   categories: DbCategory[];
   rows: DbMenuItem[];
   items: MenuItem[];
@@ -70,6 +72,7 @@ function slugify(value: string) {
 type PublicMenuRow = {
   restaurant: PublicRestaurant | null;
   settings: PublicRestaurantSettings | null;
+  availability?: RestaurantAvailability | null;
   categories: Array<{
     id: string;
     name: string;
@@ -138,6 +141,7 @@ export async function fetchMenuData(slug: string): Promise<MenuData> {
   return {
     restaurant: payload?.restaurant ?? null,
     settings: payload?.settings ?? null,
+    availability: payload?.availability ?? null,
     categories: cats,
     rows: list,
     items,
@@ -166,6 +170,7 @@ export type DbRestaurant = {
   whatsapp_phone: string | null;
   email: string | null;
   is_public: boolean;
+  timezone: string;
 };
 
 export type AdminMenuData = {
@@ -179,7 +184,7 @@ export async function fetchAdminMenuData(restaurantId: string): Promise<AdminMen
     await Promise.all([
       supabase
         .from("restaurants")
-        .select("id,name,slug,logo_url,cover_url,address,commune,city,phone,whatsapp_phone,email,is_public")
+        .select("id,name,slug,logo_url,cover_url,address,commune,city,phone,whatsapp_phone,email,is_public,timezone")
         .eq("id", restaurantId)
         .maybeSingle(),
       supabase

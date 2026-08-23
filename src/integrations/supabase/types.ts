@@ -407,10 +407,14 @@ export type Database = {
           customer_phone: string
           delivered_at: string | null
           delivery_address: string | null
+          delivery_city: string | null
           delivery_commune: string | null
           delivery_dispatch_status: Database["public"]["Enums"]["delivery_dispatch_status"]
           delivery_fee_amount: number
           delivery_instructions: string | null
+          delivery_latitude: number | null
+          delivery_longitude: number | null
+          delivery_neighborhood: string | null
           discount_amount: number
           driver_delivery_status:
             | Database["public"]["Enums"]["driver_delivery_status"]
@@ -446,10 +450,14 @@ export type Database = {
           customer_phone: string
           delivered_at?: string | null
           delivery_address?: string | null
+          delivery_city?: string | null
           delivery_commune?: string | null
           delivery_dispatch_status?: Database["public"]["Enums"]["delivery_dispatch_status"]
           delivery_fee_amount?: number
           delivery_instructions?: string | null
+          delivery_latitude?: number | null
+          delivery_longitude?: number | null
+          delivery_neighborhood?: string | null
           discount_amount?: number
           driver_delivery_status?:
             | Database["public"]["Enums"]["driver_delivery_status"]
@@ -485,10 +493,14 @@ export type Database = {
           customer_phone?: string
           delivered_at?: string | null
           delivery_address?: string | null
+          delivery_city?: string | null
           delivery_commune?: string | null
           delivery_dispatch_status?: Database["public"]["Enums"]["delivery_dispatch_status"]
           delivery_fee_amount?: number
           delivery_instructions?: string | null
+          delivery_latitude?: number | null
+          delivery_longitude?: number | null
+          delivery_neighborhood?: string | null
           discount_amount?: number
           driver_delivery_status?:
             | Database["public"]["Enums"]["driver_delivery_status"]
@@ -1048,6 +1060,8 @@ export type Database = {
           driver_location_freshness_minutes: number
           driver_proposal_timeout_seconds: number
           font_family: string | null
+          manual_override: boolean
+          manual_status: string | null
           minimum_order: number
           opening_hours: Json
           pickup_enabled: boolean
@@ -1074,6 +1088,8 @@ export type Database = {
           driver_location_freshness_minutes?: number
           driver_proposal_timeout_seconds?: number
           font_family?: string | null
+          manual_override?: boolean
+          manual_status?: string | null
           minimum_order?: number
           opening_hours?: Json
           pickup_enabled?: boolean
@@ -1100,6 +1116,8 @@ export type Database = {
           driver_location_freshness_minutes?: number
           driver_proposal_timeout_seconds?: number
           font_family?: string | null
+          manual_override?: boolean
+          manual_status?: string | null
           minimum_order?: number
           opening_hours?: Json
           pickup_enabled?: boolean
@@ -1249,6 +1267,94 @@ export type Database = {
         }
         Relationships: []
       }
+      tenant_business_exceptions: {
+        Row: {
+          closing_time: string | null
+          created_at: string
+          date: string
+          end_date: string | null
+          id: string
+          is_open: boolean
+          opening_time: string | null
+          reason: string | null
+          restaurant_id: string
+          updated_at: string
+        }
+        Insert: {
+          closing_time?: string | null
+          created_at?: string
+          date: string
+          end_date?: string | null
+          id?: string
+          is_open: boolean
+          opening_time?: string | null
+          reason?: string | null
+          restaurant_id: string
+          updated_at?: string
+        }
+        Update: {
+          closing_time?: string | null
+          created_at?: string
+          date?: string
+          end_date?: string | null
+          id?: string
+          is_open?: boolean
+          opening_time?: string | null
+          reason?: string | null
+          restaurant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_business_exceptions_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_business_hours: {
+        Row: {
+          closing_time: string | null
+          created_at: string
+          day_of_week: number
+          id: string
+          is_open: boolean
+          opening_time: string | null
+          restaurant_id: string
+          updated_at: string
+        }
+        Insert: {
+          closing_time?: string | null
+          created_at?: string
+          day_of_week: number
+          id?: string
+          is_open?: boolean
+          opening_time?: string | null
+          restaurant_id: string
+          updated_at?: string
+        }
+        Update: {
+          closing_time?: string | null
+          created_at?: string
+          day_of_week?: number
+          id?: string
+          is_open?: boolean
+          opening_time?: string | null
+          restaurant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_business_hours_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -1265,23 +1371,45 @@ export type Database = {
         }
         Returns: undefined
       }
-      create_order: {
-        Args: {
-          p_customer_name: string
-          p_customer_notes?: string
-          p_customer_phone: string
-          p_delivery_address?: string
-          p_delivery_commune?: string
-          p_delivery_instructions?: string
-          p_fulfillment_type: Database["public"]["Enums"]["order_fulfillment_type"]
-          p_items: Json
-          p_order_source?: string
-          p_payment_method?: string
-          p_slug: string
-          p_source_metadata?: Json
-        }
-        Returns: Json
-      }
+      create_order:
+        | {
+            Args: {
+              p_customer_name: string
+              p_customer_notes?: string
+              p_customer_phone: string
+              p_delivery_address?: string
+              p_delivery_commune?: string
+              p_delivery_instructions?: string
+              p_fulfillment_type: Database["public"]["Enums"]["order_fulfillment_type"]
+              p_items: Json
+              p_order_source?: string
+              p_payment_method?: string
+              p_slug: string
+              p_source_metadata?: Json
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_customer_name: string
+              p_customer_notes?: string
+              p_customer_phone: string
+              p_delivery_address?: string
+              p_delivery_city?: string
+              p_delivery_commune?: string
+              p_delivery_instructions?: string
+              p_delivery_latitude?: number
+              p_delivery_longitude?: number
+              p_delivery_neighborhood?: string
+              p_fulfillment_type: Database["public"]["Enums"]["order_fulfillment_type"]
+              p_items: Json
+              p_order_source?: string
+              p_payment_method?: string
+              p_slug: string
+              p_source_metadata?: Json
+            }
+            Returns: Json
+          }
       create_refund: {
         Args: { p_amount: number; p_order_id: string; p_reason?: string }
         Returns: Json
@@ -1342,12 +1470,20 @@ export type Database = {
       }
       get_driver_active_delivery: { Args: never; Returns: Json }
       get_driver_pending_proposal: { Args: never; Returns: Json }
+      get_next_opening: {
+        Args: { p_after: string; p_restaurant_id: string }
+        Returns: string
+      }
       get_public_cheap_products: {
         Args: { p_limit?: number; p_max_price?: number }
         Returns: Json
       }
       get_public_menu: { Args: { p_slug: string }; Returns: Json }
       get_public_restaurants: { Args: { p_query?: string }; Returns: Json }
+      get_restaurant_availability: {
+        Args: { p_now?: string; p_restaurant_id: string }
+        Returns: Json
+      }
       get_restaurant_dashboard_stats: {
         Args: { p_end_date: string; p_start_date: string }
         Returns: Json

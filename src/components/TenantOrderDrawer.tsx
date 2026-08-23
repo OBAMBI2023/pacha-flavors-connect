@@ -1,17 +1,29 @@
-﻿import { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Banknote, ShoppingBag, X } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useCart } from "@/lib/cart";
 import { createRestaurantOrder, cartLinesToOrderItems } from "@/lib/orders";
 import { QuantitySelector } from "@/components/tenant/QuantitySelector";
+import { AvailabilityBadge } from "@/components/tenant/AvailabilityBadge";
+import type { RestaurantAvailability } from "@/lib/businessHours";
 
 const CUSTOMER_PHONE_KEY = "saovia.customer.phone";
 const CUSTOMER_NAME_KEY = "saovia.customer.name";
 const CUSTOMER_ADDRESS_KEY = "saovia.customer.address";
 const CUSTOMER_INSTRUCTIONS_KEY = "saovia.customer.instructions";
 
-export function TenantOrderDrawer({ restaurantSlug, restaurantName }: { restaurantSlug: string; restaurantName: string }) {
+export function TenantOrderDrawer({
+  restaurantSlug,
+  restaurantName,
+  availability,
+  timezone,
+}: {
+  restaurantSlug: string;
+  restaurantName: string;
+  availability: RestaurantAvailability | null;
+  timezone: string;
+}) {
   const navigate = useNavigate();
   const { lines, count, subtotal, hasUnpriced, isOpen, closeCart, increment, decrement, remove, clear } = useCart();
   const [mode, setMode] = useState<"delivery" | "pickup">("delivery");
@@ -20,7 +32,11 @@ export function TenantOrderDrawer({ restaurantSlug, restaurantName }: { restaura
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canSubmit = lines.length > 0 && !submitting;
+  // Fails open on missing/loading data, matching the server's own
+  // "unconfigured = open" default -- the cart is never cleared or blocked
+  // by a transient fetch issue, only by a real, confirmed closure.
+  const isClosed = availability !== null && !availability.is_open;
+  const canSubmit = lines.length > 0 && !submitting && !isClosed;
   const itemCountLabel = useMemo(() => `${count} article${count > 1 ? "s" : ""}`, [count]);
 
   if (!isOpen) return null;
@@ -82,6 +98,14 @@ export function TenantOrderDrawer({ restaurantSlug, restaurantName }: { restaura
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
+          {isClosed && (
+            <div className="mb-4 space-y-2 rounded-xl border border-destructive/20 bg-destructive/5 p-3">
+              <AvailabilityBadge availability={availability} timezone={timezone} />
+              <p className="text-sm text-destructive">
+                Les commandes sont actuellement fermées. Votre panier est conservé — vous pourrez commander dès la réouverture.
+              </p>
+            </div>
+          )}
           {lines.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-muted-foreground">
               <ShoppingBag className="h-10 w-10 opacity-40" />
@@ -153,7 +177,7 @@ export function TenantOrderDrawer({ restaurantSlug, restaurantName }: { restaura
           <div className="sticky bottom-0 border-t border-border bg-background px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
             <div className="flex items-center justify-between gap-3 text-sm"><span className="text-muted-foreground">Sous-total</span><span className="text-right font-semibold">{subtotalLabel}</span></div>
             <button onClick={submit} disabled={!canSubmit} className="mt-3 flex h-[54px] w-full items-center justify-center rounded-2xl bg-primary px-6 text-base font-bold text-primary-foreground shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60">
-              {submitting ? "Création en cours..." : "Commander"}
+              {submitting ? "Création en cours..." : isClosed ? "Fermé pour le moment" : "Commander"}
             </button>
           </div>
         )}
@@ -172,4 +196,3 @@ function Field({ label, value, onChange, type = "text", error }: { label: string
     </label>
   );
 }
-

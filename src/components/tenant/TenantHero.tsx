@@ -1,5 +1,7 @@
 import { MapPin, Phone } from "lucide-react";
 import type { PublicRestaurant, PublicRestaurantSettings } from "@/lib/menu-db";
+import type { RestaurantAvailability } from "@/lib/businessHours";
+import { AvailabilityBadge } from "@/components/tenant/AvailabilityBadge";
 
 function scrollToMenu() {
   document.getElementById("carte")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -7,9 +9,11 @@ function scrollToMenu() {
 
 export function TenantHero({
   restaurant,
+  availability,
 }: {
   restaurant: PublicRestaurant;
   settings: PublicRestaurantSettings | null;
+  availability: RestaurantAvailability | null;
 }) {
   const location = [restaurant.address, restaurant.commune, restaurant.city].filter(Boolean).join(", ");
   const hasCover = Boolean(restaurant.cover_url);
@@ -21,6 +25,7 @@ export function TenantHero({
         style={hasCover ? { backgroundImage: `url(${restaurant.cover_url})` } : undefined}
       >
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+        {availability && <AvailabilityBadge availability={availability} timezone={restaurant.timezone ?? "Africa/Abidjan"} className="absolute right-4 top-4 shadow-sm" />}
         <div className="relative flex h-full max-w-2xl flex-col justify-end p-5">
           <button
             onClick={scrollToMenu}

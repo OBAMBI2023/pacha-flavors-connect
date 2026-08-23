@@ -125,7 +125,7 @@ function TenantStorefront({ slug }: { slug: string }) {
       {hasMenu && <TenantSearchBar value={query} onChange={handleSearchChange} onOpenFilters={() => setCategoriesOpen(true)} />}
 
       <main>
-        <TenantHero restaurant={restaurant} settings={settings} />
+        <TenantHero restaurant={restaurant} settings={settings} availability={data.availability} />
         {hasMenu && <TenantCategoryNav tabs={tabs} active={active} onSelect={setActive} onOpenCategories={() => setCategoriesOpen(true)} />}
         {hasMenu && <TenantPopularSection items={data.items} onOpen={setOpenItem} />}
         <TenantPromoBanner restaurant={restaurant} settings={settings} />
@@ -149,7 +149,7 @@ function TenantStorefront({ slug }: { slug: string }) {
       <TenantProductModal item={openItem} onClose={() => setOpenItem(null)} onAdd={(item, qty, options) => add(item, qty, options)} />
       <TenantCartBar count={count} subtotalLabel={subtotalLabel} onOpenCart={openCart} />
       <TenantBottomNav restaurantSlug={restaurant.slug} />
-      <TenantOrderDrawer restaurantSlug={restaurant.slug} restaurantName={restaurant.name} />
+      <TenantOrderDrawer restaurantSlug={restaurant.slug} restaurantName={restaurant.name} availability={data.availability} timezone={restaurant.timezone ?? "Africa/Abidjan"} />
       <CategoriesSheet slug={slug} open={categoriesOpen} onOpenChange={setCategoriesOpen} onSelectCategory={setActive} />
     </div>
   );
