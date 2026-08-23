@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
-import { getPromotionBadgeLabel, type MenuItem } from "@/data/menu";
+import { formatPrepTime, getPromotionBadgeLabel, type MenuItem } from "@/data/menu";
 import type { CartOptionSelection } from "@/lib/cart";
 import { QuantitySelector } from "@/components/tenant/QuantitySelector";
 
@@ -44,6 +44,7 @@ export function TenantProductModal({
     return (selected[group.id]?.length ?? 0) >= Math.max(group.min_select, 1);
   });
   const canAdd = item.available && allRequiredSatisfied;
+  const prepTimeLabel = formatPrepTime(item.prepTimeMinutes);
 
   function toggleOption(groupId: string, optionId: string, selectionType: "single" | "multiple", maxSelect: number | null) {
     setSelected((current) => {
@@ -96,6 +97,12 @@ export function TenantProductModal({
                 <span className="font-semibold">{item.price === null ? "À confirmer" : `${unitPrice.toLocaleString("fr-FR")} FCFA`}</span>
               )}
             </div>
+            {prepTimeLabel && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Préparation</span>
+                <span className="font-medium">{prepTimeLabel}</span>
+              </div>
+            )}
 
             {optionGroups.length > 0 && (
               <div className="space-y-4">

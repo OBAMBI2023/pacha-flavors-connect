@@ -42,6 +42,7 @@ export type OrderRow = {
   customer_phone: string;
   delivery_address: string | null;
   delivery_instructions: string | null;
+  estimated_preparation_minutes: number | null;
   currency: string;
   subtotal_amount: number;
   total_amount: number;

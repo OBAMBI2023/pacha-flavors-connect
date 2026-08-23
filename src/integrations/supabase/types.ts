@@ -420,6 +420,7 @@ export type Database = {
           driver_delivery_status:
             | Database["public"]["Enums"]["driver_delivery_status"]
             | null
+          estimated_preparation_minutes: number | null
           fulfillment_type: Database["public"]["Enums"]["order_fulfillment_type"]
           id: string
           item_count: number
@@ -464,6 +465,7 @@ export type Database = {
           driver_delivery_status?:
             | Database["public"]["Enums"]["driver_delivery_status"]
             | null
+          estimated_preparation_minutes?: number | null
           fulfillment_type: Database["public"]["Enums"]["order_fulfillment_type"]
           id?: string
           item_count?: number
@@ -508,6 +510,7 @@ export type Database = {
           driver_delivery_status?:
             | Database["public"]["Enums"]["driver_delivery_status"]
             | null
+          estimated_preparation_minutes?: number | null
           fulfillment_type?: Database["public"]["Enums"]["order_fulfillment_type"]
           id?: string
           item_count?: number

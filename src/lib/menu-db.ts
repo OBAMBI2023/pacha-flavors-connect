@@ -22,6 +22,7 @@ export type DbMenuItem = {
   daily: boolean;
   featured?: boolean;
   position: number;
+  prep_time_minutes: number | null;
   promotion?: ProductPromotion | null;
   option_groups?: ProductOptionGroup[];
 };
@@ -96,6 +97,7 @@ type PublicMenuRow = {
     is_featured?: boolean | null;
     sort_order: number | null;
     position?: number | null;
+    prep_time_minutes?: number | null;
     promotion?: ProductPromotion | null;
     option_groups?: ProductOptionGroup[];
   }>;
@@ -121,6 +123,7 @@ export async function fetchMenuData(slug: string): Promise<MenuData> {
     daily: row.daily ?? row.is_daily_menu,
     featured: row.is_featured ?? false,
     position: row.position ?? row.sort_order ?? 0,
+    prep_time_minutes: row.prep_time_minutes ?? null,
   })) as DbMenuItem[];
 
   const items: MenuItem[] = list.map((row) => ({
@@ -136,6 +139,7 @@ export async function fetchMenuData(slug: string): Promise<MenuData> {
     featured: row.featured ?? false,
     promotion: row.promotion ?? null,
     optionGroups: row.option_groups ?? [],
+    prepTimeMinutes: row.prep_time_minutes,
   }));
 
   return {
@@ -194,7 +198,7 @@ export async function fetchAdminMenuData(restaurantId: string): Promise<AdminMen
         .order("sort_order", { ascending: true }),
       supabase
         .from("restaurant_products")
-        .select("id,slug,category_id,name,subtitle,description,price,image_path,is_available,is_daily_menu,sort_order")
+        .select("id,slug,category_id,name,subtitle,description,price,image_path,is_available,is_daily_menu,sort_order,prep_time_minutes")
         .eq("restaurant_id", restaurantId)
         .order("sort_order", { ascending: true }),
     ]);
@@ -221,6 +225,7 @@ export async function fetchAdminMenuData(restaurantId: string): Promise<AdminMen
     available: row.is_available,
     daily: row.is_daily_menu,
     position: row.sort_order ?? 0,
+    prep_time_minutes: row.prep_time_minutes,
   }));
 
   return {

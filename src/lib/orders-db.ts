@@ -174,6 +174,7 @@ export type Order = {
   delivery_landmark: string | null;
   delivery_instructions: string | null;
   customer_notes: string | null;
+  estimated_preparation_minutes: number | null;
   currency: string;
   subtotal_amount: number;
   delivery_fee_amount: number;

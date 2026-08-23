@@ -1,6 +1,6 @@
 import { Minus, Plus } from "lucide-react";
 import { useCart, computeLineKey } from "@/lib/cart";
-import { getPromotionBadgeLabel, type MenuItem } from "@/data/menu";
+import { formatPrepTime, getPromotionBadgeLabel, type MenuItem } from "@/data/menu";
 
 export function TenantProductCard({ item, onOpen }: { item: MenuItem; onOpen: (item: MenuItem) => void }) {
   const { lines, add, increment, decrement } = useCart();
@@ -17,6 +17,7 @@ export function TenantProductCard({ item, onOpen }: { item: MenuItem; onOpen: (i
   // nothing to configure. `computeLineKey` with an empty array is exactly
   // the key that line would have, so it's a safe, single-source-of-truth
   // way to find an existing quantity for it.
+  const prepTimeLabel = formatPrepTime(item.prepTimeMinutes);
   const hasOptions = (item.optionGroups ?? []).length > 0;
   const lineKey = computeLineKey(item.id, []);
   const qty = !hasOptions ? (lines.find((l) => l.key === lineKey)?.qty ?? 0) : 0;
@@ -78,7 +79,10 @@ export function TenantProductCard({ item, onOpen }: { item: MenuItem; onOpen: (i
         </div>
       </div>
       <div className="space-y-1.5 p-4">
-        <h3 className="line-clamp-1 font-semibold">{item.name}</h3>
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="line-clamp-1 font-semibold">{item.name}</h3>
+          {prepTimeLabel && <span className="shrink-0 text-[0.7rem] font-medium text-muted-foreground">{prepTimeLabel}</span>}
+        </div>
         <p className="line-clamp-2 text-sm text-muted-foreground">{item.description}</p>
         <div className="flex items-center justify-between pt-1">
           {item.available ? (

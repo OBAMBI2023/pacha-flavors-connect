@@ -59,6 +59,8 @@ export type MenuItem = {
   featured?: boolean | undefined;
   promotion?: ProductPromotion | null | undefined;
   optionGroups?: ProductOptionGroup[] | undefined;
+  /** Tenant-entered estimate, minutes. null/undefined = not set -> show nothing. */
+  prepTimeMinutes?: number | null | undefined;
 };
 
 export const CATEGORIES: { id: Category | "tous"; label: string }[] = [
@@ -213,6 +215,16 @@ export const DAILY_MENU = MENU.filter((item) => item.daily);
 
 export function formatPrice(price: number | null) {
   return price === null ? "Prix sur demande" : `${price.toLocaleString("fr-FR")} FCFA`;
+}
+
+/**
+ * Shown exactly as the tenant entered it -- no computed "15-20 min" style
+ * range. A range would need to fabricate a variance the restaurant never
+ * specified, presenting invented precision as if it were real.
+ */
+export function formatPrepTime(minutes: number | null | undefined): string | null {
+  if (minutes === null || minutes === undefined) return null;
+  return `⏱️ ${minutes} min`;
 }
 
 /** Real badge text for a currently-effective promotion -- never an invented discount. */

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { AlertCircle, Banknote, LocateFixed, MapPin, ShoppingBag, X } from "lucide-react";
+import { AlertCircle, Banknote, Clock, LocateFixed, MapPin, ShoppingBag, X } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useCart } from "@/lib/cart";
 import { createRestaurantOrder, cartLinesToOrderItems } from "@/lib/orders";
@@ -42,6 +42,14 @@ export function TenantOrderDrawer({
   const needsLocation = mode === "delivery" && !location?.confirmed;
   const canSubmit = lines.length > 0 && !submitting && !isClosed && !needsLocation;
   const itemCountLabel = useMemo(() => `${count} article${count > 1 ? "s" : ""}`, [count]);
+  // Cart items typically prepare in parallel in the kitchen, not one after
+  // another -- the longest single dish is a more honest "when will this be
+  // ready" estimate than summing every line. null when nothing in the cart
+  // has a preparation time set, so nothing is fabricated.
+  const estimatedPrepMinutes = useMemo(() => {
+    const values = lines.map((l) => l.item.prepTimeMinutes).filter((v): v is number => typeof v === "number");
+    return values.length > 0 ? Math.max(...values) : null;
+  }, [lines]);
 
   if (!isOpen) return null;
 
@@ -212,6 +220,11 @@ export function TenantOrderDrawer({
 
         {lines.length > 0 && (
           <div className="sticky bottom-0 border-t border-border bg-background px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
+            {estimatedPrepMinutes !== null && (
+              <p className="mb-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Clock className="h-3.5 w-3.5 shrink-0" /> Préparation estimée : environ {estimatedPrepMinutes} min
+              </p>
+            )}
             <div className="flex items-center justify-between gap-3 text-sm"><span className="text-muted-foreground">Sous-total</span><span className="text-right font-semibold">{subtotalLabel}</span></div>
             <button onClick={submit} disabled={!canSubmit} className="mt-3 flex h-[54px] w-full items-center justify-center rounded-2xl bg-primary px-6 text-base font-bold text-primary-foreground shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60">
               {submitting ? "Création en cours..." : isClosed ? "Fermé pour le moment" : needsLocation ? "Confirmez votre adresse" : "Commander"}

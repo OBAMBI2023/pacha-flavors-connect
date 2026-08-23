@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, CheckCircle2, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { fetchCustomerOrder, formatOrderNumber, getDriverStepLabel, type OrderRow, type OrderStatus } from "@/lib/orders";
 import { CartProvider } from "@/lib/cart";
 import { OrderStatusTimeline } from "@/components/tenant/OrderStatusTimeline";
@@ -66,6 +66,11 @@ function ConfirmationPage() {
                 {!isCancelled && <p className="mt-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Commande enregistrée avec succès</p>}
                 <h1 className="mt-1 font-display text-2xl font-extrabold text-foreground">{STATUS_HEADLINE[order.status]}</h1>
                 <p className="text-sm text-muted-foreground">{formatOrderNumber(order)} · {new Date(order.created_at).toLocaleString("fr-FR")}</p>
+                {!isCancelled && order.estimated_preparation_minutes !== null && (
+                  <p className="mt-2 flex items-center gap-1.5 text-sm font-medium text-foreground">
+                    <Clock className="h-4 w-4 shrink-0 text-primary" /> Préparation estimée : environ {order.estimated_preparation_minutes} min
+                  </p>
+                )}
               </div>
 
               {!isCancelled && (

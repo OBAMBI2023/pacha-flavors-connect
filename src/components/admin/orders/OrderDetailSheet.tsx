@@ -106,6 +106,9 @@ export function OrderDetailSheet({
                 <p>{detail.customer_name}</p>
                 <p className="text-muted-foreground">{detail.customer_phone}</p>
                 <p className="text-muted-foreground">{fulfillmentLabel(detail.fulfillment_type)}</p>
+                {detail.estimated_preparation_minutes !== null && (
+                  <p className="text-muted-foreground">Préparation estimée : ⏱️ {detail.estimated_preparation_minutes} min</p>
+                )}
                 {detail.customer_notes && <p className="text-muted-foreground">Notes client : {detail.customer_notes}</p>}
               </section>
 
