@@ -18,6 +18,7 @@ import { TenantProductCard } from "@/components/tenant/TenantProductCard";
 import { TenantProductModal } from "@/components/tenant/TenantProductModal";
 import { TenantCartBar } from "@/components/tenant/TenantCartBar";
 import { TenantBottomNav } from "@/components/tenant/TenantBottomNav";
+import { TenantOffersSheet } from "@/components/tenant/TenantOffersSheet";
 import { TenantTrustBar } from "@/components/tenant/TenantTrustBar";
 import { PublicFooter } from "@/components/PublicFooter";
 import { useVisitorTracking } from "@/lib/visitorTracking";
@@ -94,6 +95,7 @@ function TenantStorefront({ slug }: { slug: string }) {
   const [query, setQuery] = useState("");
   const [openItem, setOpenItem] = useState<MenuItem | null>(null);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const [offersOpen, setOffersOpen] = useState(false);
   useStorefrontTheme(data?.settings?.primary_color);
   useVisitorTracking(slug);
 
@@ -153,10 +155,11 @@ function TenantStorefront({ slug }: { slug: string }) {
 
       <TenantProductModal item={openItem} onClose={() => setOpenItem(null)} onAdd={(item, qty, options) => add(item, qty, options)} />
       <TenantCartBar count={count} subtotalLabel={subtotalLabel} onOpenCart={openCart} />
-      <TenantBottomNav restaurantSlug={restaurant.slug} />
-      <TenantOrderDrawer restaurantSlug={restaurant.slug} restaurantName={restaurant.name} availability={data.availability} timezone={restaurant.timezone ?? "Africa/Abidjan"} deliveryFee={settings?.delivery_fee ?? null} />
+      <TenantBottomNav restaurantSlug={restaurant.slug} onOpenOffers={() => setOffersOpen(true)} />
+      <TenantOrderDrawer restaurantSlug={restaurant.slug} restaurantName={restaurant.name} availability={data.availability} timezone={restaurant.timezone ?? "Africa/Abidjan"} deliveryFee={settings?.delivery_fee ?? null} restaurantLat={restaurant.lat} restaurantLng={restaurant.lng} />
       <TenantLocationModal />
       <CategoriesSheet slug={slug} open={categoriesOpen} onOpenChange={setCategoriesOpen} onSelectCategory={setActive} />
+      <TenantOffersSheet slug={restaurant.slug} items={data.items} open={offersOpen} onOpenChange={setOffersOpen} />
     </div>
   );
 }

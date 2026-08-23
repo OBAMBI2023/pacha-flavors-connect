@@ -71,6 +71,8 @@ export type CreateOrderInput = {
   /** Defaults server-side to "cash" when omitted. Only "cash" reaches a resolvable payment_status today (mark_cash_payment_received is cash-only) -- "mobile_money" orders land in payment_status "pending" with no admin reconciliation action yet. */
   payment_method?: "cash" | "mobile_money" | "card" | "online";
   items: CreateOrderItem[];
+  /** Set when checkout was reached via an offer's "Profiter de l'offre" CTA. create_order re-validates it server-side (still active, still in-window) and silently ignores it if none of the ordered items match the offer's product -- it is never trusted for pricing on its own. */
+  offer_id?: string | null;
 };
 
 export type CreateOrderResult = {
@@ -111,6 +113,7 @@ export async function createRestaurantOrder(input: CreateOrderInput): Promise<Cr
     p_payment_method: input.payment_method ?? "cash",
     p_order_source: "web",
     p_source_metadata: { source: "saovia-mobile" },
+    p_offer_id: input.offer_id ?? null,
   });
 
   if (error) throw error;

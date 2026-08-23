@@ -42,6 +42,9 @@ export type PublicRestaurant = {
   timezone: string | null;
   logo_url: string | null;
   cover_url: string | null;
+  /** Used client-side only for a live delivery-distance preview (see deliveryPricing.ts) -- create_order independently re-reads these same columns server-side, so a tampered client value can never change what's billed. Null when the tenant hasn't configured a position yet. */
+  lat: number | null;
+  lng: number | null;
 };
 
 export type PublicRestaurantSettings = {

@@ -35,6 +35,9 @@ type CartContextValue = {
   isOpen: boolean;
   openCart: () => void;
   closeCart: () => void;
+  /** Set when the customer reaches checkout via an offer's "Profiter de l'offre" CTA -- carried through to create_order so it can apply the offer price server-side and attribute the order. Cleared on clear() (i.e. after a successful order, or an explicit cart reset). */
+  activeOfferId: string | null;
+  setActiveOfferId: (offerId: string | null) => void;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -42,6 +45,7 @@ const CartContext = createContext<CartContextValue | null>(null);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [lines, setLines] = useState<CartLine[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [activeOfferId, setActiveOfferId] = useState<string | null>(null);
 
   const add = useCallback((item: MenuItem, qty: number = 1, options: CartOptionSelection[] = []) => {
     const key = computeLineKey(item.id, options);
@@ -70,7 +74,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setLines((prev) => prev.filter((l) => l.key !== key));
   }, []);
 
-  const clear = useCallback(() => setLines([]), []);
+  const clear = useCallback(() => {
+    setLines([]);
+    setActiveOfferId(null);
+  }, []);
 
   const value = useMemo<CartContextValue>(() => {
     const count = lines.reduce((n, l) => n + l.qty, 0);
@@ -89,8 +96,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       isOpen,
       openCart: () => setIsOpen(true),
       closeCart: () => setIsOpen(false),
+      activeOfferId,
+      setActiveOfferId,
     };
-  }, [lines, isOpen, add, increment, decrement, remove, clear]);
+  }, [lines, isOpen, add, increment, decrement, remove, clear, activeOfferId]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

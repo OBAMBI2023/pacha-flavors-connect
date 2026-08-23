@@ -273,6 +273,110 @@ export type Database = {
           },
         ]
       }
+      offer_recipients: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          offer_id: string
+          read_at: string | null
+          visitor_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          offer_id: string
+          read_at?: string | null
+          visitor_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          offer_id?: string
+          read_at?: string | null
+          visitor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_recipients_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offers: {
+        Row: {
+          clicks_count: number
+          created_at: string
+          description: string | null
+          ends_at: string | null
+          id: string
+          image_path: string | null
+          offer_price: number
+          original_price: number
+          product_id: string
+          restaurant_id: string
+          starts_at: string | null
+          status: string
+          title: string
+          updated_at: string
+          views_count: number
+        }
+        Insert: {
+          clicks_count?: number
+          created_at?: string
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          image_path?: string | null
+          offer_price: number
+          original_price: number
+          product_id: string
+          restaurant_id: string
+          starts_at?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          views_count?: number
+        }
+        Update: {
+          clicks_count?: number
+          created_at?: string
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          image_path?: string | null
+          offer_price?: number
+          original_price?: number
+          product_id?: string
+          restaurant_id?: string
+          starts_at?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          views_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offers_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_item_options: {
         Row: {
           created_at: string
@@ -478,6 +582,8 @@ export type Database = {
           fulfillment_type: Database["public"]["Enums"]["order_fulfillment_type"]
           id: string
           item_count: number
+          offer_id: string | null
+          offer_title_snapshot: string | null
           order_number: number
           order_source: string
           out_for_delivery_at: string | null
@@ -524,6 +630,8 @@ export type Database = {
           fulfillment_type: Database["public"]["Enums"]["order_fulfillment_type"]
           id?: string
           item_count?: number
+          offer_id?: string | null
+          offer_title_snapshot?: string | null
           order_number: number
           order_source?: string
           out_for_delivery_at?: string | null
@@ -570,6 +678,8 @@ export type Database = {
           fulfillment_type?: Database["public"]["Enums"]["order_fulfillment_type"]
           id?: string
           item_count?: number
+          offer_id?: string | null
+          offer_title_snapshot?: string | null
           order_number?: number
           order_source?: string
           out_for_delivery_at?: string | null
@@ -599,6 +709,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
             referencedColumns: ["id"]
           },
           {
@@ -1487,6 +1604,7 @@ export type Database = {
           p_delivery_neighborhood?: string
           p_fulfillment_type: Database["public"]["Enums"]["order_fulfillment_type"]
           p_items: Json
+          p_offer_id?: string
           p_order_source?: string
           p_payment_method?: string
           p_slug: string
@@ -1558,6 +1676,7 @@ export type Database = {
         Args: { p_after: string; p_restaurant_id: string }
         Returns: string
       }
+      get_offers_analytics: { Args: never; Returns: Json }
       get_public_cheap_products: {
         Args: { p_limit?: number; p_max_price?: number }
         Returns: Json
@@ -1571,6 +1690,14 @@ export type Database = {
       get_restaurant_dashboard_stats: {
         Args: { p_end_date: string; p_start_date: string }
         Returns: Json
+      }
+      get_tenant_offers: {
+        Args: { p_slug: string; p_visitor_id?: string }
+        Returns: Json
+      }
+      get_unread_offers_count: {
+        Args: { p_slug: string; p_visitor_id: string }
+        Returns: number
       }
       get_visitor_realtime_count: { Args: never; Returns: number }
       get_visitor_stats: { Args: never; Returns: Json }
@@ -1608,6 +1735,10 @@ export type Database = {
       mark_cash_payment_received: {
         Args: { p_order_id: string }
         Returns: Json
+      }
+      mark_offer_read: {
+        Args: { p_offer_id: string; p_visitor_id: string }
+        Returns: undefined
       }
       merge_customers: {
         Args: { p_source_id: string; p_target_id: string }
@@ -1679,6 +1810,7 @@ export type Database = {
           status: Database["public"]["Enums"]["restaurant_status"]
         }[]
       }
+      track_offer_click: { Args: { p_offer_id: string }; Returns: undefined }
       track_visitor_session: {
         Args: { p_slug: string; p_visitor_id: string }
         Returns: undefined

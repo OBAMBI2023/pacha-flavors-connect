@@ -1,14 +1,16 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { Home, Phone, ShoppingBag, Tag, UtensilsCrossed } from "lucide-react";
 import { useCart } from "@/lib/cart";
+import { useUnreadOffersCount } from "@/lib/offers";
 
 function scrollToId(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-export function TenantBottomNav({ restaurantSlug }: { restaurantSlug: string }) {
+export function TenantBottomNav({ restaurantSlug, onOpenOffers }: { restaurantSlug: string; onOpenOffers: () => void }) {
   const location = useLocation();
   const { count, openCart } = useCart();
+  const unreadOffers = useUnreadOffersCount(restaurantSlug);
   const base = `/r/${restaurantSlug}`;
   const onHome = location.pathname === base;
 
@@ -42,8 +44,15 @@ export function TenantBottomNav({ restaurantSlug }: { restaurantSlug: string }) 
           </span>
           Panier
         </button>
-        <button onClick={() => scrollToId("populaires")} className={itemClass(false)}>
-          <span className={iconWrapClass(false)}><Tag className="h-5 w-5" /></span>
+        <button onClick={onOpenOffers} className={itemClass(false)}>
+          <span className={iconWrapClass(false)}>
+            <Tag className="h-5 w-5" />
+            {unreadOffers > 0 && (
+              <span className="absolute -right-1.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[0.6rem] font-bold text-primary-foreground">
+                {unreadOffers > 9 ? "9+" : unreadOffers}
+              </span>
+            )}
+          </span>
           Offres
         </button>
         <button onClick={() => scrollToId("localisation")} className={itemClass(false)}>

@@ -10,7 +10,8 @@ const HEARTBEAT_INTERVAL_MS = 60_000;
  * localStorage only (never sent to any third party), so the same browser
  * is recognized as one "visitor" across sessions.
  */
-function getOrCreateVisitorId(): string | null {
+/** Exported for other storefront features (e.g. offers read-tracking) that need this app's one anonymous identity primitive, without duplicating the localStorage logic. */
+export function getOrCreateVisitorId(): string | null {
   try {
     const existing = window.localStorage.getItem(VISITOR_ID_KEY);
     if (existing) return existing;

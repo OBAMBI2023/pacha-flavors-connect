@@ -22,6 +22,7 @@ import { AvailabilityBadge } from "@/components/tenant/AvailabilityBadge";
 import type { RestaurantAvailability } from "@/lib/businessHours";
 import { useDeliveryLocation } from "@/lib/deliveryLocation";
 import { lookupCustomerName } from "@/lib/customers-db";
+import { computeDistanceBasedDelivery } from "@/lib/deliveryPricing";
 
 const CUSTOMER_PHONE_KEY = "saovia.customer.phone";
 const CUSTOMER_NAME_KEY = "saovia.customer.name";
@@ -76,18 +77,24 @@ export function TenantOrderDrawer({
   availability,
   timezone,
   deliveryFee,
+  restaurantLat,
+  restaurantLng,
 }: {
   restaurantSlug: string;
   restaurantName: string;
   availability: RestaurantAvailability | null;
   timezone: string;
-  /** Flat citywide fee, shown as a preview only -- create_order always recomputes the authoritative total server-side. */
+  /** Flat citywide fallback, used as a preview only when a distance-based quote isn't available (tenant or customer has no GPS coordinates) -- create_order always recomputes the authoritative total server-side. */
   deliveryFee: number | null;
+  restaurantLat: number | null;
+  restaurantLng: number | null;
 }) {
   const navigate = useNavigate();
-  const { lines, count, subtotal, hasUnpriced, isOpen, closeCart, increment, decrement, remove, clear } = useCart();
+  const { lines, count, subtotal, hasUnpriced, isOpen, closeCart, increment, decrement, remove, clear, activeOfferId } = useCart();
   const { location, openModal: openLocationModal } = useDeliveryLocation();
   const [mode, setMode] = useState<"delivery" | "pickup">("delivery");
+  const deliveryQuote =
+    mode === "delivery" ? computeDistanceBasedDelivery(restaurantLat, restaurantLng, location?.latitude ?? null, location?.longitude ?? null) : null;
   const [form, setForm] = useState(() => ({ ...loadStoredCustomer(), instructions: "" }));
   const [pickupTime, setPickupTime] = useState(PICKUP_TIME_OPTIONS[0]);
   const [paymentChoice, setPaymentChoice] = useState<PaymentChoice>("cash");
@@ -163,6 +170,7 @@ export function TenantOrderDrawer({
         customer_notes: mode === "pickup" ? `Retrait : ${pickupTime}` : null,
         payment_method: toBackendPaymentMethod(paymentChoice),
         items: cartLinesToOrderItems(lines),
+        offer_id: activeOfferId,
       });
 
       window.localStorage.setItem(CUSTOMER_PHONE_KEY, form.phone.trim());
@@ -174,19 +182,36 @@ export function TenantOrderDrawer({
       clear();
       navigate({ to: "/commande/$orderId/confirmation", params: { orderId: order.order_id } });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Impossible de créer la commande.");
+      // The full technical error (Postgres/PostgREST code, details, hint)
+      // always goes to the console for diagnosis. Only a deliberate
+      // business-rule rejection -- a plpgsql `raise exception` in
+      // create_order, which PostgREST always reports as code 'P0001' --
+      // is safe to show to the customer as-is (its message is already
+      // written to be user-facing, e.g. "Adresse de livraison requise").
+      // Any other error (a real bug, a schema mismatch, a network issue)
+      // must never leak raw internals to the customer.
+      console.error("[checkout] create_order failed:", err);
+      const isBusinessRuleError = typeof err === "object" && err !== null && "code" in err && (err as { code?: unknown }).code === "P0001";
+      setError(
+        isBusinessRuleError && err instanceof Error
+          ? err.message
+          : "Impossible de créer votre commande. Vérifiez vos informations et réessayez.",
+      );
     } finally {
       setSubmitting(false);
     }
   }
 
   const subtotalLabel = hasUnpriced ? (subtotal > 0 ? `${subtotal.toLocaleString("fr-FR")} FCFA` : "À confirmer") : `${subtotal.toLocaleString("fr-FR")} FCFA`;
-  // Preview only, from the tenant's flat citywide fee -- create_order always
-  // recomputes and charges the authoritative total server-side (it also
-  // knows about free-delivery promotions this preview can't see).
-  const showDeliveryFeeLine = mode === "delivery" && deliveryFee !== null;
-  const deliveryFeeLabel = deliveryFee === 0 ? "Gratuite" : `${(deliveryFee ?? 0).toLocaleString("fr-FR")} FCFA`;
-  const totalAmount = subtotal + (mode === "delivery" ? deliveryFee ?? 0 : 0);
+  // Preview only -- create_order always recomputes and charges the
+  // authoritative total server-side (it also knows about free-delivery
+  // promotions this preview can't see). Prefers the distance-based quote;
+  // falls back to the tenant's flat citywide fee when either endpoint's
+  // GPS coordinates are unknown, mirroring the server's own fallback.
+  const resolvedDeliveryFee = mode === "delivery" ? deliveryQuote?.fee ?? deliveryFee : null;
+  const showDeliveryFeeLine = mode === "delivery" && resolvedDeliveryFee !== null;
+  const deliveryFeeLabel = resolvedDeliveryFee === 0 ? "Gratuite" : `${(resolvedDeliveryFee ?? 0).toLocaleString("fr-FR")} FCFA`;
+  const totalAmount = subtotal + (mode === "delivery" ? resolvedDeliveryFee ?? 0 : 0);
   const totalLabel = hasUnpriced ? (subtotal > 0 ? `${totalAmount.toLocaleString("fr-FR")} FCFA` : "À confirmer") : `${totalAmount.toLocaleString("fr-FR")} FCFA`;
   const orderButtonLabel = submitting
     ? "Création en cours..."
@@ -344,6 +369,12 @@ export function TenantOrderDrawer({
                         <div className="mt-2 flex items-start gap-1.5 text-xs font-medium text-destructive">
                           <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                           <span>Veuillez confirmer votre adresse de livraison avant de commander.</span>
+                        </div>
+                      )}
+                      {deliveryQuote && (
+                        <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-sm">
+                          <span className="text-muted-foreground">Distance : {deliveryQuote.distanceKm.toFixed(1)} km</span>
+                          <span className="font-semibold text-foreground">Livraison : {deliveryQuote.fee === 0 ? "Gratuite" : `${deliveryQuote.fee.toLocaleString("fr-FR")} FCFA`}</span>
                         </div>
                       )}
                     </div>
