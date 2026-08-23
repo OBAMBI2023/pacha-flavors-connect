@@ -90,6 +90,11 @@ function TenantStorefront({ slug }: { slug: string }) {
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   useStorefrontTheme(data?.settings?.primary_color);
 
+  function handleSearchChange(value: string) {
+    setQuery(value);
+    if (value.trim() !== "" && active !== "tous") setActive("tous");
+  }
+
   if (isLoading) return <TenantStorefrontSkeleton />;
   if (isError) return <TenantErrorState onRetry={() => void refetch()} />;
   if (!data?.restaurant) return <TenantNotFoundState />;
@@ -98,16 +103,26 @@ function TenantStorefront({ slug }: { slug: string }) {
   const hasMenu = data.categories.length > 0 || data.rows.length > 0;
   const tabs = [{ id: "tous", label: "Tous" }, ...data.categories.map((c) => ({ id: slugify(c.label), label: c.label }))];
   const normalizedQuery = query.trim().toLowerCase();
+  // A search is a global lookup across the whole catalog: it must never be
+  // silently narrowed by whichever category tab happens to still be
+  // selected (that previously made matches outside the active category
+  // disappear with no indication why, which looked exactly like "search is
+  // broken"). handleSearchChange resets `active` to "tous" so the visible
+  // tab state matches what's actually being searched.
   const items = data.items
-    .filter((i) => active === "tous" || i.category === active)
-    .filter((i) => !normalizedQuery || i.name.toLowerCase().includes(normalizedQuery) || i.description.toLowerCase().includes(normalizedQuery));
+    .filter((i) => normalizedQuery || active === "tous" || i.category === active)
+    .filter((i) => {
+      if (!normalizedQuery) return true;
+      const haystack = `${i.name} ${i.subtitle ?? ""} ${i.description}`.toLowerCase();
+      return haystack.includes(normalizedQuery);
+    });
   const subtotalLabel = hasUnpriced ? (subtotal > 0 ? `${subtotal.toLocaleString("fr-FR")} FCFA` : "À confirmer") : `${subtotal.toLocaleString("fr-FR")} FCFA`;
   const hasContact = Boolean(restaurant.address || restaurant.commune || restaurant.city);
 
   return (
     <div className="min-h-screen bg-background pb-28 md:pb-0">
       <TenantHeader restaurant={restaurant} cartCount={count} subtotalLabel={subtotalLabel} hasContact={hasContact} onOpenCart={openCart} />
-      {hasMenu && <TenantSearchBar value={query} onChange={setQuery} onOpenFilters={() => setCategoriesOpen(true)} />}
+      {hasMenu && <TenantSearchBar value={query} onChange={handleSearchChange} onOpenFilters={() => setCategoriesOpen(true)} />}
 
       <main>
         <TenantHero restaurant={restaurant} settings={settings} />
@@ -131,7 +146,7 @@ function TenantStorefront({ slug }: { slug: string }) {
         <div className="mx-auto max-w-7xl px-4 text-xs text-cocoa-foreground/60 sm:px-6">© {new Date().getFullYear()} {restaurant.name}</div>
       </footer>
 
-      <TenantProductModal item={openItem} onClose={() => setOpenItem(null)} onAdd={(item, qty) => { for (let i = 0; i < qty; i += 1) add(item); }} />
+      <TenantProductModal item={openItem} onClose={() => setOpenItem(null)} onAdd={(item, qty, options) => add(item, qty, options)} />
       <TenantCartBar count={count} subtotalLabel={subtotalLabel} onOpenCart={openCart} />
       <TenantBottomNav restaurantSlug={restaurant.slug} />
       <TenantOrderDrawer restaurantSlug={restaurant.slug} restaurantName={restaurant.name} />

@@ -28,6 +28,23 @@ export type ProductPromotion = {
   final_price: number;
 };
 
+export type ProductOptionChoice = {
+  id: string;
+  name: string;
+  extra_price: number;
+};
+
+/** Server-side shape from get_public_menu -- selection_type/min_select mirror product_option_groups exactly (see create_order, which validates against these same rules). */
+export type ProductOptionGroup = {
+  id: string;
+  name: string;
+  is_required: boolean;
+  selection_type: "single" | "multiple";
+  min_select: number;
+  max_select: number | null;
+  options: ProductOptionChoice[];
+};
+
 export type MenuItem = {
   id: string;
   name: string;
@@ -41,6 +58,7 @@ export type MenuItem = {
   daily?: boolean | undefined;
   featured?: boolean | undefined;
   promotion?: ProductPromotion | null | undefined;
+  optionGroups?: ProductOptionGroup[] | undefined;
 };
 
 export const CATEGORIES: { id: Category | "tous"; label: string }[] = [

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { FALLBACK_IMAGES, type MenuItem, type ProductPromotion } from "@/data/menu";
+import { FALLBACK_IMAGES, type MenuItem, type ProductOptionGroup, type ProductPromotion } from "@/data/menu";
 
 export type DbCategory = {
   id: string;
@@ -22,6 +22,7 @@ export type DbMenuItem = {
   featured?: boolean;
   position: number;
   promotion?: ProductPromotion | null;
+  option_groups?: ProductOptionGroup[];
 };
 
 export type PublicRestaurant = {
@@ -93,6 +94,7 @@ type PublicMenuRow = {
     sort_order: number | null;
     position?: number | null;
     promotion?: ProductPromotion | null;
+    option_groups?: ProductOptionGroup[];
   }>;
 };
 
@@ -130,6 +132,7 @@ export async function fetchMenuData(slug: string): Promise<MenuData> {
     daily: row.daily,
     featured: row.featured ?? false,
     promotion: row.promotion ?? null,
+    optionGroups: row.option_groups ?? [],
   }));
 
   return {

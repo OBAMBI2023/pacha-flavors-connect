@@ -51,7 +51,7 @@ export type OrderRow = {
   items: OrderItemRow[];
 };
 
-export type CreateOrderItem = { product_id: string; quantity: number };
+export type CreateOrderItem = { product_id: string; quantity: number; option_ids?: string[] };
 
 export type CreateOrderInput = {
   restaurantSlug: string;
@@ -167,6 +167,10 @@ export function formatOrderNumber(order: Pick<OrderRow, "order_number">) {
   return `#${order.order_number}`;
 }
 
-export function cartLinesToOrderItems(lines: Array<{ item: MenuItem; qty: number }>): CreateOrderItem[] {
-  return lines.map((line) => ({ product_id: line.item.id, quantity: line.qty }));
+export function cartLinesToOrderItems(lines: Array<{ item: MenuItem; qty: number; options?: Array<{ id: string }> }>): CreateOrderItem[] {
+  return lines.map((line) => ({
+    product_id: line.item.id,
+    quantity: line.qty,
+    ...(line.options && line.options.length > 0 ? { option_ids: line.options.map((o) => o.id) } : {}),
+  }));
 }

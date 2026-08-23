@@ -91,19 +91,23 @@ export function TenantOrderDrawer({ restaurantSlug, restaurantName }: { restaura
           ) : (
             <>
               <ul className="space-y-3">
-                {lines.map((l) => (
-                  <li key={l.item.id} className="flex gap-3 rounded-xl border border-border bg-card p-3">
+                {lines.map((l) => {
+                  const optionsExtra = l.options.reduce((sum, o) => sum + o.extra_price, 0);
+                  return (
+                  <li key={l.key} className="flex gap-3 rounded-xl border border-border bg-card p-3">
                     {l.item.image ? <img src={l.item.image} alt={l.item.name} className="h-16 w-16 shrink-0 rounded-lg object-cover" /> : <div className="h-16 w-16 shrink-0 rounded-lg bg-muted" />}
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium">{l.item.name}</p>
-                      <p className="text-xs text-muted-foreground">{(l.item.price ?? 0).toLocaleString("fr-FR")} FCFA</p>
+                      {l.options.length > 0 && <p className="truncate text-xs text-muted-foreground">{l.options.map((o) => o.name).join(", ")}</p>}
+                      <p className="text-xs text-muted-foreground">{((l.item.price ?? 0) + optionsExtra).toLocaleString("fr-FR")} FCFA</p>
                       <div className="mt-2 flex items-center gap-2">
-                        <QuantitySelector value={l.qty} onDecrement={() => decrement(l.item.id)} onIncrement={() => increment(l.item.id)} />
-                        <button onClick={() => remove(l.item.id)} aria-label="Supprimer" className="ml-auto grid h-11 w-11 place-items-center rounded-full text-muted-foreground hover:bg-accent">×</button>
+                        <QuantitySelector value={l.qty} onDecrement={() => decrement(l.key)} onIncrement={() => increment(l.key)} />
+                        <button onClick={() => remove(l.key)} aria-label="Supprimer" className="ml-auto grid h-11 w-11 place-items-center rounded-full text-muted-foreground hover:bg-accent">×</button>
                       </div>
                     </div>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
 
               <div className="mt-6 space-y-3">
