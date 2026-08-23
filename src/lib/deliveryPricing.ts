@@ -1,6 +1,9 @@
 const PRICE_PER_KM = 300;
 const MAX_DELIVERY_FEE = 2000;
 
+/** Used only when create_order can't compute a distance (no GPS on either end) -- never 0, so a customer is never shown or charged free delivery just because their position couldn't be determined. Mirrors restaurant_settings.delivery_fee_fallback's own column default. */
+export const DEFAULT_DELIVERY_FEE_FALLBACK = 1500;
+
 /** Straight-line (not road) distance -- mirrors the DB's own public.haversine_km, already used for driver matching. No routing API is wired into this app, so this is the same honest approximation used elsewhere, not a fabricated driving-distance figure. */
 export function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371;
@@ -24,8 +27,9 @@ export type DistanceBasedDeliveryQuote = { distanceKm: number; fee: number };
  * coordinates, so a tampered client value can never change what's billed.
  * Returns null when either endpoint's coordinates are unknown (tenant has
  * no GPS configured, or the customer typed their address manually without
- * a confirmed pinned location) -- callers should fall back to the flat
- * restaurant_settings.delivery_fee in that case, exactly like the server.
+ * a confirmed pinned location) -- callers should fall back to
+ * restaurant_settings.delivery_fee_fallback (DEFAULT_DELIVERY_FEE_FALLBACK
+ * if unset) in that case, exactly like the server.
  */
 export function computeDistanceBasedDelivery(
   restaurantLat: number | null,

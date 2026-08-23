@@ -1291,6 +1291,7 @@ export type Database = {
           default_prep_time_minutes: number | null
           delivery_enabled: boolean
           delivery_fee: number
+          delivery_fee_fallback: number
           description: string | null
           dine_in_enabled: boolean
           driver_location_freshness_minutes: number
@@ -1319,6 +1320,7 @@ export type Database = {
           default_prep_time_minutes?: number | null
           delivery_enabled?: boolean
           delivery_fee?: number
+          delivery_fee_fallback?: number
           description?: string | null
           dine_in_enabled?: boolean
           driver_location_freshness_minutes?: number
@@ -1347,6 +1349,7 @@ export type Database = {
           default_prep_time_minutes?: number | null
           delivery_enabled?: boolean
           delivery_fee?: number
+          delivery_fee_fallback?: number
           description?: string | null
           dine_in_enabled?: boolean
           driver_location_freshness_minutes?: number

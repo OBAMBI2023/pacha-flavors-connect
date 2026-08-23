@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { MapPin, Navigation } from "lucide-react";
 import { useMenuData } from "@/lib/menu-db";
+import { DEFAULT_DELIVERY_FEE_FALLBACK } from "@/lib/deliveryPricing";
 import { CartProvider, useCart } from "@/lib/cart";
 import { DeliveryLocationProvider } from "@/lib/deliveryLocation";
 import { TenantOrderDrawer } from "@/components/TenantOrderDrawer";
@@ -173,7 +174,7 @@ function TenantStorefront({ slug }: { slug: string }) {
       />
       <TenantCartBar count={count} subtotalLabel={subtotalLabel} onOpenCart={openCart} />
       <TenantBottomNav restaurantSlug={restaurant.slug} restaurantName={restaurant.name} onOpenOffers={() => { setOpenOfferId(null); setOffersOpen(true); }} />
-      <TenantOrderDrawer restaurantSlug={restaurant.slug} restaurantName={restaurant.name} availability={data.availability} timezone={restaurant.timezone ?? "Africa/Abidjan"} deliveryFee={settings?.delivery_fee ?? null} restaurantLat={restaurant.lat} restaurantLng={restaurant.lng} />
+      <TenantOrderDrawer restaurantSlug={restaurant.slug} restaurantName={restaurant.name} availability={data.availability} timezone={restaurant.timezone ?? "Africa/Abidjan"} deliveryFeeFallback={settings?.delivery_fee_fallback ?? DEFAULT_DELIVERY_FEE_FALLBACK} restaurantLat={restaurant.lat} restaurantLng={restaurant.lng} />
       <TenantLocationModal />
       <CategoriesSheet slug={slug} open={categoriesOpen} onOpenChange={setCategoriesOpen} onSelectCategory={setActive} />
       <TenantOffersSheet

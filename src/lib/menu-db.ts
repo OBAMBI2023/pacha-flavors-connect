@@ -58,6 +58,8 @@ export type PublicRestaurantSettings = {
   primary_color: string | null;
   /** Flat citywide fee (already in get_public_menu's payload) -- shown as a preview in the cart; the authoritative charge is still always computed server-side by create_order. */
   delivery_fee: number | null;
+  /** Applied instead of the distance-based fee (never 0) when either endpoint's GPS coordinates are unavailable -- see create_order's fallback branch. Defaults to 1500 FCFA per tenant, but is stored per-restaurant so it can be tuned later without a code change. */
+  delivery_fee_fallback: number | null;
   minimum_order: number | null;
 };
 

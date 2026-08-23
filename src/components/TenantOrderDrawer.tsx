@@ -90,7 +90,7 @@ export function TenantOrderDrawer({
   restaurantName,
   availability,
   timezone,
-  deliveryFee,
+  deliveryFeeFallback,
   restaurantLat,
   restaurantLng,
 }: {
@@ -98,8 +98,8 @@ export function TenantOrderDrawer({
   restaurantName: string;
   availability: RestaurantAvailability | null;
   timezone: string;
-  /** Flat citywide fallback, used as a preview only when a distance-based quote isn't available (tenant or customer has no GPS coordinates) -- create_order always recomputes the authoritative total server-side. */
-  deliveryFee: number | null;
+  /** Preview only -- applied when a distance-based quote isn't available (tenant or customer has no GPS coordinates). Never 0: create_order's own fallback branch uses this exact same tenant setting (default 1500 FCFA) so a customer is never shown or charged free delivery just because their position couldn't be determined. */
+  deliveryFeeFallback: number;
   restaurantLat: number | null;
   restaurantLng: number | null;
 }) {
@@ -223,9 +223,13 @@ export function TenantOrderDrawer({
   // promotions this preview can't see). Prefers the distance-based quote;
   // falls back to the tenant's flat citywide fee when either endpoint's
   // GPS coordinates are unknown, mirroring the server's own fallback.
-  const resolvedDeliveryFee = mode === "delivery" ? deliveryQuote?.fee ?? deliveryFee : null;
+  // Never 0: a distance-based quote of exactly 0 FCFA can only come from a
+  // free_delivery promotion the server applies, and the fallback
+  // (deliveryFeeFallback) is itself never 0 by design -- see
+  // restaurant_settings.delivery_fee_fallback.
+  const resolvedDeliveryFee = mode === "delivery" ? deliveryQuote?.fee ?? deliveryFeeFallback : null;
   const showDeliveryFeeLine = mode === "delivery" && resolvedDeliveryFee !== null;
-  const deliveryFeeLabel = resolvedDeliveryFee === 0 ? "Gratuite" : `${(resolvedDeliveryFee ?? 0).toLocaleString("fr-FR")} FCFA`;
+  const deliveryFeeLabel = `${(resolvedDeliveryFee ?? 0).toLocaleString("fr-FR")} FCFA`;
   const totalAmount = subtotal + (mode === "delivery" ? resolvedDeliveryFee ?? 0 : 0);
   const totalLabel = hasUnpriced ? (subtotal > 0 ? `${totalAmount.toLocaleString("fr-FR")} FCFA` : "À confirmer") : `${totalAmount.toLocaleString("fr-FR")} FCFA`;
   const orderButtonLabel = submitting
@@ -386,12 +390,22 @@ export function TenantOrderDrawer({
                           <span>Veuillez confirmer votre adresse de livraison avant de commander.</span>
                         </div>
                       )}
-                      {deliveryQuote && (
+                      {deliveryQuote ? (
                         <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-sm">
                           <span className="text-muted-foreground">Distance : {deliveryQuote.distanceKm.toFixed(1)} km</span>
-                          <span className="font-semibold text-foreground">Livraison : {deliveryQuote.fee === 0 ? "Gratuite" : `${deliveryQuote.fee.toLocaleString("fr-FR")} FCFA`}</span>
+                          <span className="font-semibold text-foreground">Livraison : {deliveryQuote.fee.toLocaleString("fr-FR")} FCFA</span>
                         </div>
-                      )}
+                      ) : location?.confirmed ? (
+                        <div className="mt-3 border-t border-border pt-3">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Livraison forfaitaire</span>
+                            <span className="font-semibold text-foreground">{deliveryFeeFallback.toLocaleString("fr-FR")} FCFA</span>
+                          </div>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            La position n'a pas pu être déterminée. Un forfait de livraison de {deliveryFeeFallback.toLocaleString("fr-FR")} FCFA est appliqué.
+                          </p>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
 
@@ -468,7 +482,7 @@ export function TenantOrderDrawer({
             <div className="space-y-1">
               <div className="flex items-center justify-between gap-3 text-sm"><span className="text-muted-foreground">Sous-total</span><span>{subtotalLabel}</span></div>
               {showDeliveryFeeLine && (
-                <div className="flex items-center justify-between gap-3 text-sm"><span className="text-muted-foreground">Livraison</span><span>{deliveryFeeLabel}</span></div>
+                <div className="flex items-center justify-between gap-3 text-sm"><span className="text-muted-foreground">Frais de livraison</span><span>{deliveryFeeLabel}</span></div>
               )}
               <div className="flex items-center justify-between gap-3 border-t border-border pt-1 text-[20px] font-bold text-foreground"><span className="text-sm font-semibold text-muted-foreground">Total à payer</span><span>{totalLabel}</span></div>
             </div>
