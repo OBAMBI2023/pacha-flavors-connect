@@ -17,6 +17,7 @@ import { StickyCartBar } from "@/components/StickyCartBar";
 import { MoreSheet } from "@/components/MoreSheet";
 import { MenuSearchSheet } from "@/components/MenuSearchSheet";
 import { CategoriesSheet } from "@/components/CategoriesSheet";
+import { useVisitorTracking } from "@/lib/visitorTracking";
 
 const TITLE = "Le Pacha Restaurant | Restaurant à Angré 8e Tranche Abidjan";
 const DESCRIPTION =
@@ -66,6 +67,7 @@ function Index() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState("tous");
+  useVisitorTracking("le-pacha");
 
   return (
     <CartProvider>

@@ -20,6 +20,7 @@ import { TenantCartBar } from "@/components/tenant/TenantCartBar";
 import { TenantBottomNav } from "@/components/tenant/TenantBottomNav";
 import { TenantTrustBar } from "@/components/tenant/TenantTrustBar";
 import { PublicFooter } from "@/components/PublicFooter";
+import { useVisitorTracking } from "@/lib/visitorTracking";
 import {
   TenantEmptyMenuState,
   TenantErrorState,
@@ -94,6 +95,7 @@ function TenantStorefront({ slug }: { slug: string }) {
   const [openItem, setOpenItem] = useState<MenuItem | null>(null);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   useStorefrontTheme(data?.settings?.primary_color);
+  useVisitorTracking(slug);
 
   function handleSearchChange(value: string) {
     setQuery(value);

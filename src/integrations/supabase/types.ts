@@ -1361,6 +1361,38 @@ export type Database = {
           },
         ]
       }
+      visitor_sessions: {
+        Row: {
+          id: string
+          last_seen_at: string
+          restaurant_id: string
+          started_at: string
+          visitor_id: string
+        }
+        Insert: {
+          id?: string
+          last_seen_at?: string
+          restaurant_id: string
+          started_at?: string
+          visitor_id: string
+        }
+        Update: {
+          id?: string
+          last_seen_at?: string
+          restaurant_id?: string
+          started_at?: string
+          visitor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visitor_sessions_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -1477,6 +1509,8 @@ export type Database = {
         Args: { p_end_date: string; p_start_date: string }
         Returns: Json
       }
+      get_visitor_realtime_count: { Args: never; Returns: number }
+      get_visitor_stats: { Args: never; Returns: Json }
       has_restaurant_access: {
         Args: { _restaurant_id: string }
         Returns: boolean
@@ -1572,6 +1606,10 @@ export type Database = {
           slug: string
           status: Database["public"]["Enums"]["restaurant_status"]
         }[]
+      }
+      track_visitor_session: {
+        Args: { p_slug: string; p_visitor_id: string }
+        Returns: undefined
       }
       update_order_status: {
         Args: {
