@@ -6,6 +6,7 @@ import { fetchCustomerOrder, formatOrderNumber, getDriverStepLabel, type OrderRo
 import { CartProvider } from "@/lib/cart";
 import { OrderStatusTimeline } from "@/components/tenant/OrderStatusTimeline";
 import { useStorefrontTheme } from "@/components/tenant/tenantTheme";
+import { PublicFooter } from "@/components/PublicFooter";
 
 const STORAGE_PHONE = "saovia.customer.phone";
 const STORAGE_RESTAURANT_SLUG = "saovia.restaurant.slug";
@@ -140,6 +141,7 @@ function ConfirmationPage() {
             </>
           )}
         </main>
+        <PublicFooter />
       </div>
     </CartProvider>
   );

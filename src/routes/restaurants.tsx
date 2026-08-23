@@ -9,6 +9,7 @@ import { FeaturedRestaurants } from "@/components/marketplace/FeaturedRestaurant
 import { CheapMealsSection } from "@/components/marketplace/CheapMealsSection";
 import { RestaurantCard } from "@/components/marketplace/RestaurantCard";
 import { BottomNav } from "@/components/marketplace/BottomNav";
+import { PublicFooter } from "@/components/PublicFooter";
 import { useMarketplaceRestaurants } from "@/lib/marketplace";
 import { useFavoriteRestaurants } from "@/lib/favorites";
 
@@ -117,6 +118,7 @@ function RestaurantsPage() {
         </div>
       </div>
 
+      <PublicFooter />
       <BottomNav />
     </div>
   );

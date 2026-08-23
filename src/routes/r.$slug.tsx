@@ -19,6 +19,7 @@ import { TenantProductModal } from "@/components/tenant/TenantProductModal";
 import { TenantCartBar } from "@/components/tenant/TenantCartBar";
 import { TenantBottomNav } from "@/components/tenant/TenantBottomNav";
 import { TenantTrustBar } from "@/components/tenant/TenantTrustBar";
+import { PublicFooter } from "@/components/PublicFooter";
 import {
   TenantEmptyMenuState,
   TenantErrorState,
@@ -146,9 +147,7 @@ function TenantStorefront({ slug }: { slug: string }) {
         <TenantLocationSection name={restaurant.name} address={restaurant.address} commune={restaurant.commune} city={restaurant.city} countryCode={restaurant.country_code} />
       </main>
 
-      <footer className="bg-cocoa py-10 text-cocoa-foreground">
-        <div className="mx-auto max-w-7xl px-4 text-xs text-cocoa-foreground/60 sm:px-6">© {new Date().getFullYear()} {restaurant.name}</div>
-      </footer>
+      <PublicFooter restaurantName={restaurant.name} />
 
       <TenantProductModal item={openItem} onClose={() => setOpenItem(null)} onAdd={(item, qty, options) => add(item, qty, options)} />
       <TenantCartBar count={count} subtotalLabel={subtotalLabel} onOpenCart={openCart} />

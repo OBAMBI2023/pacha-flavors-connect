@@ -1,17 +1,19 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { AlertCircle, LocateFixed, Loader2, MapPin, X } from "lucide-react";
+import { AlertCircle, Check, LocateFixed, Loader2, MapPin, X } from "lucide-react";
 import { useDeliveryLocation, type DeliveryLocation } from "@/lib/deliveryLocation";
 import { getCurrentPosition, reverseGeocode, GeoError, type GeoErrorKind } from "@/lib/geolocation";
 
 type Step = "idle" | "locating" | "found" | "error";
 
 const ERROR_MESSAGES: Record<GeoErrorKind, string> = {
-  denied: "La localisation est nécessaire pour déterminer votre adresse de livraison.",
-  unavailable: "Impossible de récupérer votre position actuellement.",
-  timeout: "La récupération de votre position prend trop de temps. Réessayez.",
-  unsupported: "La géolocalisation n'est pas disponible sur cet appareil.",
+  denied: "Autorisation de localisation refusée. Saisissez votre adresse de livraison manuellement.",
+  unavailable: "Impossible de récupérer votre position. Vérifiez que la localisation de votre appareil est activée.",
+  timeout: "La récupération de votre position a pris trop de temps. Réessayez ou saisissez votre adresse manuellement.",
+  unsupported: "La géolocalisation n'est pas disponible sur cet appareil. Saisissez votre adresse manuellement.",
 };
+
+const GEOCODE_FAILURE_MESSAGE = "Position détectée, mais l'adresse n'a pas pu être déterminée. Vous pouvez saisir votre adresse manuellement.";
 
 export function TenantLocationModal() {
   const { location, isModalOpen, closeModal, setLocation } = useDeliveryLocation();
@@ -22,29 +24,31 @@ export function TenantLocationModal() {
   );
   const [manualAddress, setManualAddress] = useState(location?.address ?? "");
   const [manualMode, setManualMode] = useState(false);
+  // Reverse geocoding is a separate step from GPS capture: the position can
+  // succeed while the address lookup fails. Tracked apart from `errorKind`
+  // (a GeoError, i.e. GPS itself failing) so the two cases can't be confused
+  // and a failed lookup never falls back to stuffing raw coordinates into
+  // the address field as if they were a real address.
+  const [geocodeFailed, setGeocodeFailed] = useState(false);
 
   if (!isModalOpen) return null;
 
   async function handleUseMyPosition() {
     setStep("locating");
     setErrorKind(null);
+    setGeocodeFailed(false);
     setManualMode(false);
     try {
       const { latitude, longitude } = await getCurrentPosition();
-      let geo;
       try {
-        geo = await reverseGeocode(latitude, longitude);
+        const geo = await reverseGeocode(latitude, longitude);
+        setDraft({ latitude, longitude, address: geo.address, neighborhood: geo.neighborhood, commune: geo.commune, city: geo.city, country: geo.country });
+        setManualAddress(geo.address);
       } catch {
-        geo = {
-          address: `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`,
-          neighborhood: null,
-          commune: null,
-          city: null,
-          country: null,
-        };
+        setDraft({ latitude, longitude, address: "", neighborhood: null, commune: null, city: null, country: null });
+        setManualAddress("");
+        setGeocodeFailed(true);
       }
-      setDraft({ latitude, longitude, address: geo.address, neighborhood: geo.neighborhood, commune: geo.commune, city: geo.city, country: geo.country });
-      setManualAddress(geo.address);
       setStep("found");
     } catch (err) {
       const kind = err instanceof GeoError ? err.kind : "unavailable";
@@ -57,6 +61,7 @@ export function TenantLocationModal() {
     closeModal();
     setStep("idle");
     setErrorKind(null);
+    setGeocodeFailed(false);
   }
 
   function handleConfirm() {
@@ -100,14 +105,27 @@ export function TenantLocationModal() {
             </div>
           )}
 
+          {step === "found" && geocodeFailed && (
+            <div className="flex items-start gap-2 rounded-xl border border-border bg-muted p-3 text-sm text-muted-foreground">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{GEOCODE_FAILURE_MESSAGE}</span>
+            </div>
+          )}
+
           <button
             type="button"
             onClick={handleUseMyPosition}
             disabled={step === "locating"}
             className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {step === "locating" ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixed className="h-4 w-4" />}
-            {step === "locating" ? "Localisation en cours..." : "Utiliser ma position actuelle"}
+            {step === "locating" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : step === "found" ? (
+              <Check className="h-4 w-4" />
+            ) : (
+              <LocateFixed className="h-4 w-4" />
+            )}
+            {step === "locating" ? "Localisation en cours..." : step === "found" ? "Position détectée" : "Utiliser ma position actuelle"}
           </button>
 
           {!showManualField && (

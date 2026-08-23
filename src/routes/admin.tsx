@@ -34,7 +34,26 @@ import { useRestaurantTheme } from "@/hooks/useRestaurantTheme";
 const TITLE = "Administration du restaurant";
 const DESCRIPTION = "Gestion compacte de la carte, de la vitrine et des coordonnées du restaurant.";
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const MAX_ASSET_SIZE_BYTES = 5 * 1024 * 1024;
+const MAX_LOGO_SIZE_BYTES = 2 * 1024 * 1024;
+const MAX_COVER_SIZE_BYTES = 5 * 1024 * 1024;
+const MIN_LOGO_DIMENSION_PX = 400;
+const RECOMMENDED_COVER_WIDTH_PX = 1280;
+
+function readImageDimensions(file: File): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("invalid image"));
+    };
+    img.src = url;
+  });
+}
 
 type Cat = { id: string; label: string; position: number };
 type RestaurantForm = { name: string; logo_url: string; cover_url: string; address: string; commune: string; city: string; phone: string; whatsapp_phone: string; email: string; is_public: boolean; lat: string; lng: string };
@@ -74,6 +93,7 @@ export default function AdminPage() {
   const [promotionsRefreshSignal, setPromotionsRefreshSignal] = useState(0);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [togglingItemIds, setTogglingItemIds] = useState<Set<string>>(new Set());
 
   const loadedRestaurantId = useRef<string | null>(null);
   useEffect(() => { if (!loading && !user) navigate({ to: "/auth" }); }, [loading, user, navigate]);
@@ -237,14 +257,34 @@ export default function AdminPage() {
     const rid = restaurantId;
     if (!rid) return;
     const label = field === "logo_url" ? "logo" : "cover";
+    const maxBytes = field === "logo_url" ? MAX_LOGO_SIZE_BYTES : MAX_COVER_SIZE_BYTES;
+    const maxLabel = field === "logo_url" ? "2 MB" : "5 MB";
 
     if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-      toast.error("Format d'image non supporté.");
+      toast.error("Format d'image non supporté.", { description: "Utilisez un fichier PNG, JPG ou WEBP." });
       return;
     }
-    if (file.size > MAX_ASSET_SIZE_BYTES) {
-      toast.error("Image trop volumineuse.");
+    if (file.size > maxBytes) {
+      toast.error("Image trop volumineuse.", { description: `Le ${label} doit peser moins de ${maxLabel}.` });
       return;
+    }
+
+    try {
+      const { width, height } = await readImageDimensions(file);
+      if (field === "logo_url") {
+        if (width < MIN_LOGO_DIMENSION_PX || height < MIN_LOGO_DIMENSION_PX) {
+          toast.error("Logo trop petit.", { description: `Recommandé : au moins ${MIN_LOGO_DIMENSION_PX} × ${MIN_LOGO_DIMENSION_PX} px.` });
+          return;
+        }
+        if (Math.abs(width / height - 1) > 0.05) {
+          toast.warning("Un logo carré (ratio 1:1) est recommandé pour un rendu optimal.");
+        }
+      } else if (width < RECOMMENDED_COVER_WIDTH_PX) {
+        toast.warning(`Une largeur d'au moins ${RECOMMENDED_COVER_WIDTH_PX} px est recommandée pour la cover (idéalement 1920 × 900 px).`);
+      }
+    } catch {
+      // Dimension probe failed (e.g. unreadable file) -- format/size checks
+      // already ran, so let the upload proceed rather than blocking it.
     }
 
     setBusy(true);
@@ -287,6 +327,22 @@ export default function AdminPage() {
   async function removeCategory(): Promise<void> { const rid = restaurantId; if (!categoryDelete || !rid) return; setBusy(true); const { error } = await supabase.from("restaurant_categories").delete().eq("id", categoryDelete.id).eq("restaurant_id", rid); setBusy(false); if (error) { toast.error(error.message); return; } toast.success("Catégorie supprimée"); setCategoryDelete(null); await refresh(); }
   async function removeItem(): Promise<void> { const rid = restaurantId; if (!itemDelete || !rid) return; setBusy(true); const { error } = await supabase.from("restaurant_products").delete().eq("id", itemDelete.id).eq("restaurant_id", rid); setBusy(false); if (error) { toast.error(error.message); return; } toast.success("Plat supprimé"); setItemDelete(null); await refresh(); }
 
+  /** Quick show/hide from the list row -- toggles only `is_available`, no dialog, no navigation. A per-row id in `togglingItemIds` (not the global `busy` flag) blocks a double-click on that row without disabling the rest of the list. */
+  async function toggleItemAvailability(row: DbMenuItem): Promise<void> {
+    const rid = restaurantId;
+    if (!rid || togglingItemIds.has(row.id)) return;
+    setTogglingItemIds((current) => new Set(current).add(row.id));
+    const nextAvailable = !row.available;
+    const { error } = await supabase.from("restaurant_products").update({ is_available: nextAvailable } as any).eq("id", row.id).eq("restaurant_id", rid);
+    setTogglingItemIds((current) => { const next = new Set(current); next.delete(row.id); return next; });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(nextAvailable ? "Plat affiché sur la vitrine" : "Plat masqué de la vitrine");
+    await refresh();
+  }
+
   return (
     <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
       <Toaster />
@@ -300,9 +356,9 @@ export default function AdminPage() {
         <TabsContent value="commandes"><OrdersPanel restaurantId={restaurantId} {...ordersAlert} /></TabsContent>
         <TabsContent value="statistiques"><StatisticsPanel /></TabsContent>
         <TabsContent value="finances"><FinancialPanel /></TabsContent>
-        <TabsContent value="menu" className="space-y-6"><Card className="p-5"><MenuCategoriesPanel categories={data?.categories ?? []} counts={categoryCounts} busy={busy} onAdd={() => { setEditingCategory(null); setCategoryLabel(""); setCategoryDialogOpen(true); }} onEdit={(cat) => { setEditingCategory(cat); setCategoryLabel(cat.label); setCategoryDialogOpen(true); }} onDelete={setCategoryDelete} /></Card><Card className="p-5"><MenuItemsPanel rows={filteredRows} categories={data?.categories ?? []} busy={busy} search={search} setSearch={setSearch} categoryFilter={categoryFilter} setCategoryFilter={setCategoryFilter} onAdd={() => { setEditingItem(null); setItemPreview(null); setExistingPromotion(null); setItemForm(emptyItemForm({ categoryId: data?.categories[0]?.id, position: String((data?.rows.length ?? 0) + 1) })); setItemDialogOpen(true); }} onEdit={(row) => { setEditingItem(row); setExistingPromotion(null); setItemForm({ name: row.name, subtitle: row.subtitle ?? "", description: row.description, price: row.price === null ? "" : String(row.price), category_id: row.category_id ?? "", position: String(row.position), available: row.available, daily: row.daily, image_path: row.image_path ?? "", promotionEnabled: false, promotionalPrice: "" }); setItemDialogOpen(true); void loadItemPromotion(row.id, row.price); }} onDelete={setItemDelete} /></Card></TabsContent>
+        <TabsContent value="menu" className="space-y-6"><Card className="p-5"><MenuCategoriesPanel categories={data?.categories ?? []} counts={categoryCounts} busy={busy} onAdd={() => { setEditingCategory(null); setCategoryLabel(""); setCategoryDialogOpen(true); }} onEdit={(cat) => { setEditingCategory(cat); setCategoryLabel(cat.label); setCategoryDialogOpen(true); }} onDelete={setCategoryDelete} /></Card><Card className="p-5"><MenuItemsPanel rows={filteredRows} categories={data?.categories ?? []} busy={busy} togglingItemIds={togglingItemIds} search={search} setSearch={setSearch} categoryFilter={categoryFilter} setCategoryFilter={setCategoryFilter} onAdd={() => { setEditingItem(null); setItemPreview(null); setExistingPromotion(null); setItemForm(emptyItemForm({ categoryId: data?.categories[0]?.id, position: String((data?.rows.length ?? 0) + 1) })); setItemDialogOpen(true); }} onEdit={(row) => { setEditingItem(row); setExistingPromotion(null); setItemForm({ name: row.name, subtitle: row.subtitle ?? "", description: row.description, price: row.price === null ? "" : String(row.price), category_id: row.category_id ?? "", position: String(row.position), available: row.available, daily: row.daily, image_path: row.image_path ?? "", promotionEnabled: false, promotionalPrice: "" }); setItemDialogOpen(true); void loadItemPromotion(row.id, row.price); }} onDelete={setItemDelete} onToggleAvailability={(row) => void toggleItemAvailability(row)} /></Card></TabsContent>
         <TabsContent value="promotions"><PromotionsPanel restaurantId={restaurantId} products={data?.rows ?? []} refreshSignal={promotionsRefreshSignal} /></TabsContent>
-        <TabsContent value="storefront" className="grid gap-6 lg:grid-cols-2"><Card className="space-y-5 p-5"><div><h2 className="font-display text-2xl font-semibold">Site vitrine</h2><p className="text-sm text-muted-foreground">Nom, visibilité publique, logo, cover et coordonnées.</p></div><div className="space-y-4"><Field label="Nom du restaurant"><Input value={restaurantForm.name} onChange={(e) => setRestaurantForm((c) => ({ ...c, name: e.target.value }))} /></Field><div className="grid gap-4 md:grid-cols-2"><AssetField label="Logo" preview={logoPreview} onPick={(file) => void uploadRestaurantAsset(file, "logo_url")} busy={busy} accept={ACCEPTED_IMAGE_TYPES.join(",")} /><AssetField label="Cover" preview={coverPreview} onPick={(file) => void uploadRestaurantAsset(file, "cover_url")} busy={busy} fullWidth accept={ACCEPTED_IMAGE_TYPES.join(",")} /></div><div className="flex items-center gap-3 rounded-2xl border border-border px-4 py-3"><Switch checked={restaurantForm.is_public} onCheckedChange={(checked) => setRestaurantForm((c) => ({ ...c, is_public: checked }))} /><div><p className="text-sm font-medium">Visibilité publique</p><p className="text-xs text-muted-foreground">Le site du tenant est exposé publiquement.</p></div></div></div><Button onClick={() => void saveRestaurant()} disabled={busy}>{busy ? "Enregistrement..." : "Enregistrer la vitrine"}</Button></Card><Card className="space-y-4 p-5"><h3 className="font-semibold">Aperçu</h3><div className="overflow-hidden rounded-3xl border border-border"><div className="min-h-48 bg-muted" style={coverPreview ? { backgroundImage: `url(${coverPreview})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}>{!coverPreview && <div className="flex min-h-48 items-center justify-center text-sm text-muted-foreground">Fond neutre générique</div>}</div></div><div className="flex items-center gap-3 rounded-2xl border border-border p-4">{logoPreview ? <img src={logoPreview} alt="Logo" className="h-14 w-14 rounded-2xl object-cover" /> : <div className="h-14 w-14 rounded-2xl bg-muted" />}<div><p className="font-medium">{restaurantForm.name || restaurant?.name || "Restaurant"}</p><p className="text-sm text-muted-foreground">{`/r/${restaurant?.slug ?? "slug"}`}</p></div></div></Card></TabsContent>
+        <TabsContent value="storefront" className="grid gap-6 lg:grid-cols-2"><Card className="space-y-5 p-5"><div><h2 className="font-display text-2xl font-semibold">Site vitrine</h2><p className="text-sm text-muted-foreground">Nom, visibilité publique, logo, cover et coordonnées.</p></div><div className="space-y-4"><Field label="Nom du restaurant"><Input value={restaurantForm.name} onChange={(e) => setRestaurantForm((c) => ({ ...c, name: e.target.value }))} /></Field><div className="grid gap-4 md:grid-cols-2"><AssetField label="Logo" helperText="PNG, JPG ou WEBP · recommandé 1000 × 1000 px · max 2 MB" preview={logoPreview} onPick={(file) => void uploadRestaurantAsset(file, "logo_url")} busy={busy} variant="logo" accept={ACCEPTED_IMAGE_TYPES.join(",")} /><AssetField label="Cover" helperText="JPG, PNG ou WEBP · recommandé 1920 × 900 px · max 5 MB" preview={coverPreview} onPick={(file) => void uploadRestaurantAsset(file, "cover_url")} busy={busy} variant="cover" accept={ACCEPTED_IMAGE_TYPES.join(",")} /></div><div className="flex items-center gap-3 rounded-2xl border border-border px-4 py-3"><Switch checked={restaurantForm.is_public} onCheckedChange={(checked) => setRestaurantForm((c) => ({ ...c, is_public: checked }))} /><div><p className="text-sm font-medium">Visibilité publique</p><p className="text-xs text-muted-foreground">Le site du tenant est exposé publiquement.</p></div></div></div><Button onClick={() => void saveRestaurant()} disabled={busy}>{busy ? "Enregistrement..." : "Enregistrer la vitrine"}</Button></Card><Card className="space-y-4 p-5"><h3 className="font-semibold">Aperçu</h3><div className="overflow-hidden rounded-3xl border border-border"><div className="min-h-48 bg-muted" style={coverPreview ? { backgroundImage: `url(${coverPreview})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}>{!coverPreview && <div className="flex min-h-48 items-center justify-center text-sm text-muted-foreground">Fond neutre générique</div>}</div></div><div className="flex items-center gap-3 rounded-2xl border border-border p-4">{logoPreview ? <img src={logoPreview} alt="Logo" className="h-14 w-14 rounded-2xl bg-white object-contain p-1 ring-1 ring-border" /> : <div className="h-14 w-14 rounded-2xl bg-muted" />}<div><p className="font-medium">{restaurantForm.name || restaurant?.name || "Restaurant"}</p><p className="text-sm text-muted-foreground">{`/r/${restaurant?.slug ?? "slug"}`}</p></div></div></Card></TabsContent>
         <TabsContent value="contact" className="grid gap-6 lg:grid-cols-2"><Card className="space-y-4 p-5"><div><h2 className="font-display text-2xl font-semibold">Coordonnées</h2><p className="text-sm text-muted-foreground">Adresse, téléphone, WhatsApp et email.</p></div><div className="grid gap-4 md:grid-cols-2"><Field label="Adresse"><Textarea value={restaurantForm.address} onChange={(e) => setRestaurantForm((c) => ({ ...c, address: e.target.value }))} /></Field><Field label="Commune"><Input value={restaurantForm.commune} onChange={(e) => setRestaurantForm((c) => ({ ...c, commune: e.target.value }))} /></Field><Field label="Ville"><Input value={restaurantForm.city} onChange={(e) => setRestaurantForm((c) => ({ ...c, city: e.target.value }))} /></Field><Field label="Téléphone"><Input value={restaurantForm.phone} onChange={(e) => setRestaurantForm((c) => ({ ...c, phone: e.target.value }))} /></Field><Field label="WhatsApp"><Input value={restaurantForm.whatsapp_phone} onChange={(e) => setRestaurantForm((c) => ({ ...c, whatsapp_phone: e.target.value }))} /></Field><Field label="Email"><Input type="email" value={restaurantForm.email} onChange={(e) => setRestaurantForm((c) => ({ ...c, email: e.target.value }))} /></Field></div><Button onClick={() => void saveRestaurant()} disabled={busy}>{busy ? "Enregistrement..." : "Enregistrer les coordonnées"}</Button></Card><Card className="space-y-4 p-5"><div><h3 className="font-semibold">Localisation</h3><p className="text-sm text-muted-foreground">La carte est masquée si aucune adresse exploitable n’existe.</p></div>{mapPreview ? <iframe title="Prévisualisation Google Maps" src={mapPreview} className="h-80 w-full rounded-3xl border border-border" loading="lazy" referrerPolicy="no-referrer-when-downgrade" /> : <div className="flex h-80 items-center justify-center rounded-3xl border border-dashed border-border text-sm text-muted-foreground">Aucune carte</div>}<div className="rounded-2xl border border-border p-4 text-sm text-muted-foreground"><MapPin className="mb-2 h-4 w-4" />{mapsQuery(restaurantForm) || "Renseignez une adresse, une commune ou une ville."}</div><div className="space-y-2 rounded-2xl border border-border p-4"><p className="text-sm font-medium">Coordonnées GPS</p><p className="text-xs text-muted-foreground">Position exacte du restaurant, utilisée pour trouver automatiquement le livreur le plus proche. Sans elle, la recherche de livreur ne peut pas démarrer.</p><div className="grid gap-3 sm:grid-cols-2"><Field label="Latitude"><Input type="number" step="any" placeholder="5.379" value={restaurantForm.lat} onChange={(e) => setRestaurantForm((c) => ({ ...c, lat: e.target.value }))} /></Field><Field label="Longitude"><Input type="number" step="any" placeholder="-3.988" value={restaurantForm.lng} onChange={(e) => setRestaurantForm((c) => ({ ...c, lng: e.target.value }))} /></Field></div><Button size="sm" variant="outline" onClick={() => void saveRestaurant()} disabled={busy}>{busy ? "Enregistrement..." : "Enregistrer la position"}</Button></div></Card></TabsContent>
         <TabsContent value="disponibilite"><AvailabilityPanel restaurantId={restaurantId} timezone={restaurant?.timezone ?? "Africa/Abidjan"} /></TabsContent>
         <TabsContent value="settings" className="space-y-6"><Card className="p-5"><h2 className="font-display text-2xl font-semibold">Paramètres</h2><p className="mt-2 text-sm text-muted-foreground">Section réservée aux réglages complémentaires sans toucher à l’isolation multi-tenant.</p></Card><SubscriptionCard restaurantId={restaurantId} /><SecurityCard email={user.email ?? null} /></TabsContent>
@@ -389,8 +445,26 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   return <label className="space-y-2"><span className="text-sm font-medium">{label}</span>{children}</label>;
 }
 
-function AssetField({ label, preview, onPick, busy, fullWidth = false, accept = "image/*" }: { label: string; preview: string | null; onPick: (file: File) => void; busy: boolean; fullWidth?: boolean; accept?: string }) {
-  return (<div className={`space-y-2 ${fullWidth ? "md:col-span-2" : ""}`}><Label>{label}</Label><div className="rounded-2xl border border-dashed border-border p-4">{preview ? <img src={preview} alt={label} className="mb-3 h-24 w-full rounded-2xl object-cover" /> : <div className="mb-3 h-24 rounded-2xl bg-muted" />}<Input type="file" accept={accept} disabled={busy} onChange={(e) => { const file = e.target.files?.[0]; if (file) onPick(file); e.target.value = ""; }} /></div></div>);
+function AssetField({ label, helperText, preview, onPick, busy, variant = "cover", accept = "image/*" }: { label: string; helperText?: string; preview: string | null; onPick: (file: File) => void; busy: boolean; variant?: "logo" | "cover"; accept?: string }) {
+  const isLogo = variant === "logo";
+  return (
+    <div className={`space-y-2 ${isLogo ? "" : "md:col-span-2"}`}>
+      <Label>{label}</Label>
+      <div className="rounded-2xl border border-dashed border-border p-4">
+        {isLogo ? (
+          <div className="mx-auto mb-3 flex h-40 w-40 items-center justify-center rounded-2xl bg-white p-2 ring-1 ring-border">
+            {preview ? <img src={preview} alt={label} className="h-full w-full object-contain" /> : <div className="h-full w-full rounded-xl bg-muted" />}
+          </div>
+        ) : (
+          <div className="mb-3 aspect-[16/7.5] max-h-[360px] w-full overflow-hidden rounded-2xl bg-muted">
+            {preview && <img src={preview} alt={label} className="h-full w-full object-cover" />}
+          </div>
+        )}
+        <Input type="file" accept={accept} disabled={busy} onChange={(e) => { const file = e.target.files?.[0]; if (file) onPick(file); e.target.value = ""; }} />
+        {helperText && <p className="mt-2 text-xs text-muted-foreground">{helperText}</p>}
+      </div>
+    </div>
+  );
 }
 
 /** Large, modern photo dropzone for the item editor -- distinct from AssetField (used for the small logo/cover thumbnails) so enlarging this one doesn't affect those. */
@@ -437,8 +511,67 @@ function MenuCategoriesPanel({ categories, counts, busy, onAdd, onEdit, onDelete
   return (<div><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-display text-2xl font-semibold">Catégories</h2><p className="text-sm text-muted-foreground">Vue compacte avec ajout, renommage et suppression.</p></div><Button onClick={onAdd}><Plus className="mr-2 h-4 w-4" />Ajouter une catégorie</Button></div><div className="mt-4 space-y-2">{categories.map((cat) => (<div key={cat.id} className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-background px-4 py-3"><div><p className="font-medium">{cat.label}</p><p className="text-xs text-muted-foreground">{counts.get(cat.id) ?? 0} plat(s)</p></div><div className="flex items-center gap-2"><Button variant="ghost" size="sm" disabled={busy} onClick={() => onEdit(cat)}><PencilLine className="mr-2 h-4 w-4" />Modifier</Button><Button variant="ghost" size="sm" disabled={busy} onClick={() => onDelete(cat)}><Trash2 className="mr-2 h-4 w-4" />Supprimer</Button></div></div>))}</div></div>);
 }
 
-function MenuItemsPanel({ rows, categories, busy, search, setSearch, categoryFilter, setCategoryFilter, onAdd, onEdit, onDelete }: { rows: DbMenuItem[]; categories: Cat[]; busy: boolean; search: string; setSearch: (v: string) => void; categoryFilter: string; setCategoryFilter: (v: string) => void; onAdd: () => void; onEdit: (row: DbMenuItem) => void; onDelete: (row: DbMenuItem) => void; }) {
-  return (<div><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-display text-2xl font-semibold">Plats</h2><p className="text-sm text-muted-foreground">Liste compacte avec miniature, prix, catégorie et statut.</p></div><Button onClick={onAdd}><Plus className="mr-2 h-4 w-4" />Ajouter un plat</Button></div><div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]"><div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher un plat..." className="pl-9" /></div><select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="all">Toutes les catégories</option>{categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.label}</option>)}</select></div><div className="mt-4 space-y-2">{rows.map((row) => { const cat = categories.find((c) => c.id === row.category_id)?.label ?? "Sans catégorie"; const src = row.image_path ? supabase.storage.from(MENU_BUCKET).getPublicUrl(row.image_path).data.publicUrl : null; return (<div key={row.id} className="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-background p-3"><div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-muted">{src ? <img src={src} alt={row.name} className="h-full w-full object-cover" /> : null}</div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="font-medium">{row.name}</p>{row.daily ? <Badge variant="secondary">Menu du jour</Badge> : null}<Badge variant={row.available ? "default" : "outline"}>{row.available ? "Disponible" : "Indisponible"}</Badge></div><p className="text-sm text-muted-foreground">{cat} • {row.price === null ? "Prix sur demande" : `${row.price} FCFA`} • ordre {row.position}</p></div><div className="flex items-center gap-2"><Button variant="ghost" size="sm" disabled={busy} onClick={() => onEdit(row)}><PencilLine className="mr-2 h-4 w-4" />Modifier</Button><Button variant="ghost" size="sm" disabled={busy} onClick={() => onDelete(row)}><Trash2 className="mr-2 h-4 w-4" />Supprimer</Button></div></div>); })}</div></div>);
+function MenuItemsPanel({ rows, categories, busy, togglingItemIds, search, setSearch, categoryFilter, setCategoryFilter, onAdd, onEdit, onDelete, onToggleAvailability }: { rows: DbMenuItem[]; categories: Cat[]; busy: boolean; togglingItemIds: Set<string>; search: string; setSearch: (v: string) => void; categoryFilter: string; setCategoryFilter: (v: string) => void; onAdd: () => void; onEdit: (row: DbMenuItem) => void; onDelete: (row: DbMenuItem) => void; onToggleAvailability: (row: DbMenuItem) => void; }) {
+  return (
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="font-display text-2xl font-semibold">Plats</h2>
+          <p className="text-sm text-muted-foreground">Liste compacte avec miniature, prix, catégorie et statut.</p>
+        </div>
+        <Button onClick={onAdd}><Plus className="mr-2 h-4 w-4" />Ajouter un plat</Button>
+      </div>
+      <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher un plat..." className="pl-9" />
+        </div>
+        <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+          <option value="all">Toutes les catégories</option>
+          {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.label}</option>)}
+        </select>
+      </div>
+      <div className="mt-4 space-y-1.5">
+        {rows.map((row) => {
+          const cat = categories.find((c) => c.id === row.category_id)?.label ?? "Sans catégorie";
+          const src = row.image_path ? supabase.storage.from(MENU_BUCKET).getPublicUrl(row.image_path).data.publicUrl : null;
+          const toggling = togglingItemIds.has(row.id);
+          return (
+            <div key={row.id} className="flex min-h-[80px] items-center gap-2.5 rounded-2xl border border-border bg-background px-3 py-2.5 sm:min-h-[92px] sm:gap-4 sm:px-4 sm:py-3">
+              <div className="flex h-[60px] w-[60px] shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted sm:h-[72px] sm:w-[72px]">
+                {src ? <img src={src} alt={row.name} className="h-full w-full object-cover" /> : <ImagePlus className="h-5 w-5 text-muted-foreground/50" />}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <p className="truncate font-semibold">{row.name}</p>
+                  {row.daily ? <Badge variant="secondary" className="shrink-0">Menu du jour</Badge> : null}
+                  <Badge variant={row.available ? "default" : "outline"} className="shrink-0">{row.available ? "Disponible" : "Indisponible"}</Badge>
+                </div>
+                <p className="mt-0.5 truncate text-sm text-muted-foreground">
+                  {cat} · {row.price === null ? "Prix sur demande" : `${row.price.toLocaleString("fr-FR")} FCFA`} · Ordre {row.position}
+                </p>
+              </div>
+              <label
+                className="flex shrink-0 flex-col items-center gap-1 text-[0.65rem] font-medium text-muted-foreground"
+                title={row.available ? "Masquer ce plat" : "Afficher ce plat"}
+              >
+                <Switch checked={row.available} disabled={busy || toggling} onCheckedChange={() => onToggleAvailability(row)} aria-label={row.available ? "Masquer ce plat" : "Afficher ce plat"} />
+                {row.available ? "Afficher" : "Masqué"}
+              </label>
+              <div className="flex shrink-0 items-center gap-1">
+                <Button variant="ghost" size="icon" disabled={busy} onClick={() => onEdit(row)} title="Modifier" aria-label="Modifier">
+                  <PencilLine className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" disabled={busy} onClick={() => onDelete(row)} title="Supprimer" aria-label="Supprimer">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 

@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { PublicFooter } from "@/components/PublicFooter";
 
 export function MarketplaceShell({
   eyebrow,
@@ -53,6 +54,7 @@ export function MarketplaceShell({
         </section>
         <div className="mt-8 space-y-8">{children}</div>
       </main>
+      <PublicFooter />
     </div>
   );
 }

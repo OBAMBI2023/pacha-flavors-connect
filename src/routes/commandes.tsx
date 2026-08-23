@@ -6,6 +6,7 @@ import { fetchCustomerOrders, formatOrderNumber, type OrderRow } from "@/lib/ord
 import { CartProvider } from "@/lib/cart";
 import { OrderStatusTimeline } from "@/components/tenant/OrderStatusTimeline";
 import { useStorefrontTheme } from "@/components/tenant/tenantTheme";
+import { PublicFooter } from "@/components/PublicFooter";
 
 const STORAGE_PHONE = "saovia.customer.phone";
 const STORAGE_NAME = "saovia.customer.name";
@@ -114,6 +115,7 @@ function OrdersPage() {
             </div>
           )}
         </main>
+        <PublicFooter />
       </div>
     </CartProvider>
   );

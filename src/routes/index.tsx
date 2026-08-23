@@ -10,6 +10,7 @@ import { ReservationSection } from "@/components/ReservationSection";
 import { AboutSection } from "@/components/AboutSection";
 import { ContactSection } from "@/components/ContactSection";
 import { Footer } from "@/components/Footer";
+import { PublicFooter } from "@/components/PublicFooter";
 import { CartDrawer } from "@/components/CartDrawer";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { StickyCartBar } from "@/components/StickyCartBar";
@@ -85,6 +86,7 @@ function Index() {
           <ContactSection />
         </main>
         <Footer />
+        <PublicFooter restaurantName="Le Pacha Restaurant" />
         <CartDrawer />
         <StickyCartBar />
         <MobileBottomNav

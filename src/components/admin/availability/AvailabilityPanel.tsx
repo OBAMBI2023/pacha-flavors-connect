@@ -77,7 +77,23 @@ export function AvailabilityPanel({ restaurantId, timezone }: { restaurantId: st
   const [exceptionForm, setExceptionForm] = useState<BusinessExceptionInput>(() => emptyExceptionForm());
   const [exceptionDeleteTarget, setExceptionDeleteTarget] = useState<BusinessException | null>(null);
 
-  async function refresh() {
+  // Local draft of the time-slot inputs, keyed by slot id. Typing only edits
+  // this draft — it is never written to Supabase until "Enregistrer les
+  // horaires" is clicked, and background refetches never replace the whole
+  // panel with a loading skeleton (that used to remount every input on each
+  // keystroke and drop focus/scroll).
+  const [hoursDraft, setHoursDraft] = useState<Record<string, { opening_time: string; closing_time: string }>>({});
+  const [savingHours, setSavingHours] = useState(false);
+
+  useEffect(() => {
+    setHoursDraft(
+      Object.fromEntries(
+        hours.map((slot) => [slot.id, { opening_time: (slot.opening_time ?? "").slice(0, 5), closing_time: (slot.closing_time ?? "").slice(0, 5) }]),
+      ),
+    );
+  }, [hours]);
+
+  async function loadAll() {
     setLoading(true);
     try {
       const [h, e, o, a] = await Promise.all([
@@ -97,8 +113,28 @@ export function AvailabilityPanel({ restaurantId, timezone }: { restaurantId: st
     }
   }
 
+  // Same fetch as loadAll, but never toggles `loading` — used after a
+  // mutation so the panel updates in place instead of being replaced by the
+  // "Chargement..." skeleton (which was unmounting the whole form).
+  async function reloadSilently() {
+    try {
+      const [h, e, o, a] = await Promise.all([
+        fetchBusinessHours(restaurantId),
+        fetchBusinessExceptions(restaurantId),
+        fetchManualOverride(restaurantId),
+        fetchAvailability(restaurantId),
+      ]);
+      setHours(h);
+      setExceptions(e);
+      setOverrideMode(o);
+      setAvailability(a);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Impossible de recharger la disponibilité.");
+    }
+  }
+
   useEffect(() => {
-    void refresh();
+    void loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurantId]);
 
@@ -146,7 +182,7 @@ export function AvailabilityPanel({ restaurantId, timezone }: { restaurantId: st
           ),
         );
       }
-      await refresh();
+      await reloadSilently();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Impossible de mettre à jour ce jour.");
     } finally {
@@ -158,7 +194,7 @@ export function AvailabilityPanel({ restaurantId, timezone }: { restaurantId: st
     setBusy(true);
     try {
       await createBusinessHoursSlot(restaurantId, { day_of_week: day, is_open: true, opening_time: "09:00", closing_time: "18:00" });
-      await refresh();
+      await reloadSilently();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Impossible d'ajouter ce créneau (chevauche peut-être un créneau existant).");
     } finally {
@@ -166,14 +202,46 @@ export function AvailabilityPanel({ restaurantId, timezone }: { restaurantId: st
     }
   }
 
-  async function updateSlotTime(slot: BusinessHoursSlot, field: "opening_time" | "closing_time", value: string) {
-    const next = { day_of_week: slot.day_of_week, is_open: slot.is_open, opening_time: slot.opening_time, closing_time: slot.closing_time, [field]: value || null };
+  function setSlotDraftTime(slotId: string, field: "opening_time" | "closing_time", value: string) {
+    setHoursDraft((current) => ({
+      ...current,
+      [slotId]: { opening_time: current[slotId]?.opening_time ?? "", closing_time: current[slotId]?.closing_time ?? "", [field]: value },
+    }));
+  }
+
+  const hoursDirty = hours.some((slot) => {
+    const draft = hoursDraft[slot.id];
+    if (!draft) return false;
+    return draft.opening_time !== (slot.opening_time ?? "").slice(0, 5) || draft.closing_time !== (slot.closing_time ?? "").slice(0, 5);
+  });
+
+  async function saveHours() {
+    const changed = hours.flatMap((slot) => {
+      const draft = hoursDraft[slot.id];
+      if (!draft) return [];
+      if (draft.opening_time === (slot.opening_time ?? "").slice(0, 5) && draft.closing_time === (slot.closing_time ?? "").slice(0, 5)) return [];
+      return [{ slot, draft }];
+    });
+    if (changed.length === 0) return;
+
+    setSavingHours(true);
     try {
-      await updateBusinessHoursSlot(slot.id, next);
-      await refresh();
+      await Promise.all(
+        changed.map(({ slot, draft }) =>
+          updateBusinessHoursSlot(slot.id, {
+            day_of_week: slot.day_of_week,
+            is_open: slot.is_open,
+            opening_time: draft.opening_time || null,
+            closing_time: draft.closing_time || null,
+          }),
+        ),
+      );
+      toast.success("Horaires enregistrés");
+      await reloadSilently();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Impossible de mettre à jour ce créneau.");
-      await refresh();
+      toast.error(err instanceof Error ? err.message : "Impossible d'enregistrer les horaires.");
+    } finally {
+      setSavingHours(false);
     }
   }
 
@@ -181,7 +249,7 @@ export function AvailabilityPanel({ restaurantId, timezone }: { restaurantId: st
     setBusy(true);
     try {
       await deleteBusinessHoursSlot(slot.id);
-      await refresh();
+      await reloadSilently();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Impossible de supprimer ce créneau.");
     } finally {
@@ -235,7 +303,7 @@ export function AvailabilityPanel({ restaurantId, timezone }: { restaurantId: st
       else await createBusinessException(restaurantId, payload);
       toast.success(editingException ? "Exception mise à jour" : "Exception ajoutée");
       setExceptionDialogOpen(false);
-      await refresh();
+      await reloadSilently();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Impossible d'enregistrer l'exception.");
     } finally {
@@ -250,7 +318,7 @@ export function AvailabilityPanel({ restaurantId, timezone }: { restaurantId: st
       await deleteBusinessException(exceptionDeleteTarget.id);
       toast.success("Exception supprimée");
       setExceptionDeleteTarget(null);
-      await refresh();
+      await reloadSilently();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Impossible de supprimer l'exception.");
     } finally {
@@ -317,15 +385,15 @@ export function AvailabilityPanel({ restaurantId, timezone }: { restaurantId: st
                       <div key={slot.id} className="flex flex-wrap items-center gap-2">
                         <Input
                           type="time"
-                          value={(slot.opening_time ?? "").slice(0, 5)}
-                          onChange={(e) => void updateSlotTime(slot, "opening_time", e.target.value)}
+                          value={hoursDraft[slot.id]?.opening_time ?? (slot.opening_time ?? "").slice(0, 5)}
+                          onChange={(e) => setSlotDraftTime(slot.id, "opening_time", e.target.value)}
                           className="w-32"
                         />
                         <span className="text-sm text-muted-foreground">→</span>
                         <Input
                           type="time"
-                          value={(slot.closing_time ?? "").slice(0, 5)}
-                          onChange={(e) => void updateSlotTime(slot, "closing_time", e.target.value)}
+                          value={hoursDraft[slot.id]?.closing_time ?? (slot.closing_time ?? "").slice(0, 5)}
+                          onChange={(e) => setSlotDraftTime(slot.id, "closing_time", e.target.value)}
                           className="w-32"
                         />
                         <Button type="button" variant="ghost" size="icon" disabled={busy} onClick={() => void removeSlot(slot)} aria-label="Supprimer ce créneau">
@@ -341,6 +409,12 @@ export function AvailabilityPanel({ restaurantId, timezone }: { restaurantId: st
               </div>
             );
           })}
+        </div>
+        <div className="flex items-center justify-end gap-3 border-t border-border pt-4">
+          {hoursDirty && !savingHours && <span className="text-xs text-muted-foreground">Modifications non enregistrées</span>}
+          <Button type="button" onClick={() => void saveHours()} disabled={!hoursDirty || savingHours || busy}>
+            {savingHours ? "Enregistrement..." : "Enregistrer les horaires"}
+          </Button>
         </div>
       </Card>
 
