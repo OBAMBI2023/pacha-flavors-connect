@@ -68,6 +68,8 @@ export type CreateOrderInput = {
   delivery_city?: string | null;
   delivery_landmark?: string | null;
   customer_notes?: string | null;
+  /** Defaults server-side to "cash" when omitted. Only "cash" reaches a resolvable payment_status today (mark_cash_payment_received is cash-only) -- "mobile_money" orders land in payment_status "pending" with no admin reconciliation action yet. */
+  payment_method?: "cash" | "mobile_money" | "card" | "online";
   items: CreateOrderItem[];
 };
 
@@ -106,6 +108,7 @@ export async function createRestaurantOrder(input: CreateOrderInput): Promise<Cr
     p_delivery_city: input.delivery_city ?? null,
     p_delivery_landmark: input.delivery_landmark ?? null,
     p_customer_notes: input.customer_notes ?? null,
+    p_payment_method: input.payment_method ?? "cash",
     p_order_source: "web",
     p_source_metadata: { source: "saovia-mobile" },
   });

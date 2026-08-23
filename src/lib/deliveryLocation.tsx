@@ -41,10 +41,15 @@ function loadStoredLocation(): DeliveryLocation | null {
 type DeliveryLocationContextValue = {
   location: DeliveryLocation | null;
   isModalOpen: boolean;
-  openModal: () => void;
+  /** `{ manual: true }` opens straight into manual address entry -- used by
+   * the cart's "Saisir mon adresse" button so it doesn't take a second tap
+   * once already inside the modal. */
+  openModal: (options?: { manual?: boolean }) => void;
   closeModal: () => void;
   setLocation: (location: DeliveryLocation) => void;
   clearLocation: () => void;
+  /** Consumed by TenantLocationModal on open; not meant for other callers. */
+  initialManualMode: boolean;
 };
 
 const DeliveryLocationContext = createContext<DeliveryLocationContextValue | null>(null);
@@ -54,6 +59,7 @@ export function DeliveryLocationProvider({ children }: { children: ReactNode }) 
     typeof window !== "undefined" ? loadStoredLocation() : null,
   );
   const [isModalOpen, setModalOpen] = useState(false);
+  const [initialManualMode, setInitialManualMode] = useState(false);
 
   const setLocation = useCallback((next: DeliveryLocation) => {
     setLocationState(next);
@@ -77,12 +83,16 @@ export function DeliveryLocationProvider({ children }: { children: ReactNode }) 
     () => ({
       location,
       isModalOpen,
-      openModal: () => setModalOpen(true),
+      openModal: (options) => {
+        setInitialManualMode(Boolean(options?.manual));
+        setModalOpen(true);
+      },
       closeModal: () => setModalOpen(false),
       setLocation,
       clearLocation,
+      initialManualMode,
     }),
-    [location, isModalOpen, setLocation, clearLocation],
+    [location, isModalOpen, setLocation, clearLocation, initialManualMode],
   );
 
   return <DeliveryLocationContext.Provider value={value}>{children}</DeliveryLocationContext.Provider>;

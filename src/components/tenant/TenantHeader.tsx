@@ -79,6 +79,10 @@ export function TenantHeader({
   const [accountModalOpen, setAccountModalOpen] = useState(false);
   const { location, openModal: openLocationModal } = useDeliveryLocation();
   const shortLocation = location ? (location.commune ?? location.neighborhood ?? location.city ?? location.address) : null;
+  // Both states stay tappable to the same modal -- only the copy changes, so
+  // the control never uses the ambiguous "Modifier" and always says what
+  // tapping it does next.
+  const locationSecondaryLabel = location ? "Changer ma zone" : "Choisir une adresse";
 
   function handleAccountClick(e: React.MouseEvent) {
     e.preventDefault();
@@ -123,16 +127,16 @@ export function TenantHeader({
         </div>
         <button
           type="button"
-          onClick={openLocationModal}
-          className="flex flex-1 min-w-0 flex-col items-center justify-center gap-0 lg:hidden"
+          onClick={() => openLocationModal()}
+          className="flex min-h-11 flex-1 min-w-0 flex-col items-center justify-center gap-0 lg:hidden"
           aria-label="Adresse de livraison"
         >
           <span className="flex min-w-0 items-center gap-1 text-sm font-semibold text-foreground">
             <span aria-hidden="true">📍</span>
-            <span className="truncate">{shortLocation ?? "Livrer à"}</span>
+            <span className="truncate">{shortLocation ?? "Où livrer ?"}</span>
             <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           </span>
-          <span className="text-[0.7rem] font-medium text-primary">Modifier</span>
+          <span className="text-[0.7rem] font-medium text-primary">{locationSecondaryLabel}</span>
         </button>
         <div className="flex flex-1 items-center justify-end gap-2 lg:hidden">
           <Link to="/commandes" onClick={handleAccountClick} aria-label="Mes commandes" className="grid h-10 w-10 place-items-center rounded-full border border-border text-foreground hover:bg-muted">

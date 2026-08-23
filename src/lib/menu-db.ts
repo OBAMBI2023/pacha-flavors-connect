@@ -53,6 +53,9 @@ export type PublicRestaurantSettings = {
   whatsapp_message_template: string | null;
   /** Already returned by get_public_menu; lets the storefront apply the tenant's own brand color. */
   primary_color: string | null;
+  /** Flat citywide fee (already in get_public_menu's payload) -- shown as a preview in the cart; the authoritative charge is still always computed server-side by create_order. */
+  delivery_fee: number | null;
+  minimum_order: number | null;
 };
 
 export type MenuData = {
