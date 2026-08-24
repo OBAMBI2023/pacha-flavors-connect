@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchOwnOrganization, signupOrganization, slugifyOrganizationName } from "@/lib/organizationDelivery";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,11 +25,30 @@ function DeliveryLoginPage() {
     setBusy(true);
     setError(null);
     const result = await supabase.auth.signInWithPassword({ email, password });
-    setBusy(false);
     if (result.error) {
+      setBusy(false);
       setError(result.error.message);
       return;
     }
+    // First login after email confirmation: complete the organization
+    // creation that delivery.signup.tsx deferred (signUp never has a
+    // session while confirmation is pending). org_name was saved in the
+    // signUp metadata precisely for this. A returning user with an existing
+    // organization skips this entirely.
+    const userId = result.data.user?.id;
+    if (userId) {
+      const existingOrg = await fetchOwnOrganization(userId).catch(() => null);
+      if (!existingOrg) {
+        const pendingOrgName = (result.data.user?.user_metadata?.["org_name"] as string | undefined)?.trim();
+        if (pendingOrgName) {
+          await signupOrganization(pendingOrgName, slugifyOrganizationName(pendingOrgName)).catch(() => {
+            // Swallow -- the dashboard's own "no organization" screen still
+            // catches this and lets the user retry, rather than blocking login.
+          });
+        }
+      }
+    }
+    setBusy(false);
     navigate({ to: "/delivery/dashboard" });
   }
 

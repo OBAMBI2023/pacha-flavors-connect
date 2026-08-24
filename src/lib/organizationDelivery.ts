@@ -75,6 +75,15 @@ export type DeliveryStatusHistoryEntry = {
   created_at: string;
 };
 
+/** Mirrors signup_organization's own server-side normalization -- this copy is only for UX preview (e.g. showing the slug before submit), the RPC's own normalization is the actual source of truth. */
+export function slugifyOrganizationName(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 /** Creates the organization + owner membership in one atomic call. Caller must already have a live Supabase Auth session (signUp/signIn done client-side first). */
 export async function signupOrganization(name: string, slug: string): Promise<{ organization_id: string; slug: string }> {
   const { data, error } = await supabase.rpc("signup_organization", { p_name: name, p_slug: slug });

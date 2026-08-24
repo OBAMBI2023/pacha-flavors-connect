@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { signupOrganization } from "@/lib/organizationDelivery";
+import { signupOrganization, slugifyOrganizationName } from "@/lib/organizationDelivery";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,14 +23,7 @@ function DeliverySignupPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-
-  function slugify(value: string): string {
-    return value
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
-  }
+  const [confirmationPending, setConfirmationPending] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -45,28 +38,48 @@ function DeliverySignupPage() {
     }
     setBusy(true);
     try {
+      // org_name travels in the signUp metadata so it survives until the
+      // user actually has a session -- this project requires email
+      // confirmation, so signUp never returns one here.
       const signUpResult = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { full_name: fullName, phone } },
+        options: { data: { full_name: fullName, phone, org_name: orgName.trim() } },
       });
       if (signUpResult.error) throw signUpResult.error;
-      // signUp already returns an active session in this project's Supabase
-      // config (email confirmation disabled for this flow) -- if a session
-      // isn't present yet, sign in explicitly so the RPC call below is
-      // authenticated.
       if (!signUpResult.data.session) {
-        const signInResult = await supabase.auth.signInWithPassword({ email, password });
-        if (signInResult.error) throw signInResult.error;
+        // Never call signInWithPassword here -- it would fail with "Email
+        // not confirmed" and make a successful signup look broken.
+        // Organization creation is deferred to first login (delivery.login.tsx),
+        // which reads org_name back out of user_metadata once a real
+        // session exists.
+        setConfirmationPending(true);
+        return;
       }
-      const org = await signupOrganization(orgName.trim(), slugify(orgName));
-      void org;
+      await signupOrganization(orgName.trim(), slugifyOrganizationName(orgName));
       navigate({ to: "/delivery/dashboard" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Impossible de créer le compte.");
     } finally {
       setBusy(false);
     }
+  }
+
+  if (confirmationPending) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-secondary/40 px-4 py-16">
+        <div className="w-full max-w-md rounded-3xl border border-border bg-card p-8 text-center shadow-sm">
+          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-primary">SAOVIA Delivery</p>
+          <h1 className="mt-2 font-display text-2xl font-semibold">Vérifiez votre boîte mail</h1>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Un email de confirmation a été envoyé à <span className="font-medium text-foreground">{email}</span>. Cliquez sur le lien qu'il contient, puis connectez-vous pour terminer la création de votre organisation.
+          </p>
+          <Button asChild className="mt-6 h-12 w-full">
+            <Link to="/delivery/login">Aller à la connexion</Link>
+          </Button>
+        </div>
+      </main>
+    );
   }
 
   return (
