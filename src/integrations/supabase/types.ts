@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      _concurrency_test_results: {
+        Row: {
+          detail: string | null
+          id: number
+          label: string
+          ts: string
+        }
+        Insert: {
+          detail?: string | null
+          id?: number
+          label: string
+          ts?: string
+        }
+        Update: {
+          detail?: string | null
+          id?: number
+          label?: string
+          ts?: string
+        }
+        Relationships: []
+      }
       api_keys: {
         Row: {
           created_at: string
@@ -225,9 +246,15 @@ export type Database = {
         Row: {
           assigned_delivery_agent_id: string | null
           assigned_pickup_agent_id: string | null
+          cod_amount: number | null
           created_at: string
           customer_name: string
           customer_phone: string
+          declared_value: number | null
+          delivery_distance_km: number | null
+          delivery_fee: number | null
+          delivery_fee_calculation_method: string | null
+          delivery_instructions: string | null
           delivery_provider: Database["public"]["Enums"]["delivery_provider"]
           destination_address: string
           destination_latitude: number | null
@@ -247,15 +274,24 @@ export type Database = {
           pickup_longitude: number | null
           pickup_name: string
           pickup_phone: string
+          pickup_point_id: string | null
+          scheduled_pickup_at: string | null
+          service_level: Database["public"]["Enums"]["delivery_service_level"]
           status: Database["public"]["Enums"]["delivery_status"]
           updated_at: string
         }
         Insert: {
           assigned_delivery_agent_id?: string | null
           assigned_pickup_agent_id?: string | null
+          cod_amount?: number | null
           created_at?: string
           customer_name: string
           customer_phone: string
+          declared_value?: number | null
+          delivery_distance_km?: number | null
+          delivery_fee?: number | null
+          delivery_fee_calculation_method?: string | null
+          delivery_instructions?: string | null
           delivery_provider?: Database["public"]["Enums"]["delivery_provider"]
           destination_address: string
           destination_latitude?: number | null
@@ -275,15 +311,24 @@ export type Database = {
           pickup_longitude?: number | null
           pickup_name: string
           pickup_phone: string
+          pickup_point_id?: string | null
+          scheduled_pickup_at?: string | null
+          service_level?: Database["public"]["Enums"]["delivery_service_level"]
           status?: Database["public"]["Enums"]["delivery_status"]
           updated_at?: string
         }
         Update: {
           assigned_delivery_agent_id?: string | null
           assigned_pickup_agent_id?: string | null
+          cod_amount?: number | null
           created_at?: string
           customer_name?: string
           customer_phone?: string
+          declared_value?: number | null
+          delivery_distance_km?: number | null
+          delivery_fee?: number | null
+          delivery_fee_calculation_method?: string | null
+          delivery_instructions?: string | null
           delivery_provider?: Database["public"]["Enums"]["delivery_provider"]
           destination_address?: string
           destination_latitude?: number | null
@@ -303,6 +348,9 @@ export type Database = {
           pickup_longitude?: number | null
           pickup_name?: string
           pickup_phone?: string
+          pickup_point_id?: string | null
+          scheduled_pickup_at?: string | null
+          service_level?: Database["public"]["Enums"]["delivery_service_level"]
           status?: Database["public"]["Enums"]["delivery_status"]
           updated_at?: string
         }
@@ -326,6 +374,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deliveries_pickup_point_id_fkey"
+            columns: ["pickup_point_id"]
+            isOneToOne: false
+            referencedRelation: "pickup_points"
             referencedColumns: ["id"]
           },
         ]
@@ -1388,6 +1443,51 @@ export type Database = {
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_memberships: {
+        Row: {
+          created_at: string
+          id: string
+          organization_id: string
+          role: Database["public"]["Enums"]["restaurant_role"]
+          status: Database["public"]["Enums"]["membership_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          organization_id: string
+          role: Database["public"]["Enums"]["restaurant_role"]
+          status?: Database["public"]["Enums"]["membership_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          organization_id?: string
+          role?: Database["public"]["Enums"]["restaurant_role"]
+          status?: Database["public"]["Enums"]["membership_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_memberships_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_memberships_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2840,14 +2940,38 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assign_agent_to_delivery: {
+        Args: {
+          p_agent_id: string
+          p_delivery_id: string
+          p_role: Database["public"]["Enums"]["delivery_assignment_role"]
+        }
+        Returns: Json
+      }
       assign_driver_to_order: {
         Args: { p_driver_id: string; p_order_id: string }
         Returns: Json
       }
+      compute_delivery_pricing: {
+        Args: {
+          p_destination_lat: number
+          p_destination_lng: number
+          p_pickup_lat: number
+          p_pickup_lng: number
+        }
+        Returns: {
+          distance_km: number
+          fee: number
+          method: string
+        }[]
+      }
       create_delivery: {
         Args: {
+          p_cod_amount?: number
           p_customer_name: string
           p_customer_phone: string
+          p_declared_value?: number
+          p_delivery_instructions?: string
           p_delivery_provider?: Database["public"]["Enums"]["delivery_provider"]
           p_destination_address: string
           p_destination_latitude?: number
@@ -2866,6 +2990,9 @@ export type Database = {
           p_pickup_longitude?: number
           p_pickup_name: string
           p_pickup_phone: string
+          p_pickup_point_id?: string
+          p_scheduled_pickup_at?: string
+          p_service_level?: Database["public"]["Enums"]["delivery_service_level"]
         }
         Returns: Json
       }
@@ -2917,9 +3044,43 @@ export type Database = {
         }
         Returns: Json
       }
+      create_pickup_point: {
+        Args: {
+          p_address: string
+          p_contact_name?: string
+          p_contact_phone?: string
+          p_latitude?: number
+          p_longitude?: number
+          p_name: string
+          p_organization_id: string
+        }
+        Returns: {
+          address: string
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          latitude: number | null
+          longitude: number | null
+          name: string
+          organization_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "pickup_points"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_refund: {
         Args: { p_amount: number; p_order_id: string; p_reason?: string }
         Returns: Json
+      }
+      delete_pickup_point: {
+        Args: { p_pickup_point_id: string }
+        Returns: undefined
       }
       dispatch_expire_stale_proposals: { Args: never; Returns: undefined }
       dispatch_find_and_propose_driver: {
@@ -2994,6 +3155,52 @@ export type Database = {
         Args: { p_customer_phone: string; p_order_id: string }
         Returns: Json
       }
+      get_organization_delivery: {
+        Args: { p_delivery_id: string }
+        Returns: {
+          assigned_delivery_agent_id: string | null
+          assigned_pickup_agent_id: string | null
+          cod_amount: number | null
+          created_at: string
+          customer_name: string
+          customer_phone: string
+          declared_value: number | null
+          delivery_distance_km: number | null
+          delivery_fee: number | null
+          delivery_fee_calculation_method: string | null
+          delivery_instructions: string | null
+          delivery_provider: Database["public"]["Enums"]["delivery_provider"]
+          destination_address: string
+          destination_latitude: number | null
+          destination_longitude: number | null
+          destination_name: string
+          destination_phone: string
+          external_reference: string | null
+          id: string
+          metadata: Json
+          order_id: string
+          organization_id: string
+          package_description: string | null
+          package_quantity: number
+          package_weight: number | null
+          pickup_address: string
+          pickup_latitude: number | null
+          pickup_longitude: number | null
+          pickup_name: string
+          pickup_phone: string
+          pickup_point_id: string | null
+          scheduled_pickup_at: string | null
+          service_level: Database["public"]["Enums"]["delivery_service_level"]
+          status: Database["public"]["Enums"]["delivery_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "deliveries"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_public_cheap_products: {
         Args: { p_limit?: number; p_max_price?: number }
         Returns: Json
@@ -3031,6 +3238,13 @@ export type Database = {
         Args: { _organization_id: string }
         Returns: boolean
       }
+      has_organization_role: {
+        Args: {
+          _organization_id: string
+          _roles: Database["public"]["Enums"]["restaurant_role"][]
+        }
+        Returns: boolean
+      }
       has_restaurant_access: {
         Args: { _restaurant_id: string }
         Returns: boolean
@@ -3047,6 +3261,74 @@ export type Database = {
         Returns: number
       }
       is_super_admin: { Args: never; Returns: boolean }
+      list_organization_deliveries: {
+        Args: { p_organization_id: string }
+        Returns: {
+          assigned_delivery_agent_id: string | null
+          assigned_pickup_agent_id: string | null
+          cod_amount: number | null
+          created_at: string
+          customer_name: string
+          customer_phone: string
+          declared_value: number | null
+          delivery_distance_km: number | null
+          delivery_fee: number | null
+          delivery_fee_calculation_method: string | null
+          delivery_instructions: string | null
+          delivery_provider: Database["public"]["Enums"]["delivery_provider"]
+          destination_address: string
+          destination_latitude: number | null
+          destination_longitude: number | null
+          destination_name: string
+          destination_phone: string
+          external_reference: string | null
+          id: string
+          metadata: Json
+          order_id: string
+          organization_id: string
+          package_description: string | null
+          package_quantity: number
+          package_weight: number | null
+          pickup_address: string
+          pickup_latitude: number | null
+          pickup_longitude: number | null
+          pickup_name: string
+          pickup_phone: string
+          pickup_point_id: string | null
+          scheduled_pickup_at: string | null
+          service_level: Database["public"]["Enums"]["delivery_service_level"]
+          status: Database["public"]["Enums"]["delivery_status"]
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "deliveries"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      list_organization_pickup_points: {
+        Args: { p_organization_id: string }
+        Returns: {
+          address: string
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          latitude: number | null
+          longitude: number | null
+          name: string
+          organization_id: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "pickup_points"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       log_audit_event: {
         Args: {
           p_action: string
@@ -3090,6 +3372,16 @@ export type Database = {
         Returns: undefined
       }
       normalize_phone: { Args: { p_phone: string }; Returns: string }
+      quote_delivery: {
+        Args: {
+          p_destination_lat: number
+          p_destination_lng: number
+          p_pickup_lat: number
+          p_pickup_lng: number
+          p_service_level?: Database["public"]["Enums"]["delivery_service_level"]
+        }
+        Returns: Json
+      }
       report_review: {
         Args: {
           p_description?: string
@@ -3113,6 +3405,10 @@ export type Database = {
           promo_code_id: string
           waives_delivery: boolean
         }[]
+      }
+      signup_organization: {
+        Args: { p_name: string; p_slug: string }
+        Returns: Json
       }
       submit_review: {
         Args: {
@@ -3203,6 +3499,37 @@ export type Database = {
         }
         Returns: Json
       }
+      update_pickup_point: {
+        Args: {
+          p_address: string
+          p_contact_name?: string
+          p_contact_phone?: string
+          p_is_active?: boolean
+          p_latitude?: number
+          p_longitude?: number
+          p_name: string
+          p_pickup_point_id: string
+        }
+        Returns: {
+          address: string
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          latitude: number | null
+          longitude: number | null
+          name: string
+          organization_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "pickup_points"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       update_review: {
         Args: {
           p_comment?: string
@@ -3247,6 +3574,7 @@ export type Database = {
         | "expired"
         | "cancelled"
       delivery_provider: "TENANT" | "SAOVIA"
+      delivery_service_level: "EXPRESS" | "SCHEDULED"
       delivery_status:
         | "pending"
         | "pending_pickup"
@@ -3451,6 +3779,7 @@ export const Constants = {
         "cancelled",
       ],
       delivery_provider: ["TENANT", "SAOVIA"],
+      delivery_service_level: ["EXPRESS", "SCHEDULED"],
       delivery_status: [
         "pending",
         "pending_pickup",
