@@ -163,6 +163,9 @@ export type Order = {
   assigned_driver_id: string | null;
   delivery_dispatch_status: DeliveryDispatchStatus;
   driver_delivery_status: DriverDeliveryStatus | null;
+  /** Restaurant/driver-only handoff code -- never surfaced to the customer. */
+  pickup_code: string | null;
+  pickup_code_verified_at: string | null;
   customer_name: string;
   customer_phone: string;
   delivery_commune: string | null;

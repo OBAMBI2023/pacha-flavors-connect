@@ -243,13 +243,29 @@ export function OrderDetailSheet({
                     </Button>
                   </div>
                   {assignedDriver ? (
-                    <div className="flex items-center gap-2">
-                      <Truck className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      <span>{assignedDriver.full_name}</span>
-                      <Badge className={DRIVER_STATUS_BUCKET_CLASSNAMES[driverStatusBucket(assignedDriver.status)]}>
-                        {DRIVER_STATUS_BUCKET_LABELS[driverStatusBucket(assignedDriver.status)]}
-                      </Badge>
-                    </div>
+                    <>
+                      <div className="flex items-center gap-2">
+                        <Truck className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <span>{assignedDriver.full_name}</span>
+                        <Badge className={DRIVER_STATUS_BUCKET_CLASSNAMES[driverStatusBucket(assignedDriver.status)]}>
+                          {DRIVER_STATUS_BUCKET_LABELS[driverStatusBucket(assignedDriver.status)]}
+                        </Badge>
+                      </div>
+                      {detail.pickup_code && (
+                        <div className="space-y-1 border-t border-border pt-2 text-sm">
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">Code de collecte</span>
+                            <span className="font-mono text-base font-semibold tracking-widest">{detail.pickup_code}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">Statut de collecte</span>
+                            <span className={detail.pickup_code_verified_at ? "font-medium text-emerald-700" : "text-muted-foreground"}>
+                              {detail.pickup_code_verified_at ? "✅ Collecté" : "En attente"}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <p className="text-muted-foreground">Aucun livreur assigné pour le moment.</p>
                   )}

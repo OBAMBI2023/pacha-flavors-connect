@@ -202,6 +202,23 @@ export async function confirmCashPayment(
   return data as unknown as { order_id: string; payment_status: PaymentStatus; driver_delivery_status: DriverDeliveryStatus };
 }
 
+export type VerifyPickupCodeResult =
+  | { success: true; message: string; order_id: string; driver_delivery_status: DriverDeliveryStatus }
+  | { success: false; message: string; attempts_remaining: number };
+
+/**
+ * Server-side pickup-code check -- never trust a frontend-only comparison.
+ * A wrong code resolves normally with `success: false` (the RPC does not
+ * throw for that case, so the attempts counter it just incremented stays
+ * committed); every other rejection (wrong driver, wrong step, 5+ attempts,
+ * etc.) throws.
+ */
+export async function verifyPickupCode(orderId: string, code: string): Promise<VerifyPickupCodeResult> {
+  const { data, error } = await supabase.rpc("verify_pickup_code", { p_order_id: orderId, p_code: code });
+  if (error) throw error;
+  return data as unknown as VerifyPickupCodeResult;
+}
+
 export async function reportDeliveryIssue(orderId: string, reason: string): Promise<void> {
   const { error } = await supabase.rpc("driver_report_delivery_issue", { p_order_id: orderId, p_reason: reason });
   if (error) throw error;

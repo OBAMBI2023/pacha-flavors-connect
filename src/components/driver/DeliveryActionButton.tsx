@@ -1,18 +1,85 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { advanceDeliveryStatus, type DriverActiveDelivery, type DriverDeliveryStatus } from "@/lib/delivery";
+import { Input } from "@/components/ui/input";
+import { advanceDeliveryStatus, verifyPickupCode, type DriverActiveDelivery, type DriverDeliveryStatus } from "@/lib/delivery";
 
-/** Next step + button label for every non-terminal, non-cash-gated status. */
+/**
+ * Next step + button label for every non-terminal, non-cash-gated status.
+ * `arrived_at_restaurant` is handled separately below (pickup-code entry
+ * replaces the old "Récupération en cours" tap-through for delivery
+ * orders) -- `collecting` stays here only for orders already mid-flight
+ * before that feature shipped.
+ */
 const NEXT_STEP: Partial<Record<DriverDeliveryStatus, { next: DriverDeliveryStatus; label: string }>> = {
   assigned: { next: "going_to_pickup", label: "Direction vers le restaurant" },
   going_to_pickup: { next: "arrived_at_restaurant", label: "Je suis arrivé au restaurant" },
-  arrived_at_restaurant: { next: "collecting", label: "Récupération en cours" },
   collecting: { next: "collected", label: "Commande récupérée" },
   collected: { next: "en_route", label: "En route vers le client" },
   en_route: { next: "arrived_at_customer", label: "Je suis arrivé chez le client" },
   payment_confirmed: { next: "delivered", label: "Confirmer la livraison" },
 };
+
+/**
+ * The restaurant-to-driver handoff check. Server-verified only (never a
+ * frontend comparison) -- a wrong code resolves normally with a toast, a
+ * correct one advances `driver_delivery_status` to 'collected' directly
+ * (the manual "collecting" tap is skipped for this flow). Disappears once
+ * `onAdvanced()` refreshes the parent and the status is no longer
+ * 'arrived_at_restaurant'.
+ */
+function PickupCodeForm({
+  orderId,
+  onVerified,
+}: {
+  orderId: string;
+  onVerified: () => void | Promise<void>;
+}) {
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function handleConfirm() {
+    if (code.length !== 2) return;
+    setBusy(true);
+    try {
+      const result = await verifyPickupCode(orderId, code);
+      if (result.success) {
+        toast.success(result.message);
+        setCode("");
+        await onVerified();
+      } else {
+        toast.error(result.message);
+        setCode("");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Impossible de vérifier le code.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="space-y-3 rounded-2xl border border-border p-4">
+      <div>
+        <p className="font-medium">Code de collecte</p>
+        <p className="text-sm text-muted-foreground">Saisissez le code communiqué par le restaurant.</p>
+      </div>
+      <Input
+        autoFocus
+        inputMode="numeric"
+        pattern="[0-9]*"
+        maxLength={2}
+        value={code}
+        onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 2))}
+        className="h-14 w-24 text-center text-2xl font-semibold tracking-widest"
+        placeholder="00"
+      />
+      <Button className="h-12 w-full" disabled={busy || code.length !== 2} onClick={() => void handleConfirm()}>
+        Confirmer la collecte
+      </Button>
+    </div>
+  );
+}
 
 /**
  * The one contextual action for the driver's current step. `arrived_at_customer`
@@ -60,6 +127,18 @@ export function DeliveryActionButton({
     return (
       <Button className="h-12 w-full" disabled={busy} onClick={() => (isCash ? void startCashCollection() : void advance("delivered"))}>
         {isCash ? "Encaisser le paiement" : "Confirmer la livraison"}
+      </Button>
+    );
+  }
+
+  if (current === "arrived_at_restaurant") {
+    if (activeDelivery.fulfillment_type === "delivery") {
+      return <PickupCodeForm orderId={activeDelivery.order_id} onVerified={onAdvanced} />;
+    }
+    // Non-delivery orders never get a pickup_code -- keep the old tap-through.
+    return (
+      <Button className="h-12 w-full" disabled={busy} onClick={() => void advance("collecting")}>
+        Récupération en cours
       </Button>
     );
   }
