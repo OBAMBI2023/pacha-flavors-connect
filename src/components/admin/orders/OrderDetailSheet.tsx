@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Banknote, Copy, MapPin, Share2, Undo2 } from "lucide-react";
+import { Banknote, Copy, MapPin, Share2, Truck, Undo2, UserRoundCog } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { fetchOrderDetail, type Order, type OrderDetail, type OrderStatus } from "@/lib/orders-db";
+import { DRIVER_STATUS_BUCKET_CLASSNAMES, DRIVER_STATUS_BUCKET_LABELS, driverStatusBucket, fetchDriver, type Driver } from "@/lib/drivers";
 import { STATUS_BADGE_CLASS, STATUS_LABELS, buildDeliveryDetailsText, deliveryAddressLine, fulfillmentLabel, googleMapsUrl, nextActions } from "./orderStatusMeta";
 import { PAYMENT_METHOD_LABELS, PAYMENT_STATUS_BADGE_CLASS, PAYMENT_STATUS_LABELS } from "./paymentStatusMeta";
 
@@ -31,6 +32,7 @@ export function OrderDetailSheet({
   onReject,
   onMarkPaid,
   onRefund,
+  onAssign,
 }: {
   orderId: string | null;
   busy: boolean;
@@ -39,11 +41,13 @@ export function OrderDetailSheet({
   onReject: (order: Order) => void;
   onMarkPaid: (order: Order) => void;
   onRefund: (order: Order) => void;
+  onAssign: (order: Order) => void;
 }) {
   const isMobile = useIsMobile();
   const [detail, setDetail] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [assignedDriver, setAssignedDriver] = useState<Driver | null>(null);
 
   useEffect(() => {
     if (!orderId) {
@@ -67,6 +71,16 @@ export function OrderDetailSheet({
       cancelled = true;
     };
   }, [orderId]);
+
+  useEffect(() => {
+    if (!detail?.assigned_driver_id) {
+      setAssignedDriver(null);
+      return;
+    }
+    let cancelled = false;
+    fetchDriver(detail.assigned_driver_id).then((d) => { if (!cancelled) setAssignedDriver(d); });
+    return () => { cancelled = true; };
+  }, [detail?.assigned_driver_id]);
 
   const actions = detail ? nextActions(detail) : [];
 
@@ -216,6 +230,29 @@ export function OrderDetailSheet({
                       </button>
                     )}
                   </div>
+                </section>
+              )}
+
+              {detail.fulfillment_type === "delivery" && detail.status !== "cancelled" && (
+                <section className="space-y-2 rounded-2xl border border-border p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="font-semibold">🚴 Livreur</h3>
+                    <Button variant="outline" size="sm" disabled={busy} onClick={() => onAssign(detail)}>
+                      <UserRoundCog className="mr-1.5 h-3.5 w-3.5" />
+                      {assignedDriver ? "Changer" : "Assigner un livreur"}
+                    </Button>
+                  </div>
+                  {assignedDriver ? (
+                    <div className="flex items-center gap-2">
+                      <Truck className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span>{assignedDriver.full_name}</span>
+                      <Badge className={DRIVER_STATUS_BUCKET_CLASSNAMES[driverStatusBucket(assignedDriver.status)]}>
+                        {DRIVER_STATUS_BUCKET_LABELS[driverStatusBucket(assignedDriver.status)]}
+                      </Badge>
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground">Aucun livreur assigné pour le moment.</p>
+                  )}
                 </section>
               )}
 

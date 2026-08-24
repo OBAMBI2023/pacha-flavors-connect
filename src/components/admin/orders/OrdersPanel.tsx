@@ -6,11 +6,13 @@ import type { OrdersAlert, RealtimeConnectionState } from "@/hooks/useOrdersAler
 import { useDeliveryDispatch } from "@/hooks/useDeliveryDispatch";
 import { createRefund, fetchOrderPaymentSummary, markCashPaymentReceived, updateOrderStatus, type Order, type OrderStatus } from "@/lib/orders-db";
 import { fetchDriverLocationFreshnessMinutes } from "@/lib/delivery";
+import { assignDriverToOrder } from "@/lib/drivers";
 import { playTestChime } from "@/lib/order-audio";
 import { OrderCard } from "./OrderCard";
 import { OrderDetailSheet } from "./OrderDetailSheet";
 import { RejectOrderDialog } from "./RejectOrderDialog";
 import { RefundDialog } from "./RefundDialog";
+import { AssignDriverDialog } from "./AssignDriverDialog";
 import { DriverTrackingModal } from "./DriverTrackingModal";
 import { FILTER_TABS, TERMINAL_STATUSES } from "./orderStatusMeta";
 
@@ -42,6 +44,7 @@ export function OrdersPanel({
   const [refundTarget, setRefundTarget] = useState<Order | null>(null);
   const [refundRemaining, setRefundRemaining] = useState(0);
   const [trackingTarget, setTrackingTarget] = useState<Order | null>(null);
+  const [assignTarget, setAssignTarget] = useState<Order | null>(null);
   const [freshnessMinutes, setFreshnessMinutes] = useState(5);
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null);
   const [, setTick] = useState(0);
@@ -117,6 +120,20 @@ export function OrdersPanel({
       setRefundTarget(null);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Impossible d'enregistrer le remboursement.");
+    } finally {
+      setBusyOrderId(null);
+    }
+  }
+
+  async function handleAssign(order: Order, driverId: string) {
+    setBusyOrderId(order.id);
+    try {
+      await assignDriverToOrder(order.id, driverId);
+      patchOrder(order.id, { assigned_driver_id: driverId, delivery_dispatch_status: "assigned", driver_delivery_status: "assigned" });
+      toast.success(`Livreur assigné à la commande #${order.order_number}`);
+      setAssignTarget(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Impossible d'assigner ce livreur.");
     } finally {
       setBusyOrderId(null);
     }
@@ -240,6 +257,15 @@ export function OrdersPanel({
         onReject={(o) => setRejectTarget(o)}
         onMarkPaid={(o) => void handleMarkPaid(o)}
         onRefund={(o) => void openRefundDialog(o)}
+        onAssign={(o) => setAssignTarget(o)}
+      />
+
+      <AssignDriverDialog
+        order={assignTarget}
+        currentDriverId={assignTarget?.assigned_driver_id ?? null}
+        busy={busyOrderId === assignTarget?.id}
+        onCancel={() => setAssignTarget(null)}
+        onConfirm={(o, driverId) => void handleAssign(o, driverId)}
       />
 
       <RejectOrderDialog

@@ -24,6 +24,7 @@ import { StatisticsPanel } from "@/components/admin/stats/StatisticsPanel";
 import { FinancialPanel } from "@/components/admin/finance/FinancialPanel";
 import { PromotionsPanel } from "@/components/admin/promotions/PromotionsPanel";
 import { PromoCodesPanel } from "@/components/admin/promotions/PromoCodesPanel";
+import { DriversPanel } from "@/components/admin/drivers/DriversPanel";
 import { MarketingPanel } from "@/components/admin/marketing/MarketingPanel";
 import { ReviewsPanel } from "@/components/admin/reviews/ReviewsPanel";
 import { OptionGroupsManager } from "@/components/admin/menu/OptionGroupsManager";
@@ -42,6 +43,7 @@ const ADMIN_NAV_ITEMS = [
   { value: "accueil", label: "Accueil" },
   { value: "commandes", label: "Commandes" },
   { value: "clients", label: "Clients" },
+  { value: "livreurs", label: "Livreurs" },
   { value: "statistiques", label: "Statistiques" },
   { value: "visiteurs", label: "Visiteurs" },
   { value: "finances", label: "Finances" },
@@ -394,6 +396,7 @@ export default function AdminPage() {
         <TabsContent value="accueil"><DashboardHome restaurantId={restaurantId} publicHref={publicHref} onNavigateTab={setTab} /></TabsContent>
         <TabsContent value="commandes"><OrdersPanel restaurantId={restaurantId} {...ordersAlert} /></TabsContent>
         <TabsContent value="clients"><CustomersPanel restaurantId={restaurantId} /></TabsContent>
+        <TabsContent value="livreurs">{restaurantId && <DriversPanel restaurantId={restaurantId} />}</TabsContent>
         <TabsContent value="statistiques"><StatisticsPanel /></TabsContent>
         <TabsContent value="visiteurs"><VisitorsPanel /></TabsContent>
         <TabsContent value="finances"><FinancialPanel /></TabsContent>
