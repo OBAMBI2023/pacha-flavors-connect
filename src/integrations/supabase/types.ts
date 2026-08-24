@@ -646,6 +646,8 @@ export type Database = {
           payment_reference: string | null
           payment_status: Database["public"]["Enums"]["payment_status"]
           preparing_at: string | null
+          promo_code_id: string | null
+          promo_code_snapshot: string | null
           ready_at: string | null
           recipient_additional_info: string | null
           recipient_address: string | null
@@ -711,6 +713,8 @@ export type Database = {
           payment_reference?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
           preparing_at?: string | null
+          promo_code_id?: string | null
+          promo_code_snapshot?: string | null
           ready_at?: string | null
           recipient_additional_info?: string | null
           recipient_address?: string | null
@@ -776,6 +780,8 @@ export type Database = {
           payment_reference?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
           preparing_at?: string | null
+          promo_code_id?: string | null
+          promo_code_snapshot?: string | null
           ready_at?: string | null
           recipient_additional_info?: string | null
           recipient_address?: string | null
@@ -814,6 +820,13 @@ export type Database = {
             columns: ["offer_id"]
             isOneToOne: false
             referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_promo_code_id_fkey"
+            columns: ["promo_code_id"]
+            isOneToOne: false
+            referencedRelation: "promo_codes"
             referencedColumns: ["id"]
           },
           {
@@ -1124,6 +1137,160 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      promo_code_targets: {
+        Row: {
+          created_at: string
+          customer_id: string
+          id: string
+          promo_code_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          id?: string
+          promo_code_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          id?: string
+          promo_code_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promo_code_targets_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promo_code_targets_promo_code_id_fkey"
+            columns: ["promo_code_id"]
+            isOneToOne: false
+            referencedRelation: "promo_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promo_code_usages: {
+        Row: {
+          customer_id: string | null
+          discount_amount: number
+          id: string
+          order_id: string
+          promo_code_id: string
+          restaurant_id: string
+          used_at: string
+        }
+        Insert: {
+          customer_id?: string | null
+          discount_amount: number
+          id?: string
+          order_id: string
+          promo_code_id: string
+          restaurant_id: string
+          used_at?: string
+        }
+        Update: {
+          customer_id?: string | null
+          discount_amount?: number
+          id?: string
+          order_id?: string
+          promo_code_id?: string
+          restaurant_id?: string
+          used_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promo_code_usages_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promo_code_usages_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promo_code_usages_promo_code_id_fkey"
+            columns: ["promo_code_id"]
+            isOneToOne: false
+            referencedRelation: "promo_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promo_code_usages_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promo_codes: {
+        Row: {
+          code: string
+          created_at: string
+          discount_type: Database["public"]["Enums"]["promotion_type"]
+          discount_value: number | null
+          ends_at: string
+          id: string
+          is_active: boolean
+          max_total_uses: number | null
+          max_uses_per_customer: number
+          name: string
+          restaurant_id: string
+          starts_at: string
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          discount_type: Database["public"]["Enums"]["promotion_type"]
+          discount_value?: number | null
+          ends_at: string
+          id?: string
+          is_active?: boolean
+          max_total_uses?: number | null
+          max_uses_per_customer?: number
+          name: string
+          restaurant_id: string
+          starts_at: string
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          discount_type?: Database["public"]["Enums"]["promotion_type"]
+          discount_value?: number | null
+          ends_at?: string
+          id?: string
+          is_active?: boolean
+          max_total_uses?: number | null
+          max_uses_per_customer?: number
+          name?: string
+          restaurant_id?: string
+          starts_at?: string
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promo_codes_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       push_subscriptions: {
         Row: {
@@ -1882,6 +2049,7 @@ export type Database = {
           p_offer_id?: string
           p_order_source?: string
           p_payment_method?: string
+          p_promo_code?: string
           p_recipient_additional_info?: string
           p_recipient_address?: string
           p_recipient_city?: string
@@ -2058,6 +2226,21 @@ export type Database = {
         }
         Returns: undefined
       }
+      resolve_promo_code: {
+        Args: {
+          p_base_amount: number
+          p_code: string
+          p_customer_id: string
+          p_restaurant_id: string
+        }
+        Returns: {
+          code: string
+          discount_amount: number
+          error_message: string
+          promo_code_id: string
+          waives_delivery: boolean
+        }[]
+      }
       submit_review: {
         Args: {
           p_comment?: string
@@ -2156,6 +2339,15 @@ export type Database = {
           p_review_id: string
         }
         Returns: undefined
+      }
+      validate_promo_code: {
+        Args: {
+          p_code: string
+          p_phone: string
+          p_slug: string
+          p_subtotal: number
+        }
+        Returns: Json
       }
     }
     Enums: {

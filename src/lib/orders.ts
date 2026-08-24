@@ -90,6 +90,8 @@ export type CreateOrderInput = {
   driver_note?: string | null;
   /** The orderer's own confirmed checkout address, kept distinct from delivery_address (which becomes the recipient's address when is_for_someone_else is true) so both are preserved. */
   customer_profile_address?: string | null;
+  /** Set when a promo code was applied at Checkout. create_order re-resolves and re-validates it server-side (active, in-window, visibility, usage limits) -- never trusted for the discount amount, only the code string is sent. */
+  promo_code?: string | null;
 };
 
 export type CreateOrderResult = {
@@ -99,11 +101,13 @@ export type CreateOrderResult = {
   currency: string;
   subtotal_amount: number;
   delivery_fee_amount: number;
+  discount_amount: number;
   total_amount: number;
   item_count: number;
   order_source: string;
   payment_method: string;
   payment_status: string;
+  promo_code_id: string | null;
 };
 
 /**
@@ -144,6 +148,7 @@ export async function createRestaurantOrder(input: CreateOrderInput): Promise<Cr
     p_allergy_information: input.allergy_information ?? null,
     p_driver_note: input.driver_note ?? null,
     p_customer_profile_address: input.customer_profile_address ?? null,
+    p_promo_code: input.promo_code ?? null,
   });
 
   if (error) throw error;

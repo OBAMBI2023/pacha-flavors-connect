@@ -1,4 +1,4 @@
-import { forwardRef, useMemo, useRef, useState } from "react";
+import { forwardRef, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   AlertCircle,
@@ -21,6 +21,7 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 import { useCart, type CartOptionSelection } from "@/lib/cart";
 import { createRestaurantOrder, cartLinesToOrderItems } from "@/lib/orders";
+import { validatePromoCode } from "@/lib/promoCodes";
 import { QuantitySelector } from "@/components/tenant/QuantitySelector";
 import { AvailabilityBadge } from "@/components/tenant/AvailabilityBadge";
 import type { RestaurantAvailability } from "@/lib/businessHours";
@@ -226,6 +227,15 @@ export function TenantOrderDrawer({
   const recipientPhoneRef = useRef<HTMLInputElement>(null);
   const recipientAddressRef = useRef<HTMLTextAreaElement>(null);
 
+  // Promo code: only ever entered inside this drawer (unlike activeOfferId,
+  // which can be set from TenantOffersSheet before checkout even opens), so
+  // it lives here as local state rather than in the shared cart context.
+  const [promoCodeInput, setPromoCodeInput] = useState("");
+  const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null);
+  const [promoDiscount, setPromoDiscount] = useState<{ promoCodeId: string; discountAmount: number; waivesDelivery: boolean } | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [promoValidating, setPromoValidating] = useState(false);
+
   // Fails open on missing/loading data, matching the server's own
   // "unconfigured = open" default -- the cart is never cleared or blocked
   // by a transient fetch issue, only by a real, confirmed closure.
@@ -251,6 +261,18 @@ export function TenantOrderDrawer({
     return values.length > 0 ? Math.max(...values) : null;
   }, [lines]);
 
+  // Recalculates the discount whenever the cart or the phone (per-customer
+  // limits are checked by phone) changes while a code is applied -- reuses
+  // the exact same validation call, so there's no separate recompute logic
+  // to keep in sync. Must stay above the `if (!isOpen) return null` below --
+  // every hook in this component has to run on every render regardless of
+  // isOpen, or React sees a different hook count between renders.
+  useEffect(() => {
+    if (!appliedPromoCode) return;
+    void applyPromoCode(appliedPromoCode);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subtotal, form.phone]);
+
   if (!isOpen) return null;
 
   // Covers a returning customer on a different device/browser than the one
@@ -260,6 +282,41 @@ export function TenantOrderDrawer({
     if (form.name.trim() || form.phone.replace(/[^0-9]/g, "").length < 6) return;
     const found = await lookupCustomerName(restaurantSlug, form.phone);
     if (found) setForm((current) => (current.name.trim() ? current : { ...current, name: found }));
+  }
+
+  async function applyPromoCode(code: string) {
+    const trimmed = code.trim();
+    if (!trimmed) return;
+    if (!form.phone.trim()) {
+      setPromoError("Indiquez votre téléphone avant d'appliquer un code promo.");
+      return;
+    }
+    setPromoValidating(true);
+    setPromoError(null);
+    try {
+      const result = await validatePromoCode({ restaurantSlug, code: trimmed, phone: form.phone.trim(), subtotal });
+      if (!result.valid) {
+        setPromoError(result.message);
+        setPromoDiscount(null);
+        setAppliedPromoCode(null);
+        return;
+      }
+      setAppliedPromoCode(trimmed);
+      setPromoDiscount({ promoCodeId: result.promoCodeId, discountAmount: result.discountAmount, waivesDelivery: result.waivesDelivery });
+    } catch (err) {
+      setPromoError(err instanceof Error ? err.message : "Impossible de vérifier ce code promo.");
+      setPromoDiscount(null);
+      setAppliedPromoCode(null);
+    } finally {
+      setPromoValidating(false);
+    }
+  }
+
+  function removePromoCode() {
+    setAppliedPromoCode(null);
+    setPromoDiscount(null);
+    setPromoError(null);
+    setPromoCodeInput("");
   }
 
   async function submit() {
@@ -355,6 +412,7 @@ export function TenantOrderDrawer({
         allergy_information: allergies.trim() || null,
         driver_note: mode === "delivery" ? form.instructions.trim() || null : null,
         customer_profile_address: mode === "delivery" ? location?.address ?? null : null,
+        promo_code: appliedPromoCode,
       });
 
       window.localStorage.setItem(CUSTOMER_PHONE_KEY, form.phone.trim());
@@ -364,6 +422,7 @@ export function TenantOrderDrawer({
 
       closeCart();
       clear();
+      removePromoCode();
       navigate({ to: "/commande/$orderId/confirmation", params: { orderId: order.order_id } });
     } catch (err) {
       // The full technical error (Postgres/PostgREST code, details, hint)
@@ -396,10 +455,14 @@ export function TenantOrderDrawer({
   // free_delivery promotion the server applies, and the fallback
   // (deliveryFeeFallback) is itself never 0 by design -- see
   // restaurant_settings.delivery_fee_fallback.
-  const resolvedDeliveryFee = mode === "delivery" ? deliveryQuote?.fee ?? deliveryFeeFallback : null;
+  const resolvedDeliveryFee =
+    mode === "delivery" ? (promoDiscount?.waivesDelivery ? 0 : deliveryQuote?.fee ?? deliveryFeeFallback) : null;
   const showDeliveryFeeLine = mode === "delivery" && resolvedDeliveryFee !== null;
   const deliveryFeeLabel = `${(resolvedDeliveryFee ?? 0).toLocaleString("fr-FR")} FCFA`;
-  const totalAmount = subtotal + (mode === "delivery" ? resolvedDeliveryFee ?? 0 : 0);
+  const promoDiscountAmount = promoDiscount?.discountAmount ?? 0;
+  const showDiscountLine = promoDiscountAmount > 0;
+  const discountLabel = `-${promoDiscountAmount.toLocaleString("fr-FR")} FCFA`;
+  const totalAmount = Math.max(subtotal - promoDiscountAmount, 0) + (mode === "delivery" ? resolvedDeliveryFee ?? 0 : 0);
   const totalLabel = hasUnpriced ? (subtotal > 0 ? `${totalAmount.toLocaleString("fr-FR")} FCFA` : "À confirmer") : `${totalAmount.toLocaleString("fr-FR")} FCFA`;
   const orderButtonLabel = geocoding
     ? "Recherche de l'adresse..."
@@ -734,8 +797,40 @@ export function TenantOrderDrawer({
                 <Clock className="h-3.5 w-3.5 shrink-0" /> Préparation estimée : environ {estimatedPrepMinutes} min
               </p>
             )}
+            <div className="mb-3 space-y-2">
+              {appliedPromoCode ? (
+                <div className="flex items-center justify-between gap-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2">
+                  <span className="truncate text-sm font-medium text-foreground">Code « {appliedPromoCode} » appliqué</span>
+                  <button type="button" onClick={removePromoCode} className="shrink-0 text-xs font-semibold text-muted-foreground hover:text-destructive">
+                    Retirer
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={promoCodeInput}
+                    onChange={(e) => setPromoCodeInput(e.target.value)}
+                    placeholder="Entrez votre code promo"
+                    className="h-11 min-w-0 flex-1 rounded-xl border border-input bg-card px-3 text-sm outline-none focus:border-primary"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void applyPromoCode(promoCodeInput)}
+                    disabled={!promoCodeInput.trim() || !form.phone.trim() || promoValidating}
+                    className="h-11 shrink-0 rounded-xl bg-foreground px-4 text-sm font-semibold text-background transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {promoValidating ? "..." : "Appliquer"}
+                  </button>
+                </div>
+              )}
+              {promoError && <p className="text-xs font-medium text-destructive">{promoError}</p>}
+            </div>
             <div className="space-y-1">
               <div className="flex items-center justify-between gap-3 text-sm"><span className="text-muted-foreground">Sous-total</span><span>{subtotalLabel}</span></div>
+              {showDiscountLine && (
+                <div className="flex items-center justify-between gap-3 text-sm text-primary"><span>Réduction</span><span>{discountLabel}</span></div>
+              )}
               {showDeliveryFeeLine && (
                 <div className="flex items-center justify-between gap-3 text-sm"><span className="text-muted-foreground">Frais de livraison</span><span>{deliveryFeeLabel}</span></div>
               )}

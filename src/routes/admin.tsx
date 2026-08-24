@@ -23,6 +23,7 @@ import { DashboardHome } from "@/components/admin/home/DashboardHome";
 import { StatisticsPanel } from "@/components/admin/stats/StatisticsPanel";
 import { FinancialPanel } from "@/components/admin/finance/FinancialPanel";
 import { PromotionsPanel } from "@/components/admin/promotions/PromotionsPanel";
+import { PromoCodesPanel } from "@/components/admin/promotions/PromoCodesPanel";
 import { MarketingPanel } from "@/components/admin/marketing/MarketingPanel";
 import { ReviewsPanel } from "@/components/admin/reviews/ReviewsPanel";
 import { OptionGroupsManager } from "@/components/admin/menu/OptionGroupsManager";
@@ -111,6 +112,7 @@ export default function AdminPage() {
   const [itemPreview, setItemPreview] = useState<string | null>(null);
   const [existingPromotion, setExistingPromotion] = useState<Promotion | null>(null);
   const [promotionsRefreshSignal, setPromotionsRefreshSignal] = useState(0);
+  const [promotionsSubTab, setPromotionsSubTab] = useState<"produits" | "codes">("produits");
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [togglingItemIds, setTogglingItemIds] = useState<Set<string>>(new Set());
@@ -396,7 +398,29 @@ export default function AdminPage() {
         <TabsContent value="visiteurs"><VisitorsPanel /></TabsContent>
         <TabsContent value="finances"><FinancialPanel /></TabsContent>
         <TabsContent value="menu" className="space-y-6"><Card className="p-5"><MenuCategoriesPanel categories={data?.categories ?? []} counts={categoryCounts} busy={busy} onAdd={() => { setEditingCategory(null); setCategoryLabel(""); setCategoryDialogOpen(true); }} onEdit={(cat) => { setEditingCategory(cat); setCategoryLabel(cat.label); setCategoryDialogOpen(true); }} onDelete={setCategoryDelete} /></Card><Card className="p-5"><MenuItemsPanel rows={filteredRows} categories={data?.categories ?? []} busy={busy} togglingItemIds={togglingItemIds} search={search} setSearch={setSearch} categoryFilter={categoryFilter} setCategoryFilter={setCategoryFilter} onAdd={() => { setEditingItem(null); setItemPreview(null); setExistingPromotion(null); setItemForm(emptyItemForm({ categoryId: data?.categories[0]?.id, position: String((data?.rows.length ?? 0) + 1) })); setItemDialogOpen(true); }} onEdit={(row) => { setEditingItem(row); setExistingPromotion(null); setItemForm({ name: row.name, subtitle: row.subtitle ?? "", description: row.description, price: row.price === null ? "" : String(row.price), prep_time_minutes: row.prep_time_minutes === null ? "" : String(row.prep_time_minutes), category_id: row.category_id ?? "", position: String(row.position), available: row.available, daily: row.daily, image_path: row.image_path ?? "", promotionEnabled: false, promotionalPrice: "" }); setItemDialogOpen(true); void loadItemPromotion(row.id, row.price); }} onDelete={setItemDelete} onToggleAvailability={(row) => void toggleItemAvailability(row)} /></Card></TabsContent>
-        <TabsContent value="promotions"><PromotionsPanel restaurantId={restaurantId} products={data?.rows ?? []} refreshSignal={promotionsRefreshSignal} /></TabsContent>
+        <TabsContent value="promotions" className="space-y-6">
+          <div className="inline-flex rounded-full border border-border bg-muted p-1">
+            <button
+              type="button"
+              onClick={() => setPromotionsSubTab("produits")}
+              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${promotionsSubTab === "produits" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+            >
+              Promotions produit
+            </button>
+            <button
+              type="button"
+              onClick={() => setPromotionsSubTab("codes")}
+              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${promotionsSubTab === "codes" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+            >
+              Codes promo
+            </button>
+          </div>
+          {promotionsSubTab === "produits" ? (
+            <PromotionsPanel restaurantId={restaurantId} products={data?.rows ?? []} refreshSignal={promotionsRefreshSignal} />
+          ) : (
+            restaurantId && <PromoCodesPanel restaurantId={restaurantId} />
+          )}
+        </TabsContent>
         <TabsContent value="marketing">{restaurantId && <MarketingPanel restaurantId={restaurantId} products={data?.rows ?? []} />}</TabsContent>
         <TabsContent value="avis">{restaurantId && <ReviewsPanel restaurantId={restaurantId} />}</TabsContent>
         <TabsContent value="storefront" className="grid gap-6 lg:grid-cols-2"><Card className="space-y-5 p-5"><div><h2 className="font-display text-2xl font-semibold">Site vitrine</h2><p className="text-sm text-muted-foreground">Nom, visibilité publique, logo, cover et coordonnées.</p></div><div className="space-y-4"><Field label="Nom du restaurant"><Input value={restaurantForm.name} onChange={(e) => setRestaurantForm((c) => ({ ...c, name: e.target.value }))} /></Field><div className="grid gap-4 md:grid-cols-2"><AssetField label="Logo" helperText="PNG, JPG ou WEBP · recommandé 1000 × 1000 px · max 2 MB" preview={logoPreview} onPick={(file) => void uploadRestaurantAsset(file, "logo_url")} busy={busy} variant="logo" accept={ACCEPTED_IMAGE_TYPES.join(",")} /><AssetField label="Cover" helperText="JPG, PNG ou WEBP · recommandé 1920 × 900 px · max 5 MB" preview={coverPreview} onPick={(file) => void uploadRestaurantAsset(file, "cover_url")} busy={busy} variant="cover" accept={ACCEPTED_IMAGE_TYPES.join(",")} /></div><div className="flex items-center gap-3 rounded-2xl border border-border px-4 py-3"><Switch checked={restaurantForm.is_public} onCheckedChange={(checked) => setRestaurantForm((c) => ({ ...c, is_public: checked }))} /><div><p className="text-sm font-medium">Visibilité publique</p><p className="text-xs text-muted-foreground">Le site du tenant est exposé publiquement.</p></div></div></div><Button onClick={() => void saveRestaurant()} disabled={busy}>{busy ? "Enregistrement..." : "Enregistrer la vitrine"}</Button></Card><Card className="space-y-4 p-5"><h3 className="font-semibold">Aperçu</h3><div className="overflow-hidden rounded-3xl border border-border"><div className="min-h-48 bg-muted" style={coverPreview ? { backgroundImage: `url(${coverPreview})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}>{!coverPreview && <div className="flex min-h-48 items-center justify-center text-sm text-muted-foreground">Fond neutre générique</div>}</div></div><div className="flex items-center gap-3 rounded-2xl border border-border p-4">{logoPreview ? <img src={logoPreview} alt="Logo" className="h-14 w-14 rounded-2xl bg-white object-contain p-1 ring-1 ring-border" /> : <div className="h-14 w-14 rounded-2xl bg-muted" />}<div><p className="font-medium">{restaurantForm.name || restaurant?.name || "Restaurant"}</p><p className="text-sm text-muted-foreground">{`/r/${restaurant?.slug ?? "slug"}`}</p></div></div></Card></TabsContent>
