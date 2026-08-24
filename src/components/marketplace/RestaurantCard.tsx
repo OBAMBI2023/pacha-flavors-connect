@@ -15,7 +15,7 @@ export function RestaurantCard({
 
   return (
     <div>
-      <Link to="/restaurant/$slug" params={{ slug: restaurant.slug }} className="relative block">
+      <Link to="/r/$slug" params={{ slug: restaurant.slug }} className="relative block">
         <div className="h-[13.75rem] w-full overflow-hidden rounded-[1.375rem] bg-muted">
           {restaurant.cover_url ? (
             <img src={restaurant.cover_url} alt={restaurant.name} className="h-full w-full object-cover" loading="lazy" />
@@ -35,7 +35,7 @@ export function RestaurantCard({
         </button>
       </Link>
 
-      <Link to="/restaurant/$slug" params={{ slug: restaurant.slug }} className="mt-3 block">
+      <Link to="/r/$slug" params={{ slug: restaurant.slug }} className="mt-3 block">
         <h3 className="text-[1.3125rem] font-bold uppercase leading-tight">{restaurant.name}</h3>
         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.9375rem] text-muted-foreground">
           {restaurant.delivery_fee === 0 && restaurant.delivery_enabled ? (

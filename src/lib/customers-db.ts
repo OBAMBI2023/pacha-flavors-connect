@@ -1,5 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
+export type CustomerSource = "website" | "restaurant";
+
 export type Customer = {
   id: string;
   restaurant_id: string;
@@ -13,6 +15,9 @@ export type Customer = {
   last_order_at: string | null;
   created_at: string;
   updated_at: string;
+  /** 'website' = created by a real order placed through the storefront (create_order's find-or-create). 'restaurant' = added manually from the admin -- see createCustomer. */
+  source: CustomerSource;
+  internal_note: string | null;
 };
 
 export type CustomerOrderSummary = {
@@ -52,7 +57,7 @@ export async function lookupCustomerName(slug: string, phone: string): Promise<s
  */
 export async function fetchCustomers(
   restaurantId: string,
-  options: { search?: string; page?: number } = {},
+  options: { search?: string; page?: number; source?: CustomerSource | "all" } = {},
 ): Promise<{ customers: Customer[]; total: number }> {
   const page = options.page ?? 0;
   const from = page * PAGE_SIZE;
@@ -63,6 +68,10 @@ export async function fetchCustomers(
     .select("*", { count: "exact" })
     .eq("restaurant_id", restaurantId)
     .order("last_order_at", { ascending: false, nullsFirst: false });
+
+  if (options.source && options.source !== "all") {
+    query = query.eq("source", options.source);
+  }
 
   const search = options.search?.trim();
   if (search) {
@@ -78,6 +87,47 @@ export async function fetchCustomers(
   const { data, error, count } = await query.range(from, to);
   if (error) throw error;
   return { customers: (data ?? []) as unknown as Customer[], total: count ?? 0 };
+}
+
+export type CreateCustomerInput = {
+  full_name: string;
+  phone: string;
+  email?: string | null;
+  address?: string | null;
+  internal_note?: string | null;
+};
+
+/**
+ * Manual add from Admin > Clients > "Ajouter un client". Always source =
+ * 'restaurant', tenant-scoped via restaurant_id (RLS's has_restaurant_access
+ * is the actual boundary; this just carries the id). No auth account is
+ * created and no signup email is sent -- there's simply no such mechanism
+ * anywhere in this app (guest checkout only), so there's nothing to skip.
+ * If this phone already exists for the tenant (e.g. the person already
+ * ordered via the site), the DB's unique constraint rejects the insert --
+ * see isDuplicateCustomerPhoneError -- rather than silently creating a
+ * second row for the same person.
+ */
+export async function createCustomer(restaurantId: string, input: CreateCustomerInput): Promise<string> {
+  const { data, error } = await supabase
+    .from("customers")
+    .insert({
+      restaurant_id: restaurantId,
+      full_name: input.full_name,
+      phone: input.phone,
+      email: input.email ?? null,
+      address: input.address ?? null,
+      internal_note: input.internal_note ?? null,
+      source: "restaurant",
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+  return data.id;
+}
+
+export function isDuplicateCustomerPhoneError(error: unknown): boolean {
+  return error instanceof Error && error.message.includes("customers_restaurant_id_phone_key");
 }
 
 export async function fetchCustomer(customerId: string): Promise<Customer | null> {
@@ -107,7 +157,7 @@ export async function fetchCustomerOrderHistory(customerId: string): Promise<Cus
 
 export async function updateCustomer(
   customerId: string,
-  input: { full_name?: string; email?: string | null; address?: string | null },
+  input: { full_name?: string; email?: string | null; address?: string | null; internal_note?: string | null },
 ): Promise<void> {
   const { error } = await supabase.from("customers").update(input).eq("id", customerId);
   if (error) throw error;

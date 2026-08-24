@@ -49,7 +49,7 @@ function SearchPage() {
           {restaurants.map((restaurant) => (
             <Link
               key={restaurant.id}
-              to="/restaurant/$slug"
+              to="/r/$slug"
               params={{ slug: restaurant.slug }}
               className="rounded-3xl border border-border bg-card p-5 shadow-sm"
             >

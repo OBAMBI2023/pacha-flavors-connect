@@ -64,7 +64,12 @@ export function CustomerDetailSheet({ customerId, onClose }: { customerId: strin
         {customer && (
           <>
             <SheetHeader>
-              <SheetTitle>{customer.full_name}</SheetTitle>
+              <SheetTitle className="flex flex-wrap items-center gap-2">
+                {customer.full_name}
+                <Badge className={customer.source === "restaurant" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}>
+                  {customer.source === "restaurant" ? "Ajouté par le restaurant" : "Client du site"}
+                </Badge>
+              </SheetTitle>
               <SheetDescription>Client depuis le {new Date(customer.created_at).toLocaleDateString("fr-FR")}</SheetDescription>
             </SheetHeader>
 
@@ -74,6 +79,12 @@ export function CustomerDetailSheet({ customerId, onClose }: { customerId: strin
                 <p className="text-muted-foreground">{customer.phone}</p>
                 <p className="text-muted-foreground">{customer.email ?? "Email non renseigné"}</p>
                 <p className="text-muted-foreground">{customer.address ?? "Adresse non renseignée"}</p>
+                {customer.internal_note && (
+                  <p className="mt-2 rounded-xl bg-muted/60 p-2.5 text-foreground">
+                    <span className="font-medium">Note interne : </span>
+                    {customer.internal_note}
+                  </p>
+                )}
                 {wa && (
                   <a href={`https://wa.me/${wa}`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
                     <MessageCircle className="h-4 w-4" /> Ouvrir WhatsApp

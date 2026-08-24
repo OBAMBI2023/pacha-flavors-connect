@@ -1,11 +1,23 @@
 import { useEffect, useState } from "react";
-import { Eye, MessageCircle, Pencil, Search, Users } from "lucide-react";
+import { Eye, MessageCircle, Pencil, Plus, Search, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { fetchCustomers, normalizePhoneForWhatsApp, type Customer } from "@/lib/customers-db";
+import { fetchCustomers, normalizePhoneForWhatsApp, type Customer, type CustomerSource } from "@/lib/customers-db";
 import { CustomerDetailSheet } from "./CustomerDetailSheet";
 import { EditCustomerDialog } from "./EditCustomerDialog";
+import { AddClientDialog } from "./AddClientDialog";
+
+const SOURCE_FILTERS: { value: CustomerSource | "all"; label: string }[] = [
+  { value: "all", label: "Tous" },
+  { value: "website", label: "Clients du site" },
+  { value: "restaurant", label: "Ajoutés par le restaurant" },
+];
+
+const SOURCE_BADGE: Record<CustomerSource, { label: string; className: string }> = {
+  website: { label: "Client du site", className: "bg-muted text-muted-foreground" },
+  restaurant: { label: "Ajouté par le restaurant", className: "bg-primary/10 text-primary" },
+};
 
 function money(amount: number) {
   return `${amount.toLocaleString("fr-FR")} FCFA`;
@@ -46,10 +58,12 @@ export function CustomersPanel({ restaurantId }: { restaurantId: string | null }
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState("");
+  const [sourceFilter, setSourceFilter] = useState<CustomerSource | "all">("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [detailId, setDetailId] = useState<string | null>(null);
   const [editTarget, setEditTarget] = useState<Customer | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
 
   useEffect(() => {
     if (!restaurantId) return;
@@ -57,7 +71,7 @@ export function CustomersPanel({ restaurantId }: { restaurantId: string | null }
     setLoading(true);
     setError("");
     const handle = window.setTimeout(() => {
-      fetchCustomers(restaurantId, { search, page })
+      fetchCustomers(restaurantId, { search, page, source: sourceFilter })
         .then(({ customers: rows, total: count }) => {
           if (cancelled) return;
           setCustomers(rows);
@@ -74,7 +88,7 @@ export function CustomersPanel({ restaurantId }: { restaurantId: string | null }
       cancelled = true;
       window.clearTimeout(handle);
     };
-  }, [restaurantId, search, page]);
+  }, [restaurantId, search, page, sourceFilter]);
 
   const pageSize = 25;
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
@@ -82,7 +96,7 @@ export function CustomersPanel({ restaurantId }: { restaurantId: string | null }
   function refresh() {
     if (!restaurantId) return;
     setLoading(true);
-    fetchCustomers(restaurantId, { search, page })
+    fetchCustomers(restaurantId, { search, page, source: sourceFilter })
       .then(({ customers: rows, total: count }) => {
         setCustomers(rows);
         setTotal(count);
@@ -92,9 +106,34 @@ export function CustomersPanel({ restaurantId }: { restaurantId: string | null }
 
   return (
     <div className="space-y-5">
-      <div>
-        <h2 className="font-display text-2xl font-semibold">Clients</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Historique et coordonnées de chaque client, centralisés depuis vos commandes.</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="font-display text-2xl font-semibold">Clients</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Historique et coordonnées de chaque client, centralisés depuis vos commandes.</p>
+        </div>
+        {restaurantId && (
+          <Button onClick={() => setAddOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" /> Ajouter un client
+          </Button>
+        )}
+      </div>
+
+      <div className="flex flex-wrap gap-1.5">
+        {SOURCE_FILTERS.map((f) => (
+          <button
+            key={f.value}
+            type="button"
+            onClick={() => {
+              setSourceFilter(f.value);
+              setPage(0);
+            }}
+            className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
+              sourceFilter === f.value ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:bg-accent"
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
       </div>
 
       <div className="relative">
@@ -129,6 +168,7 @@ export function CustomersPanel({ restaurantId }: { restaurantId: string | null }
                   <th className="px-4 py-3 text-left">Client</th>
                   <th className="px-4 py-3 text-left">Téléphone</th>
                   <th className="px-4 py-3 text-left">Email</th>
+                  <th className="px-4 py-3 text-left">Type</th>
                   <th className="px-4 py-3 text-right">Commandes</th>
                   <th className="px-4 py-3 text-right">Total dépensé</th>
                   <th className="px-4 py-3 text-left">Dernière activité</th>
@@ -152,6 +192,7 @@ export function CustomersPanel({ restaurantId }: { restaurantId: string | null }
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">{c.phone}</td>
                       <td className="px-4 py-3 text-muted-foreground">{c.email ?? "—"}</td>
+                      <td className="px-4 py-3"><Badge className={SOURCE_BADGE[c.source].className}>{SOURCE_BADGE[c.source].label}</Badge></td>
                       <td className="px-4 py-3 text-right">{c.orders_count}</td>
                       <td className="px-4 py-3 text-right font-medium">{money(c.total_spent)}</td>
                       <td className="px-4 py-3 text-muted-foreground">{timeAgo(c.last_order_at)}</td>
@@ -189,7 +230,10 @@ export function CustomersPanel({ restaurantId }: { restaurantId: string | null }
                       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary">{initials(c.full_name)}</span>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold">{c.full_name}</p>
-                        <Badge variant="outline" className={`mt-0.5 ${status.className}`}>{status.label}</Badge>
+                        <div className="mt-0.5 flex flex-wrap gap-1">
+                          <Badge variant="outline" className={status.className}>{status.label}</Badge>
+                          <Badge className={SOURCE_BADGE[c.source].className}>{SOURCE_BADGE[c.source].label}</Badge>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -237,6 +281,17 @@ export function CustomersPanel({ restaurantId }: { restaurantId: string | null }
           refresh();
         }}
       />
+      {restaurantId && (
+        <AddClientDialog
+          restaurantId={restaurantId}
+          open={addOpen}
+          onClose={() => setAddOpen(false)}
+          onSaved={() => {
+            setAddOpen(false);
+            refresh();
+          }}
+        />
+      )}
     </div>
   );
 }

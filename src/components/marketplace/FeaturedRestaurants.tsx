@@ -15,7 +15,7 @@ export function FeaturedRestaurants({ restaurants }: { restaurants: MarketplaceR
         {restaurants.map((restaurant) => (
           <Link
             key={restaurant.id}
-            to="/restaurant/$slug"
+            to="/r/$slug"
             params={{ slug: restaurant.slug }}
             className="flex w-[10.3125rem] shrink-0 flex-col overflow-hidden rounded-[1.25rem] border border-border bg-card"
           >

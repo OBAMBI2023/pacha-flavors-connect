@@ -29,7 +29,7 @@ export function CheapMealsSection() {
           {products.map((product) => (
             <Link
               key={product.id}
-              to="/restaurant/$slug"
+              to="/r/$slug"
               params={{ slug: product.restaurantSlug }}
               className="flex w-36 shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-card"
             >

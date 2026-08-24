@@ -17,6 +17,7 @@ export function EditCustomerDialog({
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
+  const [internalNote, setInternalNote] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -24,6 +25,7 @@ export function EditCustomerDialog({
       setFullName(customer.full_name);
       setEmail(customer.email ?? "");
       setAddress(customer.address ?? "");
+      setInternalNote(customer.internal_note ?? "");
     }
   }, [customer]);
 
@@ -35,6 +37,7 @@ export function EditCustomerDialog({
         full_name: fullName.trim(),
         email: email.trim() || null,
         address: address.trim() || null,
+        internal_note: internalNote.trim() || null,
       });
       toast.success("Client mis à jour");
       onSaved();
@@ -64,6 +67,10 @@ export function EditCustomerDialog({
           <label className="space-y-2 block">
             <span className="text-sm font-medium">Adresse</span>
             <Input value={address} onChange={(e) => setAddress(e.target.value)} />
+          </label>
+          <label className="space-y-2 block">
+            <span className="text-sm font-medium">Note interne</span>
+            <Input value={internalNote} onChange={(e) => setInternalNote(e.target.value)} placeholder="Visible uniquement par votre équipe" />
           </label>
         </div>
         <DialogFooter>
