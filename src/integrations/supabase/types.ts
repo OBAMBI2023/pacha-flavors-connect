@@ -73,7 +73,8 @@ export type Database = {
           entity_type: string
           id: string
           metadata: Json
-          restaurant_id: string
+          organization_id: string | null
+          restaurant_id: string | null
         }
         Insert: {
           action: string
@@ -83,7 +84,8 @@ export type Database = {
           entity_type: string
           id?: string
           metadata?: Json
-          restaurant_id: string
+          organization_id?: string | null
+          restaurant_id?: string | null
         }
         Update: {
           action?: string
@@ -93,9 +95,17 @@ export type Database = {
           entity_type?: string
           id?: string
           metadata?: Json
-          restaurant_id?: string
+          organization_id?: string | null
+          restaurant_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "audit_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "audit_logs_restaurant_id_fkey"
             columns: ["restaurant_id"]
@@ -3045,6 +3055,17 @@ export type Database = {
           p_entity_type: string
           p_metadata?: Json
           p_restaurant_id: string
+        }
+        Returns: undefined
+      }
+      log_organization_audit_event: {
+        Args: {
+          p_action: string
+          p_actor_user_id: string
+          p_entity_id: string
+          p_entity_type: string
+          p_metadata?: Json
+          p_organization_id: string
         }
         Returns: undefined
       }
