@@ -2834,6 +2834,31 @@ export type Database = {
         Args: { p_driver_id: string; p_order_id: string }
         Returns: Json
       }
+      create_delivery: {
+        Args: {
+          p_customer_name: string
+          p_customer_phone: string
+          p_delivery_provider?: Database["public"]["Enums"]["delivery_provider"]
+          p_destination_address: string
+          p_destination_latitude?: number
+          p_destination_longitude?: number
+          p_destination_name: string
+          p_destination_phone: string
+          p_external_reference?: string
+          p_metadata?: Json
+          p_order_id: string
+          p_organization_id: string
+          p_package_description?: string
+          p_package_quantity?: number
+          p_package_weight?: number
+          p_pickup_address: string
+          p_pickup_latitude?: number
+          p_pickup_longitude?: number
+          p_pickup_name: string
+          p_pickup_phone: string
+        }
+        Returns: Json
+      }
       create_notification: {
         Args: {
           p_body?: string
