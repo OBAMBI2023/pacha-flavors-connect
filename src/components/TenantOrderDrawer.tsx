@@ -183,6 +183,8 @@ export function TenantOrderDrawer({
   deliveryFeeFallback,
   restaurantLat,
   restaurantLng,
+  deliveryEnabled = true,
+  pickupEnabled = true,
 }: {
   restaurantSlug: string;
   restaurantName: string;
@@ -192,11 +194,24 @@ export function TenantOrderDrawer({
   deliveryFeeFallback: number;
   restaurantLat: number | null;
   restaurantLng: number | null;
+  /** Tenant-configured fulfillment modes -- fail open (both true) while settings haven't loaded yet, same fail-open convention as `isClosed` below. create_order re-validates this server-side regardless. */
+  deliveryEnabled?: boolean;
+  pickupEnabled?: boolean;
 }) {
   const navigate = useNavigate();
   const { lines, count, subtotal, hasUnpriced, isOpen, closeCart, increment, decrement, remove, clear, activeOfferId } = useCart();
   const { location, openModal: openLocationModal } = useDeliveryLocation();
   const [mode, setMode] = useState<"delivery" | "pickup">("delivery");
+  const availableModes = (["delivery", "pickup"] as const).filter((m) => (m === "delivery" ? deliveryEnabled : pickupEnabled));
+
+  // Keeps the selection valid (and auto-picks the only remaining option) if
+  // settings resolve after mount, or the tenant disables the mode currently
+  // selected -- self-healing rather than a one-time init, since props here
+  // can change after the initial render (settings load asynchronously).
+  useEffect(() => {
+    if (mode === "delivery" && !deliveryEnabled && pickupEnabled) setMode("pickup");
+    else if (mode === "pickup" && !pickupEnabled && deliveryEnabled) setMode("delivery");
+  }, [deliveryEnabled, pickupEnabled, mode]);
   const deliveryQuote =
     mode === "delivery" ? computeDistanceBasedDelivery(restaurantLat, restaurantLng, location?.latitude ?? null, location?.longitude ?? null) : null;
   const [form, setForm] = useState(() => ({ ...loadStoredCustomer(), instructions: "" }));
@@ -544,8 +559,8 @@ export function TenantOrderDrawer({
 
               <div className="mt-5">
                 <h3 className="text-lg font-semibold text-foreground">Comment souhaitez-vous recevoir votre commande ?</h3>
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  {(["delivery", "pickup"] as const).map((value) => {
+                <div className={`mt-3 grid gap-2 ${availableModes.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
+                  {availableModes.map((value) => {
                     const Icon = value === "delivery" ? Truck : ShoppingBag;
                     return (
                       <button
