@@ -1,13 +1,6 @@
-import { Link, useLocation } from "@tanstack/react-router";
-import { Home, ShoppingBag, Tag, User, UtensilsCrossed } from "lucide-react";
-import { useCart } from "@/lib/cart";
-import { useUnreadOffersCount } from "@/lib/offers";
-import { useAccountAccess } from "@/lib/accountAccess";
+import { Link } from "@tanstack/react-router";
+import { useTenantNavItems } from "@/components/tenant/tenantNavItems";
 import { AccountLookupModal } from "@/components/tenant/AccountLookupModal";
-
-function scrollToId(id: string) {
-  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-}
 
 export function TenantBottomNav({
   restaurantSlug,
@@ -18,12 +11,7 @@ export function TenantBottomNav({
   restaurantName: string;
   onOpenOffers: () => void;
 }) {
-  const location = useLocation();
-  const { count, openCart } = useCart();
-  const unreadOffers = useUnreadOffersCount(restaurantSlug);
-  const { modalOpen: accountModalOpen, openAccount, closeModal: closeAccountModal, submitPhone } = useAccountAccess(restaurantSlug);
-  const base = `/r/${restaurantSlug}`;
-  const onHome = location.pathname === base;
+  const { items, accountModalOpen, closeAccountModal, submitPhone } = useTenantNavItems({ restaurantSlug, onOpenOffers });
 
   const itemClass = (isActive: boolean) =>
     `flex flex-1 flex-col items-center gap-1 py-2 text-[11px] ${isActive ? "font-bold text-primary" : "font-medium text-foreground"}`;
@@ -36,40 +24,34 @@ export function TenantBottomNav({
       style={{ height: "calc(76px + env(safe-area-inset-bottom))" }}
     >
       <div className="flex h-[76px] items-center">
-        <Link to={base} className={itemClass(onHome)}>
-          <span className={iconWrapClass(onHome)}><Home className="h-5 w-5" /></span>
-          Accueil
-        </Link>
-        <button onClick={() => scrollToId("carte")} className={itemClass(false)}>
-          <span className={iconWrapClass(false)}><UtensilsCrossed className="h-5 w-5" /></span>
-          Menu
-        </button>
-        <button onClick={openCart} className={itemClass(false)}>
-          <span className={iconWrapClass(false)}>
-            <ShoppingBag className="h-5 w-5" />
-            {count > 0 && (
-              <span className="absolute -right-1.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[0.6rem] font-bold text-primary-foreground transition-transform">
-                {count}
+        {items.map((item) => {
+          const Icon = item.icon;
+          const content = (
+            <>
+              <span className={iconWrapClass(item.active)}>
+                <Icon className="h-5 w-5" />
+                {item.badge !== undefined && (
+                  <span className="absolute -right-1.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[0.6rem] font-bold text-primary-foreground">
+                    {item.badge}
+                  </span>
+                )}
               </span>
-            )}
-          </span>
-          Panier
-        </button>
-        <button onClick={onOpenOffers} className={itemClass(false)}>
-          <span className={iconWrapClass(false)}>
-            <Tag className="h-5 w-5" />
-            {unreadOffers > 0 && (
-              <span className="absolute -right-1.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[0.6rem] font-bold text-primary-foreground">
-                {unreadOffers > 9 ? "9+" : unreadOffers}
-              </span>
-            )}
-          </span>
-          Offres
-        </button>
-        <button onClick={openAccount} className={itemClass(false)}>
-          <span className={iconWrapClass(false)}><User className="h-5 w-5" /></span>
-          Compte
-        </button>
+              {item.label}
+            </>
+          );
+          if (item.to) {
+            return (
+              <Link key={item.key} to={item.to} className={itemClass(item.active)}>
+                {content}
+              </Link>
+            );
+          }
+          return (
+            <button key={item.key} type="button" onClick={item.onClick} className={itemClass(item.active)}>
+              {content}
+            </button>
+          );
+        })}
       </div>
       {accountModalOpen && (
         <AccountLookupModal restaurantName={restaurantName} onClose={closeAccountModal} onSubmit={submitPhone} />

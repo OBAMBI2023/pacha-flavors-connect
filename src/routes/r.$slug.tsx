@@ -134,10 +134,11 @@ function TenantStorefront({ slug }: { slug: string }) {
     });
   const subtotalLabel = hasUnpriced ? (subtotal > 0 ? `${subtotal.toLocaleString("fr-FR")} FCFA` : "À confirmer") : `${subtotal.toLocaleString("fr-FR")} FCFA`;
   const hasContact = Boolean(restaurant.address || restaurant.commune || restaurant.city);
+  const openOffers = () => { setOpenOfferId(null); setOffersOpen(true); };
 
   return (
     <div className="min-h-screen bg-background pb-28 md:pb-0">
-      <TenantHeader restaurant={restaurant} subtotalLabel={subtotalLabel} hasContact={hasContact} onOpenCart={openCart} onOpenNotifications={() => setNotificationsOpen(true)} />
+      <TenantHeader restaurant={restaurant} subtotalLabel={subtotalLabel} hasContact={hasContact} onOpenOffers={openOffers} onOpenNotifications={() => setNotificationsOpen(true)} />
       <TenantLocationBar />
       {hasMenu && <TenantSearchBar value={query} onChange={handleSearchChange} onOpenFilters={() => setCategoriesOpen(true)} />}
 
@@ -173,7 +174,7 @@ function TenantStorefront({ slug }: { slug: string }) {
         }}
       />
       <TenantCartBar count={count} subtotalLabel={subtotalLabel} onOpenCart={openCart} />
-      <TenantBottomNav restaurantSlug={restaurant.slug} restaurantName={restaurant.name} onOpenOffers={() => { setOpenOfferId(null); setOffersOpen(true); }} />
+      <TenantBottomNav restaurantSlug={restaurant.slug} restaurantName={restaurant.name} onOpenOffers={openOffers} />
       <TenantOrderDrawer restaurantSlug={restaurant.slug} restaurantName={restaurant.name} availability={data.availability} timezone={restaurant.timezone ?? "Africa/Abidjan"} deliveryFeeFallback={settings?.delivery_fee_fallback ?? DEFAULT_DELIVERY_FEE_FALLBACK} restaurantLat={restaurant.lat} restaurantLng={restaurant.lng} />
       <TenantLocationModal />
       <CategoriesSheet slug={slug} open={categoriesOpen} onOpenChange={setCategoriesOpen} onSelectCategory={setActive} />

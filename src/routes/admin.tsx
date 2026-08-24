@@ -37,6 +37,22 @@ import { useRestaurantTheme } from "@/hooks/useRestaurantTheme";
 
 const TITLE = "Administration du restaurant";
 const DESCRIPTION = "Gestion compacte de la carte, de la vitrine et des coordonnées du restaurant.";
+const ADMIN_NAV_ITEMS = [
+  { value: "accueil", label: "Accueil" },
+  { value: "commandes", label: "Commandes" },
+  { value: "clients", label: "Clients" },
+  { value: "statistiques", label: "Statistiques" },
+  { value: "visiteurs", label: "Visiteurs" },
+  { value: "finances", label: "Finances" },
+  { value: "menu", label: "Carte" },
+  { value: "promotions", label: "Promotions" },
+  { value: "marketing", label: "Marketing" },
+  { value: "avis", label: "Avis" },
+  { value: "storefront", label: "Site vitrine" },
+  { value: "contact", label: "Coordonnées" },
+  { value: "disponibilite", label: "Disponibilité" },
+  { value: "settings", label: "Paramètres" },
+] as const;
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_LOGO_SIZE_BYTES = 2 * 1024 * 1024;
 const MAX_COVER_SIZE_BYTES = 5 * 1024 * 1024;
@@ -360,8 +376,19 @@ export default function AdminPage() {
         <div><p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-primary">{restaurant?.name ?? "Restaurant"}</p><h1 className="mt-2 font-display text-4xl font-semibold">Administration</h1><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Gestion compacte de la carte, de la vitrine et des coordonnées.</p></div>
         <div className="flex flex-wrap items-center gap-2"><NotificationBell restaurantId={restaurantId} /><Button variant="outline" onClick={() => window.open(publicHref, "_blank", "noopener,noreferrer")}>Prévisualiser mon site</Button><Button variant="outline" onClick={async () => { await supabase.auth.signOut(); navigate({ to: "/auth", replace: true }); }}>Déconnexion</Button></div>
       </div>
-      <Tabs value={tab} onValueChange={setTab} className="space-y-6">
-        <TabsList className="h-auto w-full flex-nowrap justify-start gap-1 overflow-x-auto bg-transparent p-0 [scrollbar-width:none] sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden"><TabsTrigger value="accueil" className="shrink-0">Accueil</TabsTrigger><TabsTrigger value="commandes" className="relative shrink-0">Commandes{ordersAlert.pendingCount > 0 && <span className="ml-1.5 rounded-full bg-primary px-1.5 py-0.5 text-[0.65rem] font-semibold text-primary-foreground">{ordersAlert.pendingCount}</span>}</TabsTrigger><TabsTrigger value="clients" className="shrink-0">Clients</TabsTrigger><TabsTrigger value="statistiques" className="shrink-0">Statistiques</TabsTrigger><TabsTrigger value="visiteurs" className="shrink-0">Visiteurs</TabsTrigger><TabsTrigger value="finances" className="shrink-0">Finances</TabsTrigger><TabsTrigger value="menu" className="shrink-0">Carte</TabsTrigger><TabsTrigger value="promotions" className="shrink-0">Promotions</TabsTrigger><TabsTrigger value="marketing" className="shrink-0">Marketing</TabsTrigger><TabsTrigger value="avis" className="shrink-0">Avis</TabsTrigger><TabsTrigger value="storefront" className="shrink-0">Site vitrine</TabsTrigger><TabsTrigger value="contact" className="shrink-0">Coordonnées</TabsTrigger><TabsTrigger value="disponibilite" className="shrink-0">Disponibilité</TabsTrigger><TabsTrigger value="settings" className="shrink-0">Paramètres</TabsTrigger></TabsList>
+      <div className="lg:grid lg:grid-cols-[240px_minmax(0,1fr)] lg:items-start lg:gap-6">
+      <AdminSidebar items={ADMIN_NAV_ITEMS} activeValue={tab} onSelect={setTab} pendingCount={ordersAlert.pendingCount} />
+      <Tabs value={tab} onValueChange={setTab} className="min-w-0 space-y-6">
+        <TabsList className="h-auto w-full flex-nowrap justify-start gap-1 overflow-x-auto bg-transparent p-0 [scrollbar-width:none] sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden lg:hidden">
+          {ADMIN_NAV_ITEMS.map((item) => (
+            <TabsTrigger key={item.value} value={item.value} className="relative shrink-0">
+              {item.label}
+              {item.value === "commandes" && ordersAlert.pendingCount > 0 && (
+                <span className="ml-1.5 rounded-full bg-primary px-1.5 py-0.5 text-[0.65rem] font-semibold text-primary-foreground">{ordersAlert.pendingCount}</span>
+              )}
+            </TabsTrigger>
+          ))}
+        </TabsList>
         <TabsContent value="accueil"><DashboardHome restaurantId={restaurantId} publicHref={publicHref} onNavigateTab={setTab} /></TabsContent>
         <TabsContent value="commandes"><OrdersPanel restaurantId={restaurantId} {...ordersAlert} /></TabsContent>
         <TabsContent value="clients"><CustomersPanel restaurantId={restaurantId} /></TabsContent>
@@ -377,6 +404,7 @@ export default function AdminPage() {
         <TabsContent value="disponibilite"><AvailabilityPanel restaurantId={restaurantId} timezone={restaurant?.timezone ?? "Africa/Abidjan"} /></TabsContent>
         <TabsContent value="settings" className="space-y-6"><Card className="p-5"><h2 className="font-display text-2xl font-semibold">Paramètres</h2><p className="mt-2 text-sm text-muted-foreground">Section réservée aux réglages complémentaires sans toucher à l’isolation multi-tenant.</p></Card><SubscriptionCard restaurantId={restaurantId} /><SecurityCard email={user.email ?? null} /></TabsContent>
       </Tabs>
+      </div>
       <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}><DialogContent><DialogHeader><DialogTitle>{editingCategory ? "Modifier la catégorie" : "Ajouter une catégorie"}</DialogTitle><DialogDescription>Formulaire compact dédié aux catégories.</DialogDescription></DialogHeader><Field label="Nom"><Input value={categoryLabel} onChange={(e) => setCategoryLabel(e.target.value)} /></Field><DialogFooter><Button variant="outline" onClick={() => setCategoryDialogOpen(false)} disabled={busy}>Annuler</Button><Button onClick={() => void saveCategory()} disabled={busy}>{busy ? "Sauvegarde..." : "Enregistrer"}</Button></DialogFooter></DialogContent></Dialog>
       <Dialog open={itemDialogOpen} onOpenChange={setItemDialogOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
@@ -466,6 +494,40 @@ export default function AdminPage() {
 }
 function SimpleAccess({ title, message, email, publicHref, onLogout }: { title: string; message: string; email: string; publicHref?: string; onLogout: () => Promise<void> }) {
   return (<main className="mx-auto max-w-xl px-4 py-20 text-center"><h1 className="font-display text-3xl font-semibold">{title}</h1><p className="mt-3 text-sm text-muted-foreground">{message}</p><p className="mt-2 text-xs text-muted-foreground">{email}</p><div className="mt-6 flex flex-wrap justify-center gap-2">{publicHref ? <a href={publicHref} target="_blank" rel="noopener noreferrer" className="inline-flex items-center rounded-full border border-border px-4 py-2 text-sm">Voir le site</a> : null}<Button variant="outline" onClick={() => void onLogout()}>Se déconnecter</Button></div><Toaster /></main>);
+}
+
+/** Desktop-only left sidebar mirroring the mobile tab bar's items -- both are driven by ADMIN_NAV_ITEMS and the same `tab` state, so they never drift apart. Mobile keeps its existing horizontal TabsList untouched (hidden here via lg:block). */
+function AdminSidebar({ items, activeValue, onSelect, pendingCount }: { items: readonly { value: string; label: string }[]; activeValue: string; onSelect: (value: string) => void; pendingCount: number }) {
+  return (
+    <aside className="hidden lg:sticky lg:top-6 lg:block lg:self-start">
+      <nav className="space-y-1 rounded-3xl border border-border bg-card p-3 shadow-sm">
+        {items.map((item) => {
+          const active = activeValue === item.value;
+          return (
+            <button
+              key={item.value}
+              type="button"
+              onClick={() => onSelect(item.value)}
+              className={`flex w-full items-center justify-between gap-2 rounded-2xl px-4 py-2.5 text-left text-sm font-medium transition-colors ${
+                active ? "bg-primary text-primary-foreground" : "text-foreground/80 hover:bg-muted"
+              }`}
+            >
+              <span>{item.label}</span>
+              {item.value === "commandes" && pendingCount > 0 && (
+                <span
+                  className={`rounded-full px-1.5 py-0.5 text-[0.65rem] font-semibold ${
+                    active ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary text-primary-foreground"
+                  }`}
+                >
+                  {pendingCount}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </nav>
+    </aside>
+  );
 }
 
 function Field({ label, children }: { label: string; children: ReactNode }) {

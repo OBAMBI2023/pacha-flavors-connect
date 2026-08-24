@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { Bell, ChevronDown, Menu, X } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import type { PublicRestaurant } from "@/lib/menu-db";
 import { useDeliveryLocation } from "@/lib/deliveryLocation";
 import { useUnreadClientNotificationsCount } from "@/lib/clientNotifications";
+import { useTenantNavItems } from "@/components/tenant/tenantNavItems";
+import { AccountLookupModal } from "@/components/tenant/AccountLookupModal";
 
 function scrollToId(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -11,13 +14,13 @@ function scrollToId(id: string) {
 export function TenantHeader({
   restaurant,
   hasContact,
-  onOpenCart,
+  onOpenOffers,
   onOpenNotifications,
 }: {
   restaurant: PublicRestaurant;
   subtotalLabel: string;
   hasContact: boolean;
-  onOpenCart: () => void;
+  onOpenOffers: () => void;
   onOpenNotifications: () => void;
 }) {
   const [navOpen, setNavOpen] = useState(false);
@@ -29,11 +32,21 @@ export function TenantHeader({
   // tapping it does next.
   const locationSecondaryLabel = location ? "Changer ma zone" : "Choisir une adresse";
 
+  // Mobile hamburger dropdown keeps its own, separate anchor-link list --
+  // this is not the mobile bottom nav ("le menu téléphone actuel"), so it's
+  // intentionally left untouched by the desktop nav unification below.
   const navLinks = [
     { id: "accueil", label: "Accueil" },
     { id: "carte", label: "Notre carte" },
     ...(hasContact ? [{ id: "localisation", label: "Contact" }] : []),
   ];
+
+  // Desktop nav renders the exact same items as TenantBottomNav (the mobile
+  // phone menu), from the same shared hook -- single source of truth.
+  const { items, accountModalOpen, closeAccountModal, submitPhone } = useTenantNavItems({
+    restaurantSlug: restaurant.slug,
+    onOpenOffers,
+  });
 
   const logo = restaurant.logo_url ? (
     <img src={restaurant.logo_url} alt={restaurant.name} className="h-9 w-9 shrink-0 rounded-full object-contain lg:h-14 lg:w-14" />
@@ -81,12 +94,38 @@ export function TenantHeader({
           {logo}
           <span className="min-w-0 truncate font-display text-xl font-semibold tracking-wide">{restaurant.name}</span>
         </div>
-        <nav className="hidden items-center gap-6 lg:flex">
-          {navLinks.map((link) => (
-            <button key={link.id} onClick={() => scrollToId(link.id)} className="text-sm font-medium text-foreground/80 transition-colors hover:text-primary">
-              {link.label}
-            </button>
-          ))}
+        <nav className="hidden items-center gap-1 lg:flex" aria-label="Navigation principale">
+          {items.map((item) => {
+            const Icon = item.icon;
+            const className = `relative flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+              item.active ? "bg-accent text-primary" : "text-foreground/80 hover:bg-muted hover:text-foreground"
+            }`;
+            const content = (
+              <>
+                <span className="relative grid place-items-center">
+                  <Icon className="h-4 w-4" />
+                  {item.badge !== undefined && (
+                    <span className="absolute -right-2 -top-2 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[0.6rem] font-bold text-primary-foreground">
+                      {item.badge}
+                    </span>
+                  )}
+                </span>
+                {item.label}
+              </>
+            );
+            if (item.to) {
+              return (
+                <Link key={item.key} to={item.to} className={className}>
+                  {content}
+                </Link>
+              );
+            }
+            return (
+              <button key={item.key} type="button" onClick={item.onClick} className={className}>
+                {content}
+              </button>
+            );
+          })}
         </nav>
         <div className="hidden shrink-0 items-center gap-2 lg:flex">
           <button onClick={onOpenNotifications} aria-label="Notifications" className="relative grid h-11 w-11 place-items-center rounded-full border border-border hover:bg-muted">
@@ -96,9 +135,6 @@ export function TenantHeader({
                 {unreadNotifications > 9 ? "9+" : unreadNotifications}
               </span>
             )}
-          </button>
-          <button onClick={onOpenCart} className="rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-sm transition-opacity hover:opacity-90">
-            Commander
           </button>
         </div>
       </div>
@@ -121,6 +157,10 @@ export function TenantHeader({
             ))}
           </ul>
         </nav>
+      )}
+
+      {accountModalOpen && (
+        <AccountLookupModal restaurantName={restaurant.name} onClose={closeAccountModal} onSubmit={submitPhone} />
       )}
     </header>
   );

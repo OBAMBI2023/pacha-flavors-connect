@@ -113,7 +113,10 @@ export function TenantOffersSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="flex h-[85vh] flex-col rounded-t-[20px] pb-[calc(1rem+env(safe-area-inset-bottom))]">
+      <SheetContent
+        side="bottom"
+        className="flex h-[85vh] flex-col rounded-t-[20px] pb-[calc(1rem+env(safe-area-inset-bottom))] lg:inset-x-auto lg:bottom-auto lg:left-1/2 lg:top-1/2 lg:h-auto lg:max-h-[90vh] lg:w-[calc(100vw-48px)] lg:max-w-[700px] lg:-translate-x-1/2 lg:-translate-y-1/2 lg:rounded-[28px] lg:border-0 lg:pb-6"
+      >
         {detail ? (
           <>
             <SheetHeader className="flex-row items-center gap-2 space-y-0 text-left">
