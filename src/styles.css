@@ -217,3 +217,31 @@
   --input: #ececee;
   --ring: #ff5a00;
 }
+
+/*
+ * Scoped SAOVIA Food Partner brand tokens (/auth only). Same isolation
+ * approach as .driver-app-theme above -- only elements under this class pick
+ * up the SAOVIA orange + navy palette, so the rest of the (per-restaurant)
+ * app keeps its own gold/cocoa theme untouched.
+ */
+.food-partner-theme {
+  --background: #faf7f2;
+  --foreground: #14213d;
+  --card: #ffffff;
+  --card-foreground: #14213d;
+  --popover: #ffffff;
+  --popover-foreground: #14213d;
+  --primary: #ff5a00;
+  --primary-foreground: #ffffff;
+  --secondary: #f3eee6;
+  --secondary-foreground: #14213d;
+  --muted: #f3eee6;
+  --muted-foreground: #5b6478;
+  --accent: #ffede1;
+  --accent-foreground: #ff5a00;
+  --destructive: #e5484d;
+  --destructive-foreground: #ffffff;
+  --border: #e7e2da;
+  --input: #e7e2da;
+  --ring: #ff5a00;
+}
