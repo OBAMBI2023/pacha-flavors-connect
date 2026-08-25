@@ -1,8 +1,8 @@
-// Push-notification scaffold, spliced into the generated service worker via
-// vite-plugin-pwa's `workbox.importScripts`. Nothing calls
-// `pushManager.subscribe()` anywhere in the app yet, so these handlers are
-// dormant -- this only prepares the architecture (per the "push" section of
-// the PWA brief) without a VAPID/subscription/send pipeline.
+// Push-notification handler, spliced into the generated service worker via
+// vite-plugin-pwa's `workbox.importScripts`. Wired up for real as of Phase 5
+// (SAOVIA Partner runtime): supabase/functions/send-push sends this shape
+// after a new delivery_proposals row appears (see
+// supabase/migrations/20260825201401_delivery_proposals_notify_push_trigger.sql).
 
 self.addEventListener("push", (event) => {
   if (!event.data) return;
@@ -19,6 +19,10 @@ self.addEventListener("push", (event) => {
     body: typeof payload.body === "string" ? payload.body : "",
     icon: "/icons/icon-192.png",
     badge: "/icons/icon-192.png",
+    // Matches the foreground Notification's own `tag` (the proposal id, set
+    // in useDriverProposalAlert.ts) so the OS coalesces the two into one
+    // visible notification instead of showing both.
+    tag: typeof payload.tag === "string" ? payload.tag : undefined,
     data: { url: typeof payload.url === "string" ? payload.url : "/" },
   };
 

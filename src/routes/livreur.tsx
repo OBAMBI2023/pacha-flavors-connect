@@ -24,6 +24,7 @@ import {
   LOCATION_PUSH_INTERVAL_IDLE_MS,
   inferDriverBusinessStatus,
   useDriverRuntimeStatus,
+  subscribeToPush,
 } from "@/partner-runtime";
 import { ProposalAlertCard } from "@/components/driver/ProposalAlertCard";
 import { ActiveDeliveryCard } from "@/components/driver/ActiveDeliveryCard";
@@ -360,8 +361,19 @@ function DriverDashboard({
 
   async function toggleAvailability() {
     const next = !available;
-    if (next && typeof Notification !== "undefined" && Notification.permission === "default") {
-      void Notification.requestPermission().catch(() => {});
+    // The one and only place Notification permission is ever requested --
+    // Phase 5 hangs the actual push subscription off this same explicit
+    // action, never on page load.
+    if (next && typeof Notification !== "undefined") {
+      let permission = Notification.permission;
+      if (permission === "default") {
+        permission = await Notification.requestPermission().catch(
+          () => "denied" as NotificationPermission,
+        );
+      }
+      if (permission === "granted") {
+        void subscribeToPush(driverId).catch(() => {});
+      }
     }
     setTogglingAvailability(true);
     try {
