@@ -17,6 +17,14 @@ import {
   type DriverOrderHistoryEntry,
 } from "@/lib/delivery";
 import { fetchAgentAssignedDeliveries, type AgentAssignedDelivery } from "@/lib/dispatch";
+import {
+  partnerConnectionManager,
+  driverHeartbeat,
+  LOCATION_PUSH_INTERVAL_ACTIVE_MS,
+  LOCATION_PUSH_INTERVAL_IDLE_MS,
+  inferDriverBusinessStatus,
+  useDriverRuntimeStatus,
+} from "@/partner-runtime";
 import { ProposalAlertCard } from "@/components/driver/ProposalAlertCard";
 import { ActiveDeliveryCard } from "@/components/driver/ActiveDeliveryCard";
 import { DriverHeader } from "@/components/driver/DriverHeader";
@@ -31,7 +39,10 @@ import { ReadinessTab } from "@/components/driver/ReadinessTab";
 import { SecondaryScreenHeader } from "@/components/driver/SecondaryScreenHeader";
 import { ZonesOpportunitiesCard } from "@/components/driver/ZonesOpportunitiesCard";
 import { SaoviaMissionCard } from "@/components/driver/SaoviaMissionCard";
-import { CompletedDeliveryScreen, type CompletedDeliverySummary } from "@/components/driver/CompletedDeliveryScreen";
+import {
+  CompletedDeliveryScreen,
+  type CompletedDeliverySummary,
+} from "@/components/driver/CompletedDeliveryScreen";
 import { DriverTrackingMap } from "@/components/admin/orders/DriverTrackingMap";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,9 +50,12 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const TITLE = "Espace livreur | SAOVIA";
-const LOCATION_PUSH_INTERVAL_ACTIVE_MS = 15_000;
-const LOCATION_PUSH_INTERVAL_IDLE_MS = 45_000;
-const BOTTOM_NAV_TABS: ReadonlySet<DriverTab> = new Set(["accueil", "courses", "messages", "profil"]);
+const BOTTOM_NAV_TABS: ReadonlySet<DriverTab> = new Set([
+  "accueil",
+  "courses",
+  "messages",
+  "profil",
+]);
 
 const ORDER_STATUS_LABELS: Record<string, string> = {
   pending: "En attente",
@@ -139,16 +153,31 @@ function DriverLoginForm() {
         <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
           <ShieldCheck className="h-7 w-7" />
         </div>
-        <p className="mt-4 text-center text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-primary">SAOVIA</p>
+        <p className="mt-4 text-center text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-primary">
+          SAOVIA
+        </p>
         <h1 className="text-center font-display text-2xl font-semibold">Connexion partenaire</h1>
         <form onSubmit={onSubmit} className="mt-6 space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">E-mail</Label>
-            <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Input
+              id="email"
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Mot de passe</Label>
-            <Input id="password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
+            <Input
+              id="password"
+              type="password"
+              required
+              minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
           </div>
           <Button type="submit" className="h-12 w-full rounded-2xl" disabled={busy}>
             {busy ? "Connexion..." : "Se connecter"}
@@ -186,9 +215,32 @@ function DriverDashboard({
   useAudioUnlock();
   useDriverProposalAlert(pendingProposal);
 
+  // SAOVIA Partner runtime: the realtime connection link lives for exactly
+  // as long as this dashboard is mounted (the driver is actively using the
+  // app) -- started/stopped in one place, never left running past unmount.
+  useEffect(() => {
+    partnerConnectionManager.start();
+    return () => partnerConnectionManager.stop();
+  }, []);
+
+  // Phase 3 socle: connectionState/presence/heartbeat age, derived from the
+  // existing pendingProposal/activeDelivery/available signals below --
+  // nothing here reads driver_profiles.status again or opens a new
+  // subscription. Not rendered yet (see Phase 3 section 8); this only wires
+  // the data so a status pill can be added without further plumbing.
+  useDriverRuntimeStatus(
+    inferDriverBusinessStatus({
+      available,
+      hasPendingProposal: Boolean(pendingProposal),
+      hasActiveDelivery: Boolean(activeDelivery),
+    }),
+  );
+
   // Same tracking cadence/guard logic as before the redesign, unchanged.
   const trackingActive = available || Boolean(activeDelivery);
-  const pushIntervalMs = activeDelivery ? LOCATION_PUSH_INTERVAL_ACTIVE_MS : LOCATION_PUSH_INTERVAL_IDLE_MS;
+  const pushIntervalMs = activeDelivery
+    ? LOCATION_PUSH_INTERVAL_ACTIVE_MS
+    : LOCATION_PUSH_INTERVAL_IDLE_MS;
 
   useEffect(() => {
     if (!trackingActive) return;
@@ -197,16 +249,22 @@ function DriverDashboard({
 
     function pushLocation() {
       if (!navigator.geolocation) return;
+      driverHeartbeat.recordAttempt();
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           if (cancelled) return;
           setLivePosition({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-          void updateDriverLocation(driverId, pos.coords.latitude, pos.coords.longitude).catch(() => {});
+          void updateDriverLocation(driverId, pos.coords.latitude, pos.coords.longitude)
+            .then(() => driverHeartbeat.recordSuccess())
+            .catch(() => driverHeartbeat.recordFailure());
         },
         () => {
+          driverHeartbeat.recordFailure();
           if (!warnedOnce) {
             warnedOnce = true;
-            toast.error("Position indisponible -- autorisez la géolocalisation pour recevoir des courses.");
+            toast.error(
+              "Position indisponible -- autorisez la géolocalisation pour recevoir des courses.",
+            );
           }
         },
         { enableHighAccuracy: true, maximumAge: 20_000, timeout: 15_000 },
@@ -360,8 +418,12 @@ function DriverDashboard({
                 activeDelivery={activeDelivery}
                 pendingProposal={pendingProposal}
                 respondingTo={respondingTo}
-                onAccept={() => pendingProposal && void handleRespond(pendingProposal.proposal_id, true)}
-                onRefuse={() => pendingProposal && void handleRespond(pendingProposal.proposal_id, false)}
+                onAccept={() =>
+                  pendingProposal && void handleRespond(pendingProposal.proposal_id, true)
+                }
+                onRefuse={() =>
+                  pendingProposal && void handleRespond(pendingProposal.proposal_id, false)
+                }
                 onAdvanced={refresh}
                 onGoToCourses={() => setTab("courses")}
                 onOpenNotifications={() => setTab("notifications")}
@@ -374,8 +436,12 @@ function DriverDashboard({
                 activeDelivery={activeDelivery}
                 pendingProposal={pendingProposal}
                 respondingTo={respondingTo}
-                onAccept={() => pendingProposal && void handleRespond(pendingProposal.proposal_id, true)}
-                onRefuse={() => pendingProposal && void handleRespond(pendingProposal.proposal_id, false)}
+                onAccept={() =>
+                  pendingProposal && void handleRespond(pendingProposal.proposal_id, true)
+                }
+                onRefuse={() =>
+                  pendingProposal && void handleRespond(pendingProposal.proposal_id, false)
+                }
                 onAdvanced={refresh}
                 recentOrders={recentOrders}
                 ordersLoading={ordersLoading}
@@ -386,10 +452,25 @@ function DriverDashboard({
               />
             )}
             {tab === "messages" && <MessagesTab />}
-            {tab === "gains" && <GainsTab stats={stats} recentOrders={recentOrders} ordersLoading={ordersLoading} onBack={() => setTab("accueil")} />}
+            {tab === "gains" && (
+              <GainsTab
+                stats={stats}
+                recentOrders={recentOrders}
+                ordersLoading={ordersLoading}
+                onBack={() => setTab("accueil")}
+              />
+            )}
             {tab === "notifications" && <NotificationsTab onBack={() => setTab("accueil")} />}
-            {tab === "readiness" && <ReadinessTab available={available} stats={stats} onBack={() => setTab("profil")} />}
-            {tab === "profil" && <ProfilTab driver={driver} stats={stats} onOpenReadiness={() => setTab("readiness")} />}
+            {tab === "readiness" && (
+              <ReadinessTab available={available} stats={stats} onBack={() => setTab("profil")} />
+            )}
+            {tab === "profil" && (
+              <ProfilTab
+                driver={driver}
+                stats={stats}
+                onOpenReadiness={() => setTab("readiness")}
+              />
+            )}
           </>
         )}
       </div>
@@ -449,12 +530,18 @@ function AccueilTab({
       <div className="overflow-hidden rounded-3xl bg-card shadow-sm">
         {livePosition ? (
           <div className="h-40 w-full">
-            <DriverTrackingMap driverPosition={livePosition} restaurantPosition={null} showRestaurantAsDestination={false} />
+            <DriverTrackingMap
+              driverPosition={livePosition}
+              restaurantPosition={null}
+              showRestaurantAsDestination={false}
+            />
           </div>
         ) : (
           <div className="flex h-40 flex-col items-center justify-center gap-1 bg-secondary text-center">
             <p className="text-sm font-medium text-muted-foreground">Carte indisponible</p>
-            <p className="text-xs text-muted-foreground/70">Autorisez la géolocalisation pour voir votre position.</p>
+            <p className="text-xs text-muted-foreground/70">
+              Autorisez la géolocalisation pour voir votre position.
+            </p>
           </div>
         )}
       </div>
@@ -462,7 +549,11 @@ function AccueilTab({
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="font-display text-lg font-semibold">Votre activité</h2>
-          <button type="button" onClick={onOpenGains} className="text-xs font-semibold text-primary">
+          <button
+            type="button"
+            onClick={onOpenGains}
+            className="text-xs font-semibold text-primary"
+          >
             Voir mes gains ›
           </button>
         </div>
@@ -476,7 +567,12 @@ function AccueilTab({
         ) : activeDelivery ? (
           <ActiveDeliveryCard activeDelivery={activeDelivery} onAdvanced={onAdvanced} />
         ) : pendingProposal ? (
-          <ProposalAlertCard proposal={pendingProposal} busy={respondingTo === pendingProposal.proposal_id} onAccept={onAccept} onRefuse={onRefuse} />
+          <ProposalAlertCard
+            proposal={pendingProposal}
+            busy={respondingTo === pendingProposal.proposal_id}
+            onAccept={onAccept}
+            onRefuse={onRefuse}
+          />
         ) : (
           <EmptyCoursesState available={available} onRefreshTab={onGoToCourses} />
         )}
@@ -525,7 +621,12 @@ function CoursesTab({
       ) : activeDelivery ? (
         <ActiveDeliveryCard activeDelivery={activeDelivery} onAdvanced={onAdvanced} />
       ) : pendingProposal ? (
-        <ProposalAlertCard proposal={pendingProposal} busy={respondingTo === pendingProposal.proposal_id} onAccept={onAccept} onRefuse={onRefuse} />
+        <ProposalAlertCard
+          proposal={pendingProposal}
+          busy={respondingTo === pendingProposal.proposal_id}
+          onAccept={onAccept}
+          onRefuse={onRefuse}
+        />
       ) : (
         <div className="rounded-3xl border border-dashed border-border bg-card py-10 text-center text-sm text-muted-foreground">
           Aucune course en cours.
@@ -544,7 +645,11 @@ function CoursesTab({
           ) : (
             <ul className="space-y-2">
               {saoviaMissions.map((m) => (
-                <SaoviaMissionCard key={m.assignment_id} mission={m} onChanged={onRefreshSaoviaMissions} />
+                <SaoviaMissionCard
+                  key={m.assignment_id}
+                  mission={m}
+                  onChanged={onRefreshSaoviaMissions}
+                />
               ))}
             </ul>
           )}
@@ -565,7 +670,10 @@ function CoursesTab({
         ) : (
           <ul className="space-y-2">
             {recentOrders.map((order) => (
-              <li key={order.id} className="flex items-center justify-between rounded-2xl bg-card p-3.5 shadow-sm">
+              <li
+                key={order.id}
+                className="flex items-center justify-between rounded-2xl bg-card p-3.5 shadow-sm"
+              >
                 <div>
                   <p className="text-sm font-semibold">Commande #{order.order_number}</p>
                   <p className="text-xs text-muted-foreground">{order.restaurant_name}</p>
@@ -574,7 +682,9 @@ function CoursesTab({
                   <p className="text-sm font-semibold">
                     {order.total_amount.toLocaleString("fr-FR")} {order.currency}
                   </p>
-                  <span className="text-xs text-muted-foreground">{ORDER_STATUS_LABELS[order.status] ?? order.status}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {ORDER_STATUS_LABELS[order.status] ?? order.status}
+                  </span>
                 </div>
               </li>
             ))}
@@ -606,7 +716,8 @@ function GainsTab({
         <p className="text-xs opacity-90">Solde disponible</p>
         <p className="mt-1 font-display text-3xl font-bold">--</p>
         <p className="mt-2 text-[0.7rem] opacity-80">
-          Le suivi détaillé des gains n'est pas encore disponible{stats ? ` -- ${stats.coursesCompletedToday} course(s) terminée(s) aujourd'hui.` : "."}
+          Le suivi détaillé des gains n'est pas encore disponible
+          {stats ? ` -- ${stats.coursesCompletedToday} course(s) terminée(s) aujourd'hui.` : "."}
         </p>
       </div>
 
@@ -627,11 +738,16 @@ function GainsTab({
         ) : (
           <ul className="space-y-2">
             {deliveredOrders.map((order) => (
-              <li key={order.id} className="flex items-center justify-between rounded-2xl bg-card p-3.5 shadow-sm">
+              <li
+                key={order.id}
+                className="flex items-center justify-between rounded-2xl bg-card p-3.5 shadow-sm"
+              >
                 <div>
                   <p className="text-sm font-semibold">Commande #{order.order_number}</p>
                   <p className="text-xs text-muted-foreground">
-                    {order.delivered_at ? new Date(order.delivered_at).toLocaleDateString("fr-FR") : new Date(order.created_at).toLocaleDateString("fr-FR")}
+                    {order.delivered_at
+                      ? new Date(order.delivered_at).toLocaleDateString("fr-FR")
+                      : new Date(order.created_at).toLocaleDateString("fr-FR")}
                   </p>
                 </div>
                 <p className="text-sm font-semibold">--</p>
@@ -694,18 +810,30 @@ function ProfilTab({
         </div>
       </section>
 
-      <Button variant="outline" className="w-full border-destructive text-destructive hover:bg-destructive/10" onClick={() => void supabase.auth.signOut()}>
+      <Button
+        variant="outline"
+        className="w-full border-destructive text-destructive hover:bg-destructive/10"
+        onClick={() => void supabase.auth.signOut()}
+      >
         <LogOut className="mr-2 h-4 w-4" /> Se déconnecter
       </Button>
     </>
   );
 }
 
-function EmptyCoursesState({ available, onRefreshTab }: { available: boolean; onRefreshTab: () => void }) {
+function EmptyCoursesState({
+  available,
+  onRefreshTab,
+}: {
+  available: boolean;
+  onRefreshTab: () => void;
+}) {
   return (
     <div className="flex flex-col items-center gap-2 rounded-3xl border border-dashed border-border bg-card py-14 text-center">
       <p className="text-sm text-muted-foreground">
-        {available ? "En attente d'une nouvelle livraison..." : "Passez disponible pour recevoir des livraisons."}
+        {available
+          ? "En attente d'une nouvelle livraison..."
+          : "Passez disponible pour recevoir des livraisons."}
       </p>
       <Button variant="ghost" size="sm" onClick={onRefreshTab} className="mt-2">
         Voir mes courses
