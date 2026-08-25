@@ -31,6 +31,10 @@ function tomorrowMinDate(): string {
   return d.toISOString().slice(0, 10);
 }
 
+function isScheduledDateValid(date: string): boolean {
+  return date >= tomorrowMinDate();
+}
+
 function NewDeliveryPage() {
   const navigate = useNavigate();
   const { user, organization, loading: authLoading } = useOrganizationAuth();
@@ -114,6 +118,10 @@ function NewDeliveryPage() {
   async function handleConfirm() {
     if (!organization) return;
     setError(null);
+    if (serviceLevel === "SCHEDULED" && !isScheduledDateValid(scheduledDate)) {
+      setError("Les livraisons programmées doivent être planifiées à partir de demain.");
+      return;
+    }
     setSubmitting(true);
     try {
       const scheduledPickupAt =
@@ -164,6 +172,7 @@ function NewDeliveryPage() {
         <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-primary">Livraison créée</p>
         <h1 className="mt-2 font-display text-2xl font-semibold">Commande #{confirmation.order_id}</h1>
         <Card className="mt-6 w-full space-y-2 p-5 text-left text-sm">
+          <div className="flex justify-between"><span className="text-muted-foreground">Type</span><span>HORS_RESTAURANT</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">Service</span><span>{confirmation.service_level === "EXPRESS" ? "Express" : "Programmée"}</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">Statut</span><span>{confirmation.status}</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">Collecte</span><span>{pickupAddress}</span></div>

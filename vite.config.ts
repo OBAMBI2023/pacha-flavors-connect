@@ -6,6 +6,12 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
+  // `npm run dev` (plain `vite dev`) binds to localhost only by default --
+  // LAN origins like http://192.168.1.79:5173 need this to be reachable
+  // without manually passing --host every time.
+  server: {
+    host: true,
+  },
   plugins: [
     tanstackStart(),
     react(),

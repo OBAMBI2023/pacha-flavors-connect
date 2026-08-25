@@ -96,14 +96,17 @@ function DeliveryDashboardPage() {
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-primary">{organization?.name}</p>
-          <h1 className="mt-1 font-display text-2xl font-semibold">Mes livraisons</h1>
+      <div className="rounded-3xl bg-gradient-to-r from-primary/15 via-primary/10 to-secondary/40 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-primary">HORS_RESTAURANT</p>
+            <h1 className="mt-1 font-display text-2xl font-semibold">{organization?.name}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Suivi des livraisons opérées par SAOVIA pour votre organisation.</p>
+          </div>
+          <Button asChild className="h-11">
+            <Link to="/delivery/new">Nouvelle livraison</Link>
+          </Button>
         </div>
-        <Button asChild className="h-11">
-          <Link to="/delivery/new">Nouvelle livraison</Link>
-        </Button>
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
@@ -123,39 +126,35 @@ function DeliveryDashboardPage() {
             <Button asChild><Link to="/delivery/new">Créer votre première livraison</Link></Button>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-2xl border border-border">
-            <table className="w-full text-sm">
-              <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <tr>
-                  <th className="p-3">Référence</th>
-                  <th className="p-3">Destinataire</th>
-                  <th className="p-3">Service</th>
-                  <th className="p-3">Statut</th>
-                  <th className="p-3">Collecte</th>
-                  <th className="p-3">Prix</th>
-                  <th className="p-3"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {deliveries.map((d) => (
-                  <tr key={d.id} className="border-t border-border">
-                    <td className="p-3 font-medium">{d.order_id}</td>
-                    <td className="p-3">{d.destination_name}</td>
-                    <td className="p-3">{d.service_level === "EXPRESS" ? "Express" : "Programmée"}</td>
-                    <td className="p-3"><Badge variant="outline">{STATUS_LABELS[d.status] ?? d.status}</Badge></td>
-                    <td className="p-3 text-muted-foreground">
-                      {d.scheduled_pickup_at ? new Date(d.scheduled_pickup_at).toLocaleString("fr-FR") : "Immédiate"}
-                    </td>
-                    <td className="p-3">{money(d.delivery_fee)}</td>
-                    <td className="p-3">
-                      <Link to="/delivery/$id" params={{ id: d.id }} className="text-primary underline underline-offset-4">
-                        Détail
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="grid gap-3 md:grid-cols-2">
+            {deliveries.map((d) => (
+              <Card key={d.id} className="space-y-3 p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[0.7rem] font-semibold uppercase tracking-[0.25em] text-primary">HORS_RESTAURANT</p>
+                    <p className="mt-1 font-semibold">{d.order_id}</p>
+                    <p className="text-xs text-muted-foreground">{d.service_level === "EXPRESS" ? "Express" : "Programmée"}</p>
+                  </div>
+                  <Badge variant="outline">{STATUS_LABELS[d.status] ?? d.status}</Badge>
+                </div>
+
+                <div className="space-y-1 text-sm">
+                  <p><span className="text-muted-foreground">Pickup:</span> {d.pickup_name}</p>
+                  <p className="text-muted-foreground">{d.pickup_address}</p>
+                  <p className="pt-2"><span className="text-muted-foreground">Destination:</span> {d.destination_name}</p>
+                  <p className="text-muted-foreground">{d.destination_address}</p>
+                </div>
+
+                <div className="flex items-center justify-between border-t border-border pt-3 text-xs text-muted-foreground">
+                  <span>{d.scheduled_pickup_at ? new Date(d.scheduled_pickup_at).toLocaleString("fr-FR") : "Immédiate"}</span>
+                  <span>{money(d.delivery_fee)}</span>
+                </div>
+
+                <Button asChild variant="outline" className="h-10 w-full">
+                  <Link to="/delivery/$id" params={{ id: d.id }}>Détail</Link>
+                </Button>
+              </Card>
+            ))}
           </div>
         )}
       </div>

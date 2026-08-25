@@ -92,7 +92,9 @@ function DeliveryDetailPage() {
       <Link to="/delivery/dashboard" className="text-sm text-muted-foreground underline underline-offset-4">
         &larr; Mes livraisons
       </Link>
+
       <div className="mt-4 flex flex-wrap items-center gap-2">
+        <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-primary">HORS_RESTAURANT</p>
         <h1 className="font-display text-2xl font-semibold">Commande #{delivery.order_id}</h1>
         <Badge variant="outline">{STATUS_LABELS[delivery.status] ?? delivery.status}</Badge>
       </div>

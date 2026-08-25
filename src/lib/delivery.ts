@@ -18,7 +18,7 @@ export type DriverDeliveryStatus =
 
 export type DriverProfile = {
   id: string;
-  restaurant_id: string;
+  restaurant_id: string | null;
   full_name: string;
   phone: string;
   is_active: boolean;
@@ -26,6 +26,7 @@ export type DriverProfile = {
   last_lat: number | null;
   last_lng: number | null;
   last_location_at: string | null;
+  is_saovia_agent: boolean;
 };
 
 export type DeliveryProposal = {
@@ -231,6 +232,68 @@ export async function reportDeliveryIssue(orderId: string, reason: string): Prom
  * scopes this to the caller's own restaurant.
  */
 export type DispatchProposalWithDriver = DeliveryProposal & { driver_name: string };
+
+/**
+ * Real, RLS-scoped numbers only -- orders_select_assigned_driver already
+ * lets a driver read every order assigned to them (assigned_driver_id =
+ * auth.uid()), and delivery_proposals_select_driver_own does the same for
+ * their own proposal history. No earnings figure here: there is no
+ * driver-commission column anywhere in this schema, and orders.total_amount
+ * is what the customer paid, not what the driver keeps -- conflating the
+ * two would be fabricated data, so it's deliberately not computed.
+ */
+export async function fetchDriverTodayStats(driverId: string): Promise<{
+  coursesToday: number;
+  coursesCompletedToday: number;
+  acceptanceRatePct: number | null;
+}> {
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const [ordersToday, proposals] = await Promise.all([
+    supabase.from("orders").select("status").eq("assigned_driver_id", driverId).gte("created_at", startOfDay.toISOString()),
+    supabase.from("delivery_proposals").select("status").eq("driver_id", driverId).in("status", ["accepted", "rejected", "expired"]),
+  ]);
+  if (ordersToday.error) throw ordersToday.error;
+  if (proposals.error) throw proposals.error;
+
+  const orderRows = (ordersToday.data ?? []) as unknown as Array<{ status: string }>;
+  const proposalRows = (proposals.data ?? []) as unknown as Array<{ status: string }>;
+  const acceptanceRatePct =
+    proposalRows.length === 0 ? null : Math.round((proposalRows.filter((p) => p.status === "accepted").length / proposalRows.length) * 100);
+
+  return {
+    coursesToday: orderRows.length,
+    coursesCompletedToday: orderRows.filter((o) => o.status === "delivered").length,
+    acceptanceRatePct,
+  };
+}
+
+export type DriverOrderHistoryEntry = {
+  id: string;
+  order_number: number;
+  status: string;
+  total_amount: number;
+  currency: string;
+  created_at: string;
+  delivered_at: string | null;
+  restaurant_name: string;
+};
+
+/** Real order rows the driver is already permitted to see (orders_select_assigned_driver), most recent first -- backs the "Courses" tab's history list, not a fabricated list. */
+export async function fetchDriverRecentOrders(driverId: string, limit = 20): Promise<DriverOrderHistoryEntry[]> {
+  const { data, error } = await supabase
+    .from("orders")
+    .select("id,order_number,status,total_amount,currency,created_at,delivered_at,restaurant:restaurants(name)")
+    .eq("assigned_driver_id", driverId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return ((data ?? []) as unknown as Array<Omit<DriverOrderHistoryEntry, "restaurant_name"> & { restaurant: { name: string } | null }>).map((row) => ({
+    ...row,
+    restaurant_name: row.restaurant?.name ?? "Restaurant",
+  }));
+}
 
 export async function fetchActiveProposalsForRestaurant(restaurantId: string): Promise<DispatchProposalWithDriver[]> {
   const { data, error } = await supabase

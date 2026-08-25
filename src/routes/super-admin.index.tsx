@@ -8,6 +8,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { DEFAULT_THEME } from "@/lib/theme";
 import { createTenant, fetchTenants, type RestaurantStatus, type TenantRow } from "@/lib/superAdminTenants";
 import { ReviewReportsSection } from "@/components/superadmin/ReviewReportsSection";
+import {
+  listDeliveriesForDispatch,
+  listSaoviaAgentsForDispatch,
+  assignAgentToDelivery,
+  type DispatchDelivery,
+  type DeliveryOrigin,
+  type SaoviaAgentForDispatch,
+  type DeliveryAssignmentRole,
+} from "@/lib/dispatch";
+import type { DeliveryServiceLevel } from "@/lib/organizationDelivery";
 
 const STATUSES = ["trial", "active", "suspended", "archived"] as const;
 const STATUS_LABELS: Record<RestaurantStatus, string> = {
@@ -63,6 +73,7 @@ function SuperAdminIndexPage() {
       <CreateTenantForm onCreated={load} />
       <UsersBlock tenants={tenants} />
       <ReviewReportsSection />
+      <DispatchBlock />
       <ThemesBlock />
       <PlatformSettingsBlock />
     </>
@@ -220,6 +231,210 @@ function StatCard({ label, value }: { label: string; value: number }) {
       <p className="text-[0.65rem] uppercase tracking-[0.25em] text-slate-500">{label}</p>
       <p className="mt-1 text-2xl font-semibold">{value}</p>
     </div>
+  );
+}
+
+const DISPATCH_STATUS_LABELS: Record<string, string> = {
+  pending: "En attente",
+  pending_pickup: "En attente de collecte",
+  assigned_pickup: "Collecte affectée",
+  picked_up: "Collectée",
+  ready_for_delivery: "Prête pour livraison",
+  assigned_delivery: "Livraison affectée",
+  in_transit: "En livraison",
+  delivered: "Livrée",
+  delivery_failed: "Échec de livraison",
+  cancelled: "Annulée",
+  returned: "Retournée",
+};
+
+const ORIGIN_LABELS: Record<DeliveryOrigin, string> = {
+  RESTAURANT: "Restaurant",
+  HORS_RESTAURANT: "Hors restaurant",
+};
+
+/**
+ * assign_agent_to_delivery() enforces the real pickup-before-delivery
+ * sequencing and double-booking protection server-side (validated live via
+ * SQL impersonation, not assumed here) -- this UI only offers the choice of
+ * role, it never guesses which one is valid; an invalid step simply surfaces
+ * the RPC's own rejection message via toast.
+ */
+function DispatchBlock() {
+  const [deliveries, setDeliveries] = useState<DispatchDelivery[]>([]);
+  const [agents, setAgents] = useState<SaoviaAgentForDispatch[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [originFilter, setOriginFilter] = useState<DeliveryOrigin | "all">("all");
+  const [serviceFilter, setServiceFilter] = useState<DeliveryServiceLevel | "all">("all");
+  const [assigningId, setAssigningId] = useState<string | null>(null);
+  const [selectedAgentId, setSelectedAgentId] = useState<string>("");
+  const [selectedRole, setSelectedRole] = useState<DeliveryAssignmentRole>("pickup");
+  const [submitting, setSubmitting] = useState(false);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const [d, a] = await Promise.all([
+        listDeliveriesForDispatch({
+          origin: originFilter === "all" ? undefined : originFilter,
+          serviceLevel: serviceFilter === "all" ? undefined : serviceFilter,
+        }),
+        listSaoviaAgentsForDispatch(),
+      ]);
+      setDeliveries(d);
+      setAgents(a);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Impossible de charger les livraisons à dispatcher.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [originFilter, serviceFilter]);
+
+  function openAssign(delivery: DispatchDelivery) {
+    setAssigningId(delivery.id);
+    setSelectedAgentId("");
+    setSelectedRole(delivery.assigned_pickup_agent_id ? "delivery" : "pickup");
+  }
+
+  async function submitAssign(deliveryId: string) {
+    if (!selectedAgentId) {
+      toast.error("Sélectionnez un livreur partenaire.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await assignAgentToDelivery(deliveryId, selectedAgentId, selectedRole);
+      toast.success("Livreur affecté.");
+      setAssigningId(null);
+      await load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Affectation impossible.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <section id="dispatch" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-700">SAOVIA Delivery</p>
+        <h2 className="mt-2 text-2xl font-semibold">Livraisons à dispatcher</h2>
+        <p className="mt-1 text-sm text-slate-500">Affectez un livreur partenaire SAOVIA aux livraisons restaurant et hors restaurant.</p>
+      </div>
+
+      <div className="mt-5 flex flex-wrap gap-2">
+        {(["all", "RESTAURANT", "HORS_RESTAURANT"] as const).map((o) => (
+          <button
+            key={o}
+            onClick={() => setOriginFilter(o)}
+            className={`rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${
+              originFilter === o ? "bg-cyan-700 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+            }`}
+          >
+            {o === "all" ? "Toutes origines" : ORIGIN_LABELS[o]}
+          </button>
+        ))}
+        {(["all", "EXPRESS", "SCHEDULED"] as const).map((s) => (
+          <button
+            key={s}
+            onClick={() => setServiceFilter(s)}
+            className={`rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${
+              serviceFilter === s ? "bg-cyan-700 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+            }`}
+          >
+            {s === "all" ? "Tous services" : s === "EXPRESS" ? "Express" : "Programmées"}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-5 space-y-3">
+        {loading && <p className="py-6 text-center text-sm text-slate-500">Chargement...</p>}
+        {!loading && deliveries.length === 0 && <p className="py-6 text-center text-sm text-slate-500">Aucune livraison.</p>}
+        {!loading &&
+          deliveries.map((d) => (
+            <div key={d.id} className="rounded-2xl border border-slate-200 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium uppercase tracking-wide text-slate-600">
+                    {ORIGIN_LABELS[d.origin]}
+                  </span>
+                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium uppercase tracking-wide text-slate-600">
+                    {d.service_level === "EXPRESS" ? "Express" : "Programmée"}
+                  </span>
+                  <span className="rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-medium uppercase tracking-wide text-cyan-800">
+                    {DISPATCH_STATUS_LABELS[d.status] ?? d.status}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500">{new Date(d.created_at).toLocaleString("fr-FR")}</p>
+              </div>
+
+              <div className="mt-3 grid gap-2 text-sm md:grid-cols-2">
+                <div>
+                  <p className="font-medium">{d.organization_name}</p>
+                  <p className="text-slate-500">Commande {d.order_id}</p>
+                </div>
+                <div className="text-slate-600">
+                  <p>Collecte : {d.pickup_name} · {d.pickup_address}</p>
+                  <p>Livraison : {d.destination_name} · {d.destination_address}</p>
+                </div>
+              </div>
+
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3 text-sm">
+                <div className="text-slate-600">
+                  <p>Collecte : {d.assigned_pickup_agent_name ?? "Non affecté"}</p>
+                  <p>Livraison : {d.assigned_delivery_agent_name ?? "Non affecté"}</p>
+                </div>
+                {d.delivery_fee != null && <p className="font-semibold">{d.delivery_fee.toLocaleString("fr-FR")} FCFA</p>}
+                <Button size="sm" variant="outline" onClick={() => openAssign(d)}>
+                  Attribuer un livreur
+                </Button>
+              </div>
+
+              {assigningId === d.id && (
+                <div className="mt-3 flex flex-wrap items-end gap-3 rounded-xl bg-slate-50 p-3">
+                  <label className="space-y-1">
+                    <span className="text-xs font-medium text-slate-600">Livreur partenaire</span>
+                    <select
+                      value={selectedAgentId}
+                      onChange={(e) => setSelectedAgentId(e.target.value)}
+                      className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-sm"
+                    >
+                      <option value="">Sélectionner...</option>
+                      {agents.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.full_name} {a.is_active ? "" : "(inactif)"} -- {a.active_missions_count} mission(s) en cours
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="space-y-1">
+                    <span className="text-xs font-medium text-slate-600">Étape</span>
+                    <select
+                      value={selectedRole}
+                      onChange={(e) => setSelectedRole(e.target.value as DeliveryAssignmentRole)}
+                      className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-sm"
+                    >
+                      <option value="pickup">Collecte</option>
+                      <option value="delivery">Livraison</option>
+                    </select>
+                  </label>
+                  <Button size="sm" onClick={() => void submitAssign(d.id)} disabled={submitting}>
+                    {submitting ? "Affectation..." : "Confirmer"}
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setAssigningId(null)}>
+                    Annuler
+                  </Button>
+                </div>
+              )}
+            </div>
+          ))}
+      </div>
+    </section>
   );
 }
 

@@ -183,3 +183,37 @@
     padding-block: 6rem;
   }
 }
+
+/*
+ * Scoped SAOVIA partner-app brand tokens (/livreur only).
+ *
+ * The app's own :root theme is a warm restaurant gold/cocoa palette shared
+ * by every tenant page -- overriding it globally would restyle the whole
+ * product. These custom properties only take effect inside an element
+ * carrying `.driver-app-theme` (the /livreur route root), so every existing
+ * `bg-primary`/`text-primary`/`rounded-2xl`/etc utility already used across
+ * the driver components picks up the SAOVIA brand values without any class
+ * renaming and without touching :root or .dark.
+ */
+.driver-app-theme {
+  --radius: 0.375rem;
+  --background: #f7f7f8;
+  --foreground: #111111;
+  --card: #ffffff;
+  --card-foreground: #111111;
+  --popover: #ffffff;
+  --popover-foreground: #111111;
+  --primary: #ff5a00;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f1f3;
+  --secondary-foreground: #111111;
+  --muted: #f1f1f3;
+  --muted-foreground: #6b6b6b;
+  --accent: #ffede1;
+  --accent-foreground: #ff5a00;
+  --destructive: #e5484d;
+  --destructive-foreground: #ffffff;
+  --border: #ececee;
+  --input: #ececee;
+  --ring: #ff5a00;
+}

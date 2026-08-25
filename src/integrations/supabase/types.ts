@@ -14,27 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      _concurrency_test_results: {
-        Row: {
-          detail: string | null
-          id: number
-          label: string
-          ts: string
-        }
-        Insert: {
-          detail?: string | null
-          id?: number
-          label: string
-          ts?: string
-        }
-        Update: {
-          detail?: string | null
-          id?: number
-          label?: string
-          ts?: string
-        }
-        Relationships: []
-      }
       api_keys: {
         Row: {
           created_at: string
@@ -3128,6 +3107,28 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_agent_assigned_deliveries: {
+        Args: never
+        Returns: {
+          assignment_id: string
+          created_at: string
+          delivery_fee: number
+          delivery_fee_calculation_method: string
+          delivery_provider: Database["public"]["Enums"]["delivery_provider"]
+          delivery_status: Database["public"]["Enums"]["delivery_status"]
+          destination_address: string
+          destination_name: string
+          id: string
+          order_id: string
+          origin: string
+          pickup_address: string
+          pickup_name: string
+          role: Database["public"]["Enums"]["delivery_assignment_role"]
+          scheduled_pickup_at: string
+          service_level: Database["public"]["Enums"]["delivery_service_level"]
+          status: Database["public"]["Enums"]["delivery_assignment_status"]
+        }[]
+      }
       get_client_notifications: {
         Args: { p_slug: string; p_visitor_id: string }
         Returns: Json
@@ -3261,6 +3262,37 @@ export type Database = {
         Returns: number
       }
       is_super_admin: { Args: never; Returns: boolean }
+      list_deliveries_for_dispatch: {
+        Args: {
+          p_origin?: string
+          p_service_level?: Database["public"]["Enums"]["delivery_service_level"]
+          p_status?: Database["public"]["Enums"]["delivery_status"]
+        }
+        Returns: {
+          assigned_delivery_agent_id: string
+          assigned_delivery_agent_name: string
+          assigned_pickup_agent_id: string
+          assigned_pickup_agent_name: string
+          created_at: string
+          delivery_distance_km: number
+          delivery_fee: number
+          delivery_fee_calculation_method: string
+          delivery_provider: Database["public"]["Enums"]["delivery_provider"]
+          destination_address: string
+          destination_name: string
+          external_reference: string
+          id: string
+          order_id: string
+          organization_id: string
+          organization_name: string
+          origin: string
+          pickup_address: string
+          pickup_name: string
+          scheduled_pickup_at: string
+          service_level: Database["public"]["Enums"]["delivery_service_level"]
+          status: Database["public"]["Enums"]["delivery_status"]
+        }[]
+      }
       list_organization_deliveries: {
         Args: { p_organization_id: string }
         Returns: {
@@ -3328,6 +3360,17 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      list_saovia_agents_for_dispatch: {
+        Args: never
+        Returns: {
+          active_missions_count: number
+          full_name: string
+          id: string
+          is_active: boolean
+          phone: string
+          status: Database["public"]["Enums"]["driver_status"]
+        }[]
       }
       log_audit_event: {
         Args: {

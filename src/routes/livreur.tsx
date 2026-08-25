@@ -1,24 +1,71 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { MapPin, Navigation, Package, Phone, Power, RefreshCcw } from "lucide-react";
+import { HelpCircle, LogOut, Shield, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useDriverAuth } from "@/hooks/useDriverAuth";
 import { useDriverProposals } from "@/hooks/useDriverProposals";
 import { useAudioUnlock } from "@/hooks/useAudioUnlock";
 import { useDriverProposalAlert } from "@/hooks/useDriverProposalAlert";
-import { respondToProposal, setDriverAvailability, updateDriverLocation } from "@/lib/delivery";
+import {
+  respondToProposal,
+  setDriverAvailability,
+  updateDriverLocation,
+  fetchDriverTodayStats,
+  fetchDriverRecentOrders,
+  type DriverActiveDelivery,
+  type DriverOrderHistoryEntry,
+} from "@/lib/delivery";
+import { fetchAgentAssignedDeliveries, type AgentAssignedDelivery } from "@/lib/dispatch";
 import { ProposalAlertCard } from "@/components/driver/ProposalAlertCard";
-import { DeliveryStepTimeline } from "@/components/driver/DeliveryStepTimeline";
-import { DeliveryActionButton } from "@/components/driver/DeliveryActionButton";
-import { CashCollectionSheet } from "@/components/driver/CashCollectionSheet";
+import { ActiveDeliveryCard } from "@/components/driver/ActiveDeliveryCard";
+import { DriverHeader } from "@/components/driver/DriverHeader";
+import { DriverStats, type DriverStatsData } from "@/components/driver/DriverStats";
+import { DriverBottomNav, type DriverTab } from "@/components/driver/DriverBottomNav";
+import { DriverProfileCard } from "@/components/driver/DriverProfileCard";
+import { VehicleCard } from "@/components/driver/VehicleCard";
+import { EarningsCard } from "@/components/driver/EarningsCard";
+import { MessagesTab } from "@/components/driver/MessagesTab";
+import { NotificationsTab } from "@/components/driver/NotificationsTab";
+import { ReadinessTab } from "@/components/driver/ReadinessTab";
+import { SecondaryScreenHeader } from "@/components/driver/SecondaryScreenHeader";
+import { ZonesOpportunitiesCard } from "@/components/driver/ZonesOpportunitiesCard";
+import { SaoviaMissionCard } from "@/components/driver/SaoviaMissionCard";
+import { CompletedDeliveryScreen, type CompletedDeliverySummary } from "@/components/driver/CompletedDeliveryScreen";
+import { DriverTrackingMap } from "@/components/admin/orders/DriverTrackingMap";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const TITLE = "Espace livreur | SAOVIA";
 const LOCATION_PUSH_INTERVAL_ACTIVE_MS = 15_000;
 const LOCATION_PUSH_INTERVAL_IDLE_MS = 45_000;
+const BOTTOM_NAV_TABS: ReadonlySet<DriverTab> = new Set(["accueil", "courses", "messages", "profil"]);
+
+const ORDER_STATUS_LABELS: Record<string, string> = {
+  pending: "En attente",
+  confirmed: "Confirmée",
+  preparing: "En préparation",
+  ready: "Prête",
+  out_for_delivery: "En livraison",
+  delivered: "Livrée",
+  cancelled: "Annulée",
+};
+
+const SAOVIA_MISSION_STATUS_LABELS: Record<string, string> = {
+  pending: "En attente",
+  pending_pickup: "En attente de collecte",
+  assigned_pickup: "Collecte à faire",
+  picked_up: "Collectée",
+  ready_for_delivery: "Prête pour livraison",
+  assigned_delivery: "Livraison à faire",
+  in_transit: "En livraison",
+  delivered: "Livrée",
+  delivery_failed: "Échec de livraison",
+  cancelled: "Annulée",
+  returned: "Retournée",
+};
 
 export const Route = createFileRoute("/livreur")({
   ssr: false,
@@ -30,32 +77,47 @@ function DriverPage() {
   const { session, loading: authLoading, driver } = useDriverAuth();
 
   if (authLoading) {
-    return <CenteredMessage>Chargement...</CenteredMessage>;
+    return (
+      <div className="driver-app-theme">
+        <CenteredMessage>Chargement...</CenteredMessage>
+      </div>
+    );
   }
   if (!session) {
-    return <DriverLoginForm />;
+    return (
+      <div className="driver-app-theme">
+        <DriverLoginForm />
+      </div>
+    );
   }
   if (!driver) {
     return (
-      <CenteredMessage>
-        <p>Ce compte n&apos;est pas configuré comme livreur.</p>
-        <Button variant="outline" className="mt-4" onClick={() => void supabase.auth.signOut()}>
-          Se déconnecter
-        </Button>
-      </CenteredMessage>
+      <div className="driver-app-theme">
+        <CenteredMessage>
+          <p>Ce compte n&apos;est pas configuré comme livreur.</p>
+          <Button variant="outline" className="mt-4" onClick={() => void supabase.auth.signOut()}>
+            Se déconnecter
+          </Button>
+        </CenteredMessage>
+      </div>
     );
   }
-  return <DriverDashboard driverId={driver.id} initiallyAvailable={driver.status === "available"} />;
+  return (
+    <div className="driver-app-theme">
+      <DriverDashboard driver={driver} initiallyAvailable={driver.status === "available"} />
+    </div>
+  );
 }
 
 function CenteredMessage({ children }: { children: React.ReactNode }) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-secondary/40 px-4 text-center text-sm text-muted-foreground">
+    <main className="flex min-h-screen items-center justify-center bg-background px-4 text-center text-sm text-muted-foreground">
       <div>{children}</div>
     </main>
   );
 }
 
+/** Styling only -- the actual auth call (signInWithPassword) is untouched, matching the already-fixed and separately-validated /delivery/login flow. */
 function DriverLoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -72,10 +134,13 @@ function DriverLoginForm() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-secondary/40 px-4 py-16">
-      <div className="w-full max-w-md rounded-3xl border border-border bg-card p-8 shadow-sm">
-        <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-primary">SAOVIA</p>
-        <h1 className="mt-2 font-display text-3xl font-semibold">Espace livreur</h1>
+    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-16">
+      <div className="w-full max-w-md rounded-3xl bg-card p-8 shadow-sm">
+        <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
+          <ShieldCheck className="h-7 w-7" />
+        </div>
+        <p className="mt-4 text-center text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-primary">SAOVIA</p>
+        <h1 className="text-center font-display text-2xl font-semibold">Connexion partenaire</h1>
         <form onSubmit={onSubmit} className="mt-6 space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">E-mail</Label>
@@ -85,39 +150,43 @@ function DriverLoginForm() {
             <Label htmlFor="password">Mot de passe</Label>
             <Input id="password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
-          <Button type="submit" className="w-full" disabled={busy}>
-            Se connecter
+          <Button type="submit" className="h-12 w-full rounded-2xl" disabled={busy}>
+            {busy ? "Connexion..." : "Se connecter"}
           </Button>
         </form>
-        {message && <p className="mt-4 text-sm text-muted-foreground">{message}</p>}
+        {message && <p className="mt-4 text-center text-sm text-muted-foreground">{message}</p>}
       </div>
     </main>
   );
 }
 
-function DriverDashboard({ driverId, initiallyAvailable }: { driverId: string; initiallyAvailable: boolean }) {
+function DriverDashboard({
+  driver,
+  initiallyAvailable,
+}: {
+  driver: NonNullable<ReturnType<typeof useDriverAuth>["driver"]>;
+  initiallyAvailable: boolean;
+}) {
+  const driverId = driver.id;
+  const [tab, setTab] = useState<DriverTab>("accueil");
   const [available, setAvailable] = useState(initiallyAvailable);
   const [togglingAvailability, setTogglingAvailability] = useState(false);
   const [respondingTo, setRespondingTo] = useState<string | null>(null);
-  const [cashSheetOpen, setCashSheetOpen] = useState(false);
+  const [livePosition, setLivePosition] = useState<{ lat: number; lng: number } | null>(null);
+  const [stats, setStats] = useState<DriverStatsData | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [recentOrders, setRecentOrders] = useState<DriverOrderHistoryEntry[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [saoviaMissions, setSaoviaMissions] = useState<AgentAssignedDelivery[]>([]);
+  const [saoviaMissionsLoading, setSaoviaMissionsLoading] = useState(driver.is_saovia_agent);
+  const [completedDelivery, setCompletedDelivery] = useState<CompletedDeliverySummary | null>(null);
+  const prevActiveDeliveryRef = useRef<DriverActiveDelivery | null>(null);
   const { pendingProposal, activeDelivery, loading, refresh } = useDriverProposals(driverId);
 
   useAudioUnlock();
   useDriverProposalAlert(pendingProposal);
 
-  // Pushes a fresh position while the driver is available (dispatch needs
-  // this to consider them for new proposals, well under the 5-minute
-  // freshness window) OR while a delivery is actually active (tenant
-  // tracking needs this). `trackingActive` -- not `available` alone -- is
-  // the guard: if setDriverAvailability's own server-side no-op guard
-  // (status must be 'available'/'offline') silently rejects a
-  // "Passer hors ligne" click mid-delivery, `available` still flips
-  // optimistically client-side, but `activeDelivery` keeps this running
-  // regardless, so GPS never stops mid-delivery by accident. Cadence steps
-  // up to ~15s once there's a real active delivery (tenant map wants
-  // fresher updates than mere dispatch-eligibility needs); stopping at
-  // delivered/cancelled falls out for free since get_driver_active_delivery
-  // already excludes those statuses, so activeDelivery just becomes null.
+  // Same tracking cadence/guard logic as before the redesign, unchanged.
   const trackingActive = available || Boolean(activeDelivery);
   const pushIntervalMs = activeDelivery ? LOCATION_PUSH_INTERVAL_ACTIVE_MS : LOCATION_PUSH_INTERVAL_IDLE_MS;
 
@@ -131,6 +200,7 @@ function DriverDashboard({ driverId, initiallyAvailable }: { driverId: string; i
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           if (cancelled) return;
+          setLivePosition({ lat: pos.coords.latitude, lng: pos.coords.longitude });
           void updateDriverLocation(driverId, pos.coords.latitude, pos.coords.longitude).catch(() => {});
         },
         () => {
@@ -151,14 +221,87 @@ function DriverDashboard({ driverId, initiallyAvailable }: { driverId: string; i
     };
   }, [trackingActive, pushIntervalMs, driverId]);
 
+  // Real, RLS-scoped numbers -- refetched whenever the live proposal/active
+  // delivery reference changes (accept/refuse/status-advance all flow
+  // through useDriverProposals' own realtime refresh), so the KPIs and the
+  // history list stay honest without a separate polling loop.
+  useEffect(() => {
+    let cancelled = false;
+    setStatsLoading(true);
+    setOrdersLoading(true);
+    Promise.all([fetchDriverTodayStats(driverId), fetchDriverRecentOrders(driverId)])
+      .then(([s, orders]) => {
+        if (cancelled) return;
+        setStats(s);
+        setRecentOrders(orders);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (cancelled) return;
+        setStatsLoading(false);
+        setOrdersLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [driverId, activeDelivery, pendingProposal]);
+
+  async function loadSaoviaMissions() {
+    if (!driver.is_saovia_agent) return;
+    let cancelled = false;
+    setSaoviaMissionsLoading(true);
+    try {
+      const missions = await fetchAgentAssignedDeliveries();
+      if (!cancelled) setSaoviaMissions(missions);
+    } catch {
+      // ignore: the page already shows an empty/error-free state
+    } finally {
+      if (!cancelled) setSaoviaMissionsLoading(false);
+    }
+    return () => {
+      cancelled = true;
+    };
+  }
+
+  // Only wired for SAOVIA agents (driver_profiles.is_saovia_agent) -- a
+  // tenant restaurant driver never has missions here, so this stays a no-op
+  // request-free branch for them, not an empty state that implies a feature.
+  useEffect(() => {
+    if (!driver.is_saovia_agent) return;
+    let cancelled = false;
+    setSaoviaMissionsLoading(true);
+    fetchAgentAssignedDeliveries()
+      .then((missions) => {
+        if (!cancelled) setSaoviaMissions(missions);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setSaoviaMissionsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [driver.is_saovia_agent, driverId]);
+
+  // Detects a real completion: the previous activeDelivery was at
+  // 'delivered' and get_driver_active_delivery() now returns nothing for it
+  // (it only ever returns non-terminal deliveries). Nothing here is
+  // speculative -- both the previous snapshot and the transition are the
+  // same real payload/hook already driving the rest of this page.
+  useEffect(() => {
+    const prev = prevActiveDeliveryRef.current;
+    if (prev && prev.driver_delivery_status === "delivered" && !activeDelivery) {
+      setCompletedDelivery({
+        order_number: prev.order_number,
+        restaurant_name: prev.restaurant_name,
+        delivery_distance_km: prev.delivery_distance_km,
+      });
+    }
+    prevActiveDeliveryRef.current = activeDelivery;
+  }, [activeDelivery]);
+
   async function toggleAvailability() {
     const next = !available;
-    // Contextual permission request -- exactly when the driver signals
-    // intent to receive courses, never blindly on page load. Synchronous,
-    // before the network call (not after an await), to stay inside the
-    // user-activation window on stricter browsers (WebKit). Independent of
-    // whether setDriverAvailability itself succeeds. `=== "default"` means
-    // this never re-prompts once the browser has settled on granted/denied.
     if (next && typeof Notification !== "undefined" && Notification.permission === "default") {
       void Notification.requestPermission().catch(() => {});
     }
@@ -189,123 +332,384 @@ function DriverDashboard({ driverId, initiallyAvailable }: { driverId: string; i
     }
   }
 
+  const showBottomNav = !completedDelivery && BOTTOM_NAV_TABS.has(tab);
+
   return (
-    <main className="min-h-screen bg-secondary/40 pb-16">
-      <div className="mx-auto max-w-lg px-4 py-6">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-primary">SAOVIA</p>
-            <h1 className="mt-1 font-display text-2xl font-semibold">Espace livreur</h1>
-          </div>
-          <Button variant="outline" size="sm" onClick={() => void supabase.auth.signOut()}>
-            Déconnexion
-          </Button>
-        </div>
-
-        <div className="mt-6 flex items-center justify-between rounded-2xl border border-border bg-card p-4">
-          <div className="flex items-center gap-2">
-            <span className={`h-2.5 w-2.5 rounded-full ${available ? "bg-emerald-500" : "bg-muted-foreground/50"}`} />
-            <span className="text-sm font-medium">{available ? "Disponible" : "Hors ligne"}</span>
-          </div>
-          <Button size="sm" variant={available ? "outline" : "default"} disabled={togglingAvailability} onClick={() => void toggleAvailability()}>
-            <Power className="mr-2 h-4 w-4" />
-            {available ? "Passer hors ligne" : "Devenir disponible"}
-          </Button>
-        </div>
-
-        {loading ? (
-          <p className="mt-8 text-center text-sm text-muted-foreground">Chargement...</p>
-        ) : activeDelivery ? (
-          <div className="mt-6 space-y-4 rounded-2xl border border-primary/30 bg-card p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Livraison en cours</p>
-            <p className="font-display text-xl font-semibold">Commande #{activeDelivery.order_number}</p>
-            <p className="text-sm text-muted-foreground">{activeDelivery.restaurant_name}</p>
-            <div className="space-y-2 border-t border-border pt-4 text-sm">
-              {activeDelivery.is_for_someone_else && (
-                <p className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">🎁 Livraison pour une autre personne</p>
-              )}
-              <p className="font-medium">{activeDelivery.is_for_someone_else ? activeDelivery.recipient_name : activeDelivery.customer_name}</p>
-              <p className="flex items-center gap-1.5 text-muted-foreground">
-                <Phone className="h-3.5 w-3.5 shrink-0" />
-                {activeDelivery.is_for_someone_else ? activeDelivery.recipient_phone : activeDelivery.customer_phone}
-              </p>
-              {activeDelivery.delivery_address && (
-                <p className="flex items-start gap-1.5 text-muted-foreground">
-                  <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                  <span>
-                    {activeDelivery.delivery_address}
-                    {activeDelivery.delivery_neighborhood ? ` · ${activeDelivery.delivery_neighborhood}` : activeDelivery.delivery_commune ? ` · ${activeDelivery.delivery_commune}` : ""}
-                  </span>
-                </p>
-              )}
-              {activeDelivery.delivery_landmark && (
-                <p className="pl-5 text-xs text-muted-foreground">Point de repère : {activeDelivery.delivery_landmark}</p>
-              )}
-              {activeDelivery.delivery_distance_km !== null && (
-                <p className="pl-5 text-xs text-muted-foreground">Distance : {activeDelivery.delivery_distance_km.toFixed(2)} km</p>
-              )}
-              {activeDelivery.allergy_information && (
-                <p className="text-destructive">⚠️ Allergies : {activeDelivery.allergy_information}</p>
-              )}
-              {activeDelivery.delivery_instructions && (
-                <p className="text-muted-foreground">Instructions : {activeDelivery.delivery_instructions}</p>
-              )}
-              {activeDelivery.driver_note && activeDelivery.driver_note !== activeDelivery.delivery_instructions && (
-                <p className="text-muted-foreground">Consigne : {activeDelivery.driver_note}</p>
-              )}
-            </div>
-            {activeDelivery.items.length > 0 && (
-              <ul className="space-y-1 border-t border-border pt-3 text-sm text-muted-foreground">
-                {activeDelivery.items.map((item, i) => (
-                  <li key={i} className="flex items-center gap-1.5">
-                    <Package className="h-3.5 w-3.5 shrink-0" />
-                    {item.quantity} × {item.product_name}
-                  </li>
-                ))}
-              </ul>
-            )}
-            <div className="flex items-center justify-between border-t border-border pt-4 text-base font-semibold">
-              <span>Montant à collecter</span>
-              <span>
-                {activeDelivery.total_amount.toLocaleString("fr-FR")} {activeDelivery.currency}
-              </span>
-            </div>
-            <DeliveryStepTimeline
-              status={activeDelivery.driver_delivery_status}
-              isCashOrder={
-                activeDelivery.payment_status === "cash_pending" ||
-                activeDelivery.driver_delivery_status === "cash_collection" ||
-                activeDelivery.driver_delivery_status === "payment_confirmed"
-              }
-            />
-            <DeliveryActionButton activeDelivery={activeDelivery} onAdvanced={refresh} onOpenCashCollection={() => setCashSheetOpen(true)} />
-            <CashCollectionSheet
-              open={cashSheetOpen}
-              onOpenChange={setCashSheetOpen}
-              activeDelivery={activeDelivery}
-              onConfirmed={refresh}
-            />
-          </div>
-        ) : pendingProposal ? (
-          <ProposalAlertCard
-            proposal={pendingProposal}
-            busy={respondingTo === pendingProposal.proposal_id}
-            onAccept={() => void handleRespond(pendingProposal.proposal_id, true)}
-            onRefuse={() => void handleRespond(pendingProposal.proposal_id, false)}
+    <main className="min-h-screen bg-background pb-28">
+      <div className="mx-auto max-w-lg space-y-6 px-4 py-6">
+        {completedDelivery ? (
+          <CompletedDeliveryScreen
+            delivery={completedDelivery}
+            onDone={() => {
+              setCompletedDelivery(null);
+              setTab("accueil");
+            }}
           />
         ) : (
-          <div className="mt-8 flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border bg-card py-14 text-center">
-            <Navigation className="h-8 w-8 text-muted-foreground/40" />
-            <p className="text-sm text-muted-foreground">
-              {available ? "En attente d'une nouvelle livraison..." : "Passez disponible pour recevoir des livraisons."}
-            </p>
-            <Button variant="ghost" size="sm" onClick={() => void refresh()} className="mt-2">
-              <RefreshCcw className="mr-2 h-3.5 w-3.5" /> Actualiser
-            </Button>
-          </div>
+          <>
+            {tab === "accueil" && (
+              <AccueilTab
+                driver={driver}
+                available={available}
+                togglingAvailability={togglingAvailability}
+                onToggleAvailability={() => void toggleAvailability()}
+                livePosition={livePosition}
+                stats={stats}
+                statsLoading={statsLoading}
+                loading={loading}
+                activeDelivery={activeDelivery}
+                pendingProposal={pendingProposal}
+                respondingTo={respondingTo}
+                onAccept={() => pendingProposal && void handleRespond(pendingProposal.proposal_id, true)}
+                onRefuse={() => pendingProposal && void handleRespond(pendingProposal.proposal_id, false)}
+                onAdvanced={refresh}
+                onGoToCourses={() => setTab("courses")}
+                onOpenNotifications={() => setTab("notifications")}
+                onOpenGains={() => setTab("gains")}
+              />
+            )}
+            {tab === "courses" && (
+              <CoursesTab
+                loading={loading}
+                activeDelivery={activeDelivery}
+                pendingProposal={pendingProposal}
+                respondingTo={respondingTo}
+                onAccept={() => pendingProposal && void handleRespond(pendingProposal.proposal_id, true)}
+                onRefuse={() => pendingProposal && void handleRespond(pendingProposal.proposal_id, false)}
+                onAdvanced={refresh}
+                recentOrders={recentOrders}
+                ordersLoading={ordersLoading}
+                isSaoviaAgent={driver.is_saovia_agent}
+                saoviaMissions={saoviaMissions}
+                saoviaMissionsLoading={saoviaMissionsLoading}
+                onRefreshSaoviaMissions={() => void loadSaoviaMissions()}
+              />
+            )}
+            {tab === "messages" && <MessagesTab />}
+            {tab === "gains" && <GainsTab stats={stats} recentOrders={recentOrders} ordersLoading={ordersLoading} onBack={() => setTab("accueil")} />}
+            {tab === "notifications" && <NotificationsTab onBack={() => setTab("accueil")} />}
+            {tab === "readiness" && <ReadinessTab available={available} stats={stats} onBack={() => setTab("profil")} />}
+            {tab === "profil" && <ProfilTab driver={driver} stats={stats} onOpenReadiness={() => setTab("readiness")} />}
+          </>
         )}
       </div>
+      {showBottomNav && <DriverBottomNav active={tab} onChange={setTab} />}
     </main>
   );
 }
 
+function AccueilTab({
+  driver,
+  available,
+  togglingAvailability,
+  onToggleAvailability,
+  livePosition,
+  stats,
+  statsLoading,
+  loading,
+  activeDelivery,
+  pendingProposal,
+  respondingTo,
+  onAccept,
+  onRefuse,
+  onAdvanced,
+  onGoToCourses,
+  onOpenNotifications,
+  onOpenGains,
+}: {
+  driver: Parameters<typeof DriverHeader>[0]["driver"];
+  available: boolean;
+  togglingAvailability: boolean;
+  onToggleAvailability: () => void;
+  livePosition: { lat: number; lng: number } | null;
+  stats: DriverStatsData | null;
+  statsLoading: boolean;
+  loading: boolean;
+  activeDelivery: Parameters<typeof ActiveDeliveryCard>[0]["activeDelivery"] | null;
+  pendingProposal: Parameters<typeof ProposalAlertCard>[0]["proposal"] | null;
+  respondingTo: string | null;
+  onAccept: () => void;
+  onRefuse: () => void;
+  onAdvanced: () => void | Promise<void>;
+  onGoToCourses: () => void;
+  onOpenNotifications: () => void;
+  onOpenGains: () => void;
+}) {
+  return (
+    <>
+      <DriverHeader
+        driver={driver}
+        available={available}
+        togglingAvailability={togglingAvailability}
+        onToggleAvailability={onToggleAvailability}
+        onOpenNotifications={onOpenNotifications}
+        onOpenGains={onOpenGains}
+      />
+
+      <div className="overflow-hidden rounded-3xl bg-card shadow-sm">
+        {livePosition ? (
+          <div className="h-40 w-full">
+            <DriverTrackingMap driverPosition={livePosition} restaurantPosition={null} showRestaurantAsDestination={false} />
+          </div>
+        ) : (
+          <div className="flex h-40 flex-col items-center justify-center gap-1 bg-secondary text-center">
+            <p className="text-sm font-medium text-muted-foreground">Carte indisponible</p>
+            <p className="text-xs text-muted-foreground/70">Autorisez la géolocalisation pour voir votre position.</p>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-display text-lg font-semibold">Votre activité</h2>
+          <button type="button" onClick={onOpenGains} className="text-xs font-semibold text-primary">
+            Voir mes gains ›
+          </button>
+        </div>
+        <DriverStats data={stats} loading={statsLoading} />
+      </div>
+
+      <div>
+        <h2 className="mb-3 font-display text-lg font-semibold">Courses disponibles</h2>
+        {loading ? (
+          <Skeleton className="h-40 w-full rounded-3xl" />
+        ) : activeDelivery ? (
+          <ActiveDeliveryCard activeDelivery={activeDelivery} onAdvanced={onAdvanced} />
+        ) : pendingProposal ? (
+          <ProposalAlertCard proposal={pendingProposal} busy={respondingTo === pendingProposal.proposal_id} onAccept={onAccept} onRefuse={onRefuse} />
+        ) : (
+          <EmptyCoursesState available={available} onRefreshTab={onGoToCourses} />
+        )}
+      </div>
+
+      <ZonesOpportunitiesCard />
+    </>
+  );
+}
+
+function CoursesTab({
+  loading,
+  activeDelivery,
+  pendingProposal,
+  respondingTo,
+  onAccept,
+  onRefuse,
+  onAdvanced,
+  recentOrders,
+  ordersLoading,
+  isSaoviaAgent,
+  saoviaMissions,
+  saoviaMissionsLoading,
+  onRefreshSaoviaMissions,
+}: {
+  loading: boolean;
+  activeDelivery: Parameters<typeof ActiveDeliveryCard>[0]["activeDelivery"] | null;
+  pendingProposal: Parameters<typeof ProposalAlertCard>[0]["proposal"] | null;
+  respondingTo: string | null;
+  onAccept: () => void;
+  onRefuse: () => void;
+  onAdvanced: () => void | Promise<void>;
+  recentOrders: DriverOrderHistoryEntry[];
+  ordersLoading: boolean;
+  isSaoviaAgent: boolean;
+  saoviaMissions: AgentAssignedDelivery[];
+  saoviaMissionsLoading: boolean;
+  onRefreshSaoviaMissions: () => void | Promise<void>;
+}) {
+  return (
+    <>
+      <h1 className="font-display text-2xl font-semibold">Mes courses</h1>
+
+      {loading ? (
+        <Skeleton className="h-40 w-full rounded-3xl" />
+      ) : activeDelivery ? (
+        <ActiveDeliveryCard activeDelivery={activeDelivery} onAdvanced={onAdvanced} />
+      ) : pendingProposal ? (
+        <ProposalAlertCard proposal={pendingProposal} busy={respondingTo === pendingProposal.proposal_id} onAccept={onAccept} onRefuse={onRefuse} />
+      ) : (
+        <div className="rounded-3xl border border-dashed border-border bg-card py-10 text-center text-sm text-muted-foreground">
+          Aucune course en cours.
+        </div>
+      )}
+
+      {isSaoviaAgent && (
+        <div>
+          <h2 className="mb-3 mt-2 font-display text-base font-semibold">Missions SAOVIA</h2>
+          {saoviaMissionsLoading ? (
+            <Skeleton className="h-24 w-full rounded-2xl" />
+          ) : saoviaMissions.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border bg-card py-8 text-center text-sm text-muted-foreground">
+              Aucune mission affectée pour le moment.
+            </div>
+          ) : (
+            <ul className="space-y-2">
+              {saoviaMissions.map((m) => (
+                <SaoviaMissionCard key={m.assignment_id} mission={m} onChanged={onRefreshSaoviaMissions} />
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      <div>
+        <h2 className="mb-3 mt-2 font-display text-base font-semibold">Historique</h2>
+        {ordersLoading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-16 w-full rounded-2xl" />
+            <Skeleton className="h-16 w-full rounded-2xl" />
+          </div>
+        ) : recentOrders.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border bg-card py-8 text-center text-sm text-muted-foreground">
+            Aucune course pour le moment.
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {recentOrders.map((order) => (
+              <li key={order.id} className="flex items-center justify-between rounded-2xl bg-card p-3.5 shadow-sm">
+                <div>
+                  <p className="text-sm font-semibold">Commande #{order.order_number}</p>
+                  <p className="text-xs text-muted-foreground">{order.restaurant_name}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-semibold">
+                    {order.total_amount.toLocaleString("fr-FR")} {order.currency}
+                  </p>
+                  <span className="text-xs text-muted-foreground">{ORDER_STATUS_LABELS[order.status] ?? order.status}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </>
+  );
+}
+
+function GainsTab({
+  stats,
+  recentOrders,
+  ordersLoading,
+  onBack,
+}: {
+  stats: DriverStatsData | null;
+  recentOrders: DriverOrderHistoryEntry[];
+  ordersLoading: boolean;
+  onBack: () => void;
+}) {
+  const deliveredOrders = recentOrders.filter((o) => o.status === "delivered");
+
+  return (
+    <>
+      <SecondaryScreenHeader title="Mes gains" onBack={onBack} />
+
+      <div className="rounded-3xl bg-primary p-5 text-center text-primary-foreground shadow-sm">
+        <p className="text-xs opacity-90">Solde disponible</p>
+        <p className="mt-1 font-display text-3xl font-bold">--</p>
+        <p className="mt-2 text-[0.7rem] opacity-80">
+          Le suivi détaillé des gains n'est pas encore disponible{stats ? ` -- ${stats.coursesCompletedToday} course(s) terminée(s) aujourd'hui.` : "."}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <EarningsCard label="Aujourd'hui" amount={null} />
+        <EarningsCard label="Cette semaine" amount={null} />
+        <EarningsCard label="Ce mois" amount={null} />
+      </div>
+
+      <div>
+        <h2 className="mb-3 font-display text-base font-semibold">Historique</h2>
+        {ordersLoading ? (
+          <Skeleton className="h-16 w-full rounded-2xl" />
+        ) : deliveredOrders.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border bg-card py-8 text-center text-sm text-muted-foreground">
+            Aucune course terminée pour le moment.
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {deliveredOrders.map((order) => (
+              <li key={order.id} className="flex items-center justify-between rounded-2xl bg-card p-3.5 shadow-sm">
+                <div>
+                  <p className="text-sm font-semibold">Commande #{order.order_number}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {order.delivered_at ? new Date(order.delivered_at).toLocaleDateString("fr-FR") : new Date(order.created_at).toLocaleDateString("fr-FR")}
+                  </p>
+                </div>
+                <p className="text-sm font-semibold">--</p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </>
+  );
+}
+
+function ProfilTab({
+  driver,
+  stats,
+  onOpenReadiness,
+}: {
+  driver: Parameters<typeof DriverProfileCard>[0]["driver"];
+  stats: DriverStatsData | null;
+  onOpenReadiness: () => void;
+}) {
+  return (
+    <>
+      <h1 className="font-display text-2xl font-semibold">Mon profil</h1>
+      <DriverProfileCard driver={driver} />
+
+      <button
+        type="button"
+        onClick={onOpenReadiness}
+        className="flex w-full items-center justify-between rounded-2xl bg-card p-4 text-left shadow-sm"
+      >
+        <div className="flex items-center gap-3">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+            <ShieldCheck className="h-4 w-4" />
+          </span>
+          <p className="text-sm font-semibold">Avant de commencer</p>
+        </div>
+        <span className="text-muted-foreground">›</span>
+      </button>
+
+      <section>
+        <h2 className="mb-3 font-display text-base font-semibold">Mon véhicule</h2>
+        <VehicleCard />
+      </section>
+
+      <section>
+        <h2 className="mb-3 font-display text-base font-semibold">Activité</h2>
+        <DriverStats data={stats} loading={!stats} />
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="mb-1 font-display text-base font-semibold">Paramètres</h2>
+        <div className="flex items-center gap-3 rounded-2xl bg-card p-4 shadow-sm">
+          <Shield className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <p className="text-sm">Confidentialité et sécurité</p>
+        </div>
+        <div className="flex items-center gap-3 rounded-2xl bg-card p-4 shadow-sm">
+          <HelpCircle className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <p className="text-sm">Aide et support</p>
+        </div>
+      </section>
+
+      <Button variant="outline" className="w-full border-destructive text-destructive hover:bg-destructive/10" onClick={() => void supabase.auth.signOut()}>
+        <LogOut className="mr-2 h-4 w-4" /> Se déconnecter
+      </Button>
+    </>
+  );
+}
+
+function EmptyCoursesState({ available, onRefreshTab }: { available: boolean; onRefreshTab: () => void }) {
+  return (
+    <div className="flex flex-col items-center gap-2 rounded-3xl border border-dashed border-border bg-card py-14 text-center">
+      <p className="text-sm text-muted-foreground">
+        {available ? "En attente d'une nouvelle livraison..." : "Passez disponible pour recevoir des livraisons."}
+      </p>
+      <Button variant="ghost" size="sm" onClick={onRefreshTab} className="mt-2">
+        Voir mes courses
+      </Button>
+    </div>
+  );
+}
