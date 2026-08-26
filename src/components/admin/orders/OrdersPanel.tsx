@@ -230,7 +230,7 @@ export function OrdersPanel({
           <p className="text-sm text-muted-foreground">Aucune commande dans cette vue pour le moment.</p>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="min-w-0 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {visibleOrders.map((order) => (
             <OrderCard
               key={order.id}

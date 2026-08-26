@@ -93,23 +93,23 @@ export function OrderCard({
         </div>
       </button>
 
-      <div className="space-y-1 text-sm">
+      <div className="space-y-1 text-sm min-w-0">
         <p className="flex items-center gap-1.5 truncate font-medium">
-          {order.customer_name}
+          <span className="truncate">{order.customer_name}</span>
           {order.is_for_someone_else && (
-            <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[0.65rem] font-semibold text-primary">Pour {order.recipient_name}</span>
+            <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[0.65rem] font-semibold text-primary truncate">Pour {order.recipient_name}</span>
           )}
         </p>
         {order.customer_phone && (
-          <p className="flex items-center gap-1.5 text-muted-foreground">
+          <p className="flex items-center gap-1.5 text-muted-foreground truncate">
             <Phone className="h-3.5 w-3.5 shrink-0" /> {order.customer_phone}
           </p>
         )}
-        <p className="flex items-center gap-1.5 text-muted-foreground">
+        <p className="flex items-center gap-1.5 text-muted-foreground truncate">
           <MapPin className="h-3.5 w-3.5 shrink-0" /> {fulfillmentLabel(order.fulfillment_type)}
         </p>
         {dispatch && (
-          <p className="flex items-center gap-1.5 text-primary">
+          <p className="flex items-center gap-1.5 text-primary truncate">
             <Bike className="h-3.5 w-3.5 shrink-0" /> {dispatch}
           </p>
         )}

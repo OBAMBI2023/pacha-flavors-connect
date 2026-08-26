@@ -25,7 +25,7 @@ export function SourceDonutChart({ data }: { data: SourceBreakdownRow[] }) {
   }
 
   return (
-    <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:justify-center">
+    <div className="min-w-0 flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:justify-center">
       <ChartContainer config={chartConfig} className="mx-auto aspect-square h-40 w-40 shrink-0">
         <PieChart>
           <ChartTooltip
@@ -60,16 +60,16 @@ export function SourceDonutChart({ data }: { data: SourceBreakdownRow[] }) {
       </ChartContainer>
       <ul className="w-full space-y-1.5 sm:w-auto">
         {data.map((row, index) => (
-          <li key={row.source} className="flex items-center gap-2 text-sm">
+          <li key={row.source} className="flex items-center gap-2 text-xs sm:text-sm">
             <span
-              className="h-2.5 w-2.5 shrink-0 rounded-full"
+              className="h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0 rounded-full"
               style={{ backgroundColor: SLICE_COLORS[index % SLICE_COLORS.length] }}
               aria-hidden="true"
             />
             <span className="min-w-0 flex-1 truncate text-muted-foreground">
               {SOURCE_LABELS[row.source]}
             </span>
-            <span className="shrink-0 font-medium">{row.share}%</span>
+            <span className="shrink-0 font-medium text-xs sm:text-sm">{row.share}%</span>
           </li>
         ))}
       </ul>

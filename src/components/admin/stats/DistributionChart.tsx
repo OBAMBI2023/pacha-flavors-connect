@@ -37,11 +37,11 @@ export function HourlyDistributionChart({ data }: { data: HourlyPoint[] }) {
   if (points.every((p) => p.orders_count === 0)) return <EmptyState />;
 
   return (
-    <ChartContainer config={chartConfig} className="h-48 w-full">
-      <BarChart data={points} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
+    <ChartContainer config={chartConfig} className="min-w-0 h-48 w-full">
+      <BarChart data={points} margin={{ left: -15, right: 0, top: 8, bottom: 0 }}>
         <CartesianGrid vertical={false} strokeDasharray="3 3" />
-        <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={10} interval={2} />
-        <YAxis tickLine={false} axisLine={false} fontSize={11} width={28} allowDecimals={false} />
+        <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={9} interval={3} />
+        <YAxis tickLine={false} axisLine={false} fontSize={10} width={25} allowDecimals={false} />
         <ChartTooltip
           content={
             <ChartTooltipContent
@@ -62,11 +62,11 @@ export function WeekdayDistributionChart({ data }: { data: WeekdayPoint[] }) {
   if (points.every((p) => p.orders_count === 0)) return <EmptyState />;
 
   return (
-    <ChartContainer config={chartConfig} className="h-48 w-full">
-      <BarChart data={points} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
+    <ChartContainer config={chartConfig} className="min-w-0 h-48 w-full">
+      <BarChart data={points} margin={{ left: -15, right: 0, top: 8, bottom: 0 }}>
         <CartesianGrid vertical={false} strokeDasharray="3 3" />
-        <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={11} />
-        <YAxis tickLine={false} axisLine={false} fontSize={11} width={28} allowDecimals={false} />
+        <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={10} />
+        <YAxis tickLine={false} axisLine={false} fontSize={10} width={25} allowDecimals={false} />
         <ChartTooltip
           content={
             <ChartTooltipContent

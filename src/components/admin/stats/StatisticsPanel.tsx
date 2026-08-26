@@ -29,7 +29,7 @@ export function StatisticsPanel({ currency }: { currency: string }) {
   const marketplace = stats?.source_breakdown.find((s) => s.source === "marketplace") ?? null;
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="font-display text-2xl font-semibold">Statistiques</h2>
@@ -95,7 +95,7 @@ export function StatisticsPanel({ currency }: { currency: string }) {
         <p className="py-10 text-center text-sm text-muted-foreground">Chargement des statistiques...</p>
       ) : stats ? (
         <>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard label="Chiffre d'affaires" value={formatMoney(stats.current.revenue, currency)} comparisonPct={revenueDelta} />
             <StatCard label="Commandes" value={String(stats.current.orders_count)} comparisonPct={ordersDelta} />
             <StatCard
@@ -106,7 +106,7 @@ export function StatisticsPanel({ currency }: { currency: string }) {
             <StatCard label="Articles vendus" value={String(stats.current.items_sold)} />
           </div>
 
-          <div className="grid gap-3 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <StatCard
               label="Taux d'annulation"
               value={`${stats.current.cancellation_rate}%`}

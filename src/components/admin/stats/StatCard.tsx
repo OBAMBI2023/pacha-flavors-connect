@@ -15,10 +15,10 @@ export function StatCard({
   icon?: LucideIcon;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+    <div className="min-w-0 rounded-2xl border border-border bg-card p-4 sm:p-5">
       {Icon ? (
         <div className="flex items-center justify-between gap-2">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <p className="truncate text-xs font-medium uppercase tracking-wide text-muted-foreground">
             {label}
           </p>
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent text-primary">
@@ -26,9 +26,9 @@ export function StatCard({
           </span>
         </div>
       ) : (
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+        <p className="truncate text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
       )}
-      <p className="mt-2 font-display text-2xl font-semibold sm:text-[1.75rem]">{value}</p>
+      <p className="mt-2 truncate font-display text-xl font-semibold sm:text-[1.75rem]">{value}</p>
       {comparisonPct !== undefined && comparisonPct !== null && (
         <p
           className={`mt-1 flex items-center gap-1 text-xs font-medium ${
@@ -36,12 +36,14 @@ export function StatCard({
           }`}
         >
           {comparisonPct >= 0 ? (
-            <TrendingUp className="h-3.5 w-3.5" />
+            <TrendingUp className="h-3.5 w-3.5 shrink-0" />
           ) : (
-            <TrendingDown className="h-3.5 w-3.5" />
+            <TrendingDown className="h-3.5 w-3.5 shrink-0" />
           )}
-          {comparisonPct >= 0 ? "+" : ""}
-          {comparisonPct.toFixed(1)}% vs période précédente
+          <span className="truncate">
+            {comparisonPct >= 0 ? "+" : ""}
+            {comparisonPct.toFixed(1)}% vs période précédente
+          </span>
         </p>
       )}
       {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}

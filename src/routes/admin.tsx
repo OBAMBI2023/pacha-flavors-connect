@@ -1789,7 +1789,7 @@ function MobileBottomNav({
       <button
         type="button"
         onClick={() => onSelect(item.value)}
-        className={`relative flex flex-1 flex-col items-center justify-center gap-1 py-2 text-[0.7rem] font-medium transition-colors ${
+        className={`relative flex flex-1 flex-col items-center justify-center gap-1 py-3 text-[0.75rem] font-medium transition-colors ${
           active ? "text-primary" : "text-muted-foreground"
         }`}
       >
@@ -1801,8 +1801,10 @@ function MobileBottomNav({
             </span>
           )}
         </span>
-        {item.label}
-        {active && <span className="mt-0.5 h-0.5 w-4 rounded-full bg-primary" aria-hidden="true" />}
+        <span className="truncate w-full text-center px-1">
+            {item.label}
+        </span>
+        {active && <span className="absolute bottom-1 h-0.5 w-6 rounded-full bg-primary" aria-hidden="true" />}
       </button>
     );
   }

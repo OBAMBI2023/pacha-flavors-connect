@@ -2,6 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { MarketplaceShell } from "@/components/marketplace/MarketplaceShell";
+import { ManageRestaurantButton } from "@/components/marketplace/ManageRestaurantButton";
+import { UserAccountMenu } from "@/components/marketplace/UserAccountMenu";
 import { useMenuData } from "@/lib/menu-db";
 import { supabase } from "@/integrations/supabase/client";
 import type { CreateOrderResult } from "@/lib/orders-db";
@@ -130,9 +132,12 @@ function RestaurantPage() {
       subtitle={data?.settings?.description ?? "Menu public et commande en ligne sur SAOVIA."}
       searchHref="/rechercher"
       ctas={
-        <button className="rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground" onClick={() => void submitOrder()} disabled={submitting}>
-          {submitting ? "Cr�ation..." : "Commander"}
-        </button>
+        <div className="flex items-center gap-2">
+          {data?.restaurant && <UserAccountMenu restaurantId={data.restaurant.id} />}
+          <button className="rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground" onClick={() => void submitOrder()} disabled={submitting}>
+            {submitting ? "Création..." : "Commander"}
+          </button>
+        </div>
       }
     >
       {isLoading ? (

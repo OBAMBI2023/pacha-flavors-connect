@@ -1,7 +1,7 @@
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import type { RevenueSeriesPoint } from "@/lib/orders-db";
-import { currencySymbol } from "@/lib/currency";
+import { currencySymbol, formatMoney } from "@/lib/currency";
 
 const chartConfig: ChartConfig = {
   revenue: { label: "Chiffre d'affaires", color: "var(--color-primary)" },
@@ -24,17 +24,29 @@ export function RevenueChart({ data, currency }: { data: RevenueSeriesPoint[]; c
   }
 
   return (
-    <ChartContainer config={chartConfig} className="h-56 w-full">
-      <BarChart data={points} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
+    <ChartContainer config={chartConfig} className="min-w-0 h-56 w-full sm:h-64">
+      <BarChart data={points} margin={{ left: -10, right: 0, top: 8, bottom: 0 }}>
         <CartesianGrid vertical={false} strokeDasharray="3 3" />
-        <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={11} />
-        <YAxis tickLine={false} axisLine={false} fontSize={11} width={40} tickFormatter={(v: number) => `${Math.round(v / 1000)}k`} />
+        <XAxis 
+            dataKey="label" 
+            tickLine={false} 
+            axisLine={false} 
+            fontSize={10} 
+            interval={points.length > 10 ? 2 : 0}
+        />
+        <YAxis 
+            tickLine={false} 
+            axisLine={false} 
+            fontSize={10} 
+            width={40} 
+            tickFormatter={(v: number) => formatMoney(v, currency).replace(currencySymbol(currency), '').trim()} 
+        />
         <ChartTooltip
           content={
             <ChartTooltipContent
               formatter={(value, name) =>
                 name === "revenue"
-                  ? [`${Number(value).toLocaleString("fr-FR")} ${currencySymbol(currency)}`, "Chiffre d'affaires"]
+                  ? [formatMoney(Number(value), currency), "Chiffre d'affaires"]
                   : [String(value), "Commandes"]
               }
             />

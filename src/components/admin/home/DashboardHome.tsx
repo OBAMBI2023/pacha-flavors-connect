@@ -97,8 +97,8 @@ export function DashboardHome({
     : null;
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div className="min-w-0 space-y-6">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           icon={ShoppingBag}
           label="Commandes aujourd'hui"
@@ -221,7 +221,7 @@ export function DashboardHome({
             Pas encore assez de commandes pour établir un classement.
           </p>
         ) : (
-          <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {popularProducts.map((product, index) => {
               const src = product.menuItem?.image_path
                 ? supabase.storage.from(MENU_BUCKET).getPublicUrl(product.menuItem.image_path).data
