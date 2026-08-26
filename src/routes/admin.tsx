@@ -102,21 +102,26 @@ import { DEFAULT_CURRENCY_CODE, currencySymbol, formatMoney } from "@/lib/curren
 
 const TITLE = "Administration du restaurant";
 const DESCRIPTION = "Gestion compacte de la carte, de la vitrine et des coordonnées du restaurant.";
+/**
+ * Top-level sidebar/mobile-nav destinations. "Visiteurs" lives as a
+ * sub-tab inside "statistiques", and "Site vitrine" / "Coordonnées" /
+ * "Disponibilité" live as sub-tabs inside "settings" (see `statsSubTab` /
+ * `settingsSubTab` below) -- every one of those four screens still exists
+ * and is still reachable, just nested instead of flat, to match the
+ * reference design's 11-destination sidebar. Nothing here changes which
+ * `TabsContent` renders what.
+ */
 const ADMIN_NAV_ITEMS = [
   { value: "accueil", label: "Tableau de bord", icon: LayoutGrid },
   { value: "commandes", label: "Commandes", icon: ShoppingBag },
   { value: "clients", label: "Clients", icon: Users },
   { value: "livreurs", label: "Livreurs", icon: Bike },
-  { value: "statistiques", label: "Statistiques", icon: BarChart3 },
-  { value: "visiteurs", label: "Visiteurs", icon: Eye },
-  { value: "finances", label: "Finances", icon: Wallet },
-  { value: "menu", label: "Carte", icon: UtensilsCrossed },
+  { value: "menu", label: "Produits / Menu", icon: UtensilsCrossed },
   { value: "promotions", label: "Promotions", icon: Tag },
   { value: "marketing", label: "Marketing", icon: Megaphone },
+  { value: "statistiques", label: "Statistiques", icon: BarChart3 },
+  { value: "finances", label: "Finances", icon: Wallet },
   { value: "avis", label: "Avis", icon: Star },
-  { value: "storefront", label: "Site vitrine", icon: Store },
-  { value: "contact", label: "Coordonnées", icon: MapPin },
-  { value: "disponibilite", label: "Disponibilité", icon: Clock },
   { value: "settings", label: "Paramètres", icon: SettingsIcon },
 ] as const;
 
