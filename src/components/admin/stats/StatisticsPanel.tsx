@@ -13,14 +13,12 @@ function toInputDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function StatisticsPanel() {
+export function StatisticsPanel({ currency }: { currency: string }) {
   const [preset, setPreset] = useState<PeriodPreset>("last7");
   const [customRange, setCustomRange] = useState<PeriodRange>(() => resolvePeriod("today"));
 
   const period = useMemo(() => resolvePeriod(preset, customRange), [preset, customRange]);
   const { stats, loading, error, refresh } = useDashboardStats(period);
-
-  const currency = stats?.current ? "XOF" : "XOF";
   const revenueDelta = stats ? pctDelta(stats.current.revenue, stats.previous.revenue) : null;
   const ordersDelta = stats ? pctDelta(stats.current.orders_count, stats.previous.orders_count) : null;
   const aovDelta =
@@ -125,7 +123,7 @@ export function StatisticsPanel() {
           <section className="rounded-2xl border border-border bg-card p-5">
             <h3 className="font-semibold">Évolution du chiffre d'affaires</h3>
             <div className="mt-4">
-              <RevenueChart data={stats.revenue_series} />
+              <RevenueChart data={stats.revenue_series} currency={currency} />
             </div>
           </section>
 

@@ -20,6 +20,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { DbMenuItem } from "@/lib/menu-db";
+import { currencySymbol, formatMoney } from "@/lib/currency";
 import {
   createPromotion,
   deletePromotion,
@@ -34,11 +35,16 @@ import {
   type PromotionType,
 } from "@/lib/promotions";
 
-const TYPE_LABELS: Record<PromotionType, string> = {
-  fixed_amount: "Réduction en FCFA",
-  percentage: "Réduction en %",
-  free_delivery: "Livraison gratuite",
-};
+function typeLabel(type: PromotionType, currency: string): string {
+  switch (type) {
+    case "fixed_amount":
+      return `Réduction en ${currencySymbol(currency)}`;
+    case "percentage":
+      return "Réduction en %";
+    case "free_delivery":
+      return "Livraison gratuite";
+  }
+}
 
 const STATUS_META: Record<PromotionStatus, { label: string; className: string }> = {
   draft: { label: "Brouillon", className: "bg-muted text-muted-foreground" },
@@ -74,10 +80,12 @@ function emptyForm(products: DbMenuItem[]): PromotionInput {
 
 export function PromotionsPanel({
   restaurantId,
+  currency,
   products,
   refreshSignal,
 }: {
   restaurantId: string;
+  currency: string;
   products: DbMenuItem[];
   /** Bump this from a parent (e.g. after the item editor's quick promotion toggle writes to the same table) to refetch without an extra prop-drilled callback. */
   refreshSignal?: number;
@@ -219,8 +227,12 @@ export function PromotionsPanel({
                     <Badge className={meta.className}>{meta.label}</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    {product?.name ?? "Plat introuvable"} · {TYPE_LABELS[promo.type]}
-                    {promo.type === "percentage" ? ` (-${promo.value}%)` : promo.type === "fixed_amount" ? ` (-${promo.value} FCFA)` : ""}
+                    {product?.name ?? "Plat introuvable"} · {typeLabel(promo.type, currency)}
+                    {promo.type === "percentage"
+                      ? ` (-${promo.value}%)`
+                      : promo.type === "fixed_amount" && promo.value !== null
+                        ? ` (-${formatMoney(promo.value, currency)})`
+                        : ""}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Du {new Date(promo.starts_at).toLocaleString("fr-FR")} au {new Date(promo.ends_at).toLocaleString("fr-FR")}
@@ -263,7 +275,7 @@ export function PromotionsPanel({
                   {products.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
                       {p.name}
-                      {p.price != null ? ` — ${p.price.toLocaleString("fr-FR")} FCFA` : ""}
+                      {p.price != null ? ` — ${formatMoney(p.price, currency)}` : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -293,7 +305,9 @@ export function PromotionsPanel({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="fixed_amount">Réduction en FCFA (ex: -500 FCFA)</SelectItem>
+                  <SelectItem value="fixed_amount">
+                    Réduction en {currencySymbol(currency)} (ex: -500 {currencySymbol(currency)})
+                  </SelectItem>
                   <SelectItem value="percentage">Réduction en % (ex: -20%)</SelectItem>
                   <SelectItem value="free_delivery">Livraison gratuite</SelectItem>
                 </SelectContent>
@@ -301,7 +315,9 @@ export function PromotionsPanel({
             </div>
             {form.type !== "free_delivery" && (
               <div className="space-y-1.5">
-                <Label>{form.type === "percentage" ? "Pourcentage de réduction" : "Montant de la réduction (FCFA)"}</Label>
+                <Label>
+                  {form.type === "percentage" ? "Pourcentage de réduction" : `Montant de la réduction (${currencySymbol(currency)})`}
+                </Label>
                 <Input
                   type="number"
                   min={1}

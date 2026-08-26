@@ -1,3 +1,4 @@
+import { formatMoney } from "@/lib/currency";
 import tchep from "@/assets/tchep.jpg";
 import alloco from "@/assets/alloco.jpg";
 import placali from "@/assets/placali.jpg";
@@ -213,8 +214,8 @@ export const MENU: MenuItem[] = [
 
 export const DAILY_MENU = MENU.filter((item) => item.daily);
 
-export function formatPrice(price: number | null) {
-  return price === null ? "Prix sur demande" : `${price.toLocaleString("fr-FR")} FCFA`;
+export function formatPrice(price: number | null, currency?: string | null) {
+  return price === null ? "Prix sur demande" : formatMoney(price, currency);
 }
 
 /**
@@ -228,8 +229,8 @@ export function formatPrepTime(minutes: number | null | undefined): string | nul
 }
 
 /** Real badge text for a currently-effective promotion -- never an invented discount. */
-export function getPromotionBadgeLabel(promotion: ProductPromotion): string {
+export function getPromotionBadgeLabel(promotion: ProductPromotion, currency: string | null | undefined): string {
   if (promotion.type === "free_delivery") return "Livraison gratuite";
   if (promotion.type === "percentage") return `-${promotion.value}%`;
-  return `-${(promotion.value ?? 0).toLocaleString("fr-FR")} FCFA`;
+  return `-${formatMoney(promotion.value ?? 0, currency)}`;
 }

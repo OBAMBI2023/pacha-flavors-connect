@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { MENU_BUCKET, type DbMenuItem } from "@/lib/menu-db";
+import { currencySymbol, formatMoney } from "@/lib/currency";
 import {
   createOffer,
   deleteOffer,
@@ -43,10 +44,6 @@ const STATUS_META: Record<OfferStatus, { label: string; className: string }> = {
   disabled: { label: "Désactivée", className: "bg-muted text-muted-foreground" },
   expired: { label: "Expirée", className: "bg-destructive/10 text-destructive" },
 };
-
-function money(amount: number) {
-  return `${amount.toLocaleString("fr-FR")} FCFA`;
-}
 
 function toLocalInputValue(iso: string | null): string {
   const d = iso ? new Date(iso) : new Date();
@@ -74,7 +71,16 @@ function emptyForm(products: DbMenuItem[]): OfferInput {
   };
 }
 
-export function MarketingPanel({ restaurantId, products }: { restaurantId: string; products: DbMenuItem[] }) {
+export function MarketingPanel({
+  restaurantId,
+  currency,
+  products,
+}: {
+  restaurantId: string;
+  currency: string;
+  products: DbMenuItem[];
+}) {
+  const money = (amount: number) => formatMoney(amount, currency);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [analytics, setAnalytics] = useState<OfferAnalytics[]>([]);
   const [loading, setLoading] = useState(true);
@@ -354,7 +360,7 @@ export function MarketingPanel({ restaurantId, products }: { restaurantId: strin
                 <SelectTrigger><SelectValue placeholder="Choisir un plat" /></SelectTrigger>
                 <SelectContent>
                   {pricedProducts.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.name} — {p.price!.toLocaleString("fr-FR")} FCFA</SelectItem>
+                    <SelectItem key={p.id} value={p.id}>{p.name} — {money(p.price!)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -369,11 +375,11 @@ export function MarketingPanel({ restaurantId, products }: { restaurantId: strin
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label>Prix original (FCFA)</Label>
+                <Label>Prix original ({currencySymbol(currency)})</Label>
                 <Input type="number" min={1} value={form.original_price || ""} onChange={(e) => setForm((c) => ({ ...c, original_price: Number(e.target.value) || 0 }))} />
               </div>
               <div className="space-y-1.5">
-                <Label>Prix promotionnel (FCFA)</Label>
+                <Label>Prix promotionnel ({currencySymbol(currency)})</Label>
                 <Input type="number" min={1} value={form.offer_price || ""} onChange={(e) => setForm((c) => ({ ...c, offer_price: Number(e.target.value) || 0 }))} />
               </div>
             </div>

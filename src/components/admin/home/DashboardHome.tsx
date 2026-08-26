@@ -40,11 +40,13 @@ const QUICK_ACTIONS = [
 
 export function DashboardHome({
   restaurantId,
+  currency,
   publicHref,
   menuItems,
   onNavigateTab,
 }: {
   restaurantId: string | null;
+  currency: string;
   publicHref: string;
   menuItems: DbMenuItem[];
   onNavigateTab: (tab: string) => void;
@@ -106,7 +108,7 @@ export function DashboardHome({
         <StatCard
           icon={Wallet}
           label="Chiffre d'affaires"
-          value={stats ? formatMoney(stats.current.revenue) : "—"}
+          value={stats ? formatMoney(stats.current.revenue, currency) : "—"}
           comparisonPct={revenueDelta}
         />
         <StatCard
@@ -138,7 +140,7 @@ export function DashboardHome({
             </div>
             <p className="text-right">
               <span className="block font-display text-xl font-semibold">
-                {stats ? formatMoney(stats.current.revenue) : "—"}
+                {stats ? formatMoney(stats.current.revenue, currency) : "—"}
               </span>
               {revenueDelta !== null && (
                 <span
@@ -150,7 +152,7 @@ export function DashboardHome({
               )}
             </p>
           </div>
-          <div className="mt-4">{stats && <RevenueChart data={stats.revenue_series} />}</div>
+          <div className="mt-4">{stats && <RevenueChart data={stats.revenue_series} currency={currency} />}</div>
           <div className="mt-5 border-t border-border pt-4">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Répartition des commandes
@@ -188,7 +190,7 @@ export function DashboardHome({
                         <span className="truncate text-muted-foreground">{o.customer_name}</span>
                       </span>
                       <span className="mt-0.5 block text-xs text-muted-foreground">
-                        {elapsedLabel(o.created_at)} · {formatMoney(o.total_amount)}
+                        {elapsedLabel(o.created_at)} · {formatMoney(o.total_amount, o.currency)}
                       </span>
                     </span>
                     <span
@@ -254,7 +256,7 @@ export function DashboardHome({
                     </p>
                     {product.menuItem?.price != null && (
                       <p className="mt-1 text-sm font-semibold text-primary">
-                        {product.menuItem.price.toLocaleString("fr-FR")} FCFA
+                        {formatMoney(product.menuItem.price, currency)}
                       </p>
                     )}
                   </div>

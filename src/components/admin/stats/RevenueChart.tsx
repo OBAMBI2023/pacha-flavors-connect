@@ -1,6 +1,7 @@
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import type { RevenueSeriesPoint } from "@/lib/orders-db";
+import { currencySymbol } from "@/lib/currency";
 
 const chartConfig: ChartConfig = {
   revenue: { label: "Chiffre d'affaires", color: "var(--color-primary)" },
@@ -11,7 +12,7 @@ function shortDate(iso: string) {
   return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
 }
 
-export function RevenueChart({ data }: { data: RevenueSeriesPoint[] }) {
+export function RevenueChart({ data, currency }: { data: RevenueSeriesPoint[]; currency: string }) {
   const points = data.map((p) => ({ ...p, label: shortDate(p.date) }));
 
   if (points.every((p) => p.revenue === 0 && p.orders === 0)) {
@@ -33,7 +34,7 @@ export function RevenueChart({ data }: { data: RevenueSeriesPoint[] }) {
             <ChartTooltipContent
               formatter={(value, name) =>
                 name === "revenue"
-                  ? [`${Number(value).toLocaleString("fr-FR")} FCFA`, "Chiffre d'affaires"]
+                  ? [`${Number(value).toLocaleString("fr-FR")} ${currencySymbol(currency)}`, "Chiffre d'affaires"]
                   : [String(value), "Commandes"]
               }
             />

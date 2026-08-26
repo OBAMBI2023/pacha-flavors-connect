@@ -32,6 +32,7 @@ import {
   type ProductOption,
   type ProductOptionInput,
 } from "@/lib/productOptions";
+import { currencySymbol, formatMoney } from "@/lib/currency";
 
 function emptyGroupForm(): OptionGroupInput {
   return { name: "", is_required: false, max_select: 1 };
@@ -41,7 +42,15 @@ function emptyOptionForm(): ProductOptionInput {
   return { name: "", extra_price: 0 };
 }
 
-export function OptionGroupsManager({ restaurantId, productId }: { restaurantId: string; productId: string | null }) {
+export function OptionGroupsManager({
+  restaurantId,
+  currency,
+  productId,
+}: {
+  restaurantId: string;
+  currency: string;
+  productId: string | null;
+}) {
   const [groups, setGroups] = useState<OptionGroup[]>([]);
   const [optionsByGroup, setOptionsByGroup] = useState<Record<string, ProductOption[]>>({});
   const [loading, setLoading] = useState(true);
@@ -254,7 +263,7 @@ export function OptionGroupsManager({ restaurantId, productId }: { restaurantId:
                         <li key={option.id} className="flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-1.5 text-sm">
                           <span>
                             {option.name}
-                            {option.extra_price > 0 && <span className="text-muted-foreground"> (+{option.extra_price.toLocaleString("fr-FR")} FCFA)</span>}
+                            {option.extra_price > 0 && <span className="text-muted-foreground"> (+{formatMoney(option.extra_price, currency)})</span>}
                           </span>
                           <span className="flex items-center gap-1">
                             <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditOption(group.id, option)} aria-label="Modifier l'option">
@@ -313,7 +322,7 @@ export function OptionGroupsManager({ restaurantId, productId }: { restaurantId:
               <Input value={optionForm.name} onChange={(e) => setOptionForm((c) => ({ ...c, name: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
-              <Label>Prix supplémentaire (FCFA)</Label>
+              <Label>Prix supplémentaire ({currencySymbol(currency)})</Label>
               <Input type="number" min={0} value={optionForm.extra_price} onChange={(e) => setOptionForm((c) => ({ ...c, extra_price: Math.max(0, Number(e.target.value) || 0) }))} />
             </div>
           </div>

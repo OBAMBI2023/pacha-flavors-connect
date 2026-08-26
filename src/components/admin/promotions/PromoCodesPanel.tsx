@@ -22,6 +22,7 @@ import {
 import { CustomerMultiSelect } from "@/components/admin/promotions/CustomerMultiSelect";
 import type { Customer } from "@/lib/customers-db";
 import type { PromotionType } from "@/lib/promotions";
+import { currencySymbol, formatMoney } from "@/lib/currency";
 import {
   createPromoCode,
   deletePromoCode,
@@ -36,11 +37,16 @@ import {
   type PromoVisibility,
 } from "@/lib/promoCodes";
 
-const TYPE_LABELS: Record<PromotionType, string> = {
-  fixed_amount: "Réduction en FCFA",
-  percentage: "Réduction en %",
-  free_delivery: "Livraison gratuite",
-};
+function typeLabel(type: PromotionType, currency: string): string {
+  switch (type) {
+    case "fixed_amount":
+      return `Réduction en ${currencySymbol(currency)}`;
+    case "percentage":
+      return "Réduction en %";
+    case "free_delivery":
+      return "Livraison gratuite";
+  }
+}
 
 const VISIBILITY_LABELS: Record<PromoVisibility, string> = {
   public: "Tous les clients",
@@ -75,7 +81,15 @@ function emptyForm(): PromoCodeInput {
   };
 }
 
-export function PromoCodesPanel({ restaurantId, refreshSignal }: { restaurantId: string; refreshSignal?: number }) {
+export function PromoCodesPanel({
+  restaurantId,
+  currency,
+  refreshSignal,
+}: {
+  restaurantId: string;
+  currency: string;
+  refreshSignal?: number;
+}) {
   const [promoCodes, setPromoCodes] = useState<PromoCode[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -251,11 +265,11 @@ export function PromoCodesPanel({ restaurantId, refreshSignal }: { restaurantId:
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    {VISIBILITY_LABELS[promo.visibility]} · {TYPE_LABELS[promo.discount_type]}
+                    {VISIBILITY_LABELS[promo.visibility]} · {typeLabel(promo.discount_type, currency)}
                     {promo.discount_type === "percentage"
                       ? ` (-${promo.discount_value}%)`
-                      : promo.discount_type === "fixed_amount"
-                        ? ` (-${promo.discount_value} FCFA)`
+                      : promo.discount_type === "fixed_amount" && promo.discount_value !== null
+                        ? ` (-${formatMoney(promo.discount_value, currency)})`
                         : ""}
                   </p>
                   <p className="text-xs text-muted-foreground">
@@ -317,7 +331,9 @@ export function PromoCodesPanel({ restaurantId, refreshSignal }: { restaurantId:
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="fixed_amount">Réduction en FCFA (ex: -500 FCFA)</SelectItem>
+                  <SelectItem value="fixed_amount">
+                    Réduction en {currencySymbol(currency)} (ex: -500 {currencySymbol(currency)})
+                  </SelectItem>
                   <SelectItem value="percentage">Réduction en % (ex: -20%)</SelectItem>
                   <SelectItem value="free_delivery">Livraison gratuite</SelectItem>
                 </SelectContent>
@@ -325,7 +341,9 @@ export function PromoCodesPanel({ restaurantId, refreshSignal }: { restaurantId:
             </div>
             {form.discount_type !== "free_delivery" && (
               <div className="space-y-1.5">
-                <Label>{form.discount_type === "percentage" ? "Pourcentage de réduction" : "Montant de la réduction (FCFA)"}</Label>
+                <Label>
+                  {form.discount_type === "percentage" ? "Pourcentage de réduction" : `Montant de la réduction (${currencySymbol(currency)})`}
+                </Label>
                 <Input
                   type="number"
                   min={1}

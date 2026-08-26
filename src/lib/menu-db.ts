@@ -183,6 +183,7 @@ export type DbRestaurant = {
   email: string | null;
   is_public: boolean;
   timezone: string;
+  currency: string;
 };
 
 export type AdminMenuData = {
@@ -196,7 +197,7 @@ export async function fetchAdminMenuData(restaurantId: string): Promise<AdminMen
     await Promise.all([
       supabase
         .from("restaurants")
-        .select("id,name,slug,logo_url,cover_url,address,commune,city,phone,whatsapp_phone,email,is_public,timezone")
+        .select("id,name,slug,logo_url,cover_url,address,commune,city,phone,whatsapp_phone,email,is_public,timezone,currency")
         .eq("id", restaurantId)
         .maybeSingle(),
       supabase

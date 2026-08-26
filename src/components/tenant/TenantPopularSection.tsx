@@ -1,12 +1,13 @@
 import { ArrowRight, Minus, Plus } from "lucide-react";
 import { useCart, computeLineKey } from "@/lib/cart";
 import type { MenuItem } from "@/data/menu";
+import { formatMoney } from "@/lib/currency";
 
 function scrollToMenu() {
   document.getElementById("carte")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function PopularCard({ item, onOpen }: { item: MenuItem; onOpen: (item: MenuItem) => void }) {
+function PopularCard({ item, currency, onOpen }: { item: MenuItem; currency: string | null; onOpen: (item: MenuItem) => void }) {
   const { lines, add, increment, decrement } = useCart();
 
   function open() {
@@ -60,7 +61,7 @@ function PopularCard({ item, onOpen }: { item: MenuItem; onOpen: (item: MenuItem
         <h3 className="line-clamp-2 text-sm font-bold text-foreground">{item.name}</h3>
         {item.description && <p className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground">{item.description}</p>}
         <div className="mt-2 flex items-center justify-between">
-          <span className="text-base font-extrabold text-primary">{item.price === null ? "À confirmer" : `${item.price.toLocaleString("fr-FR")} FCFA`}</span>
+          <span className="text-base font-extrabold text-primary">{item.price === null ? "À confirmer" : formatMoney(item.price, currency)}</span>
           {item.available &&
             (qty > 0 ? (
               <div className="flex items-center gap-1.5 rounded-full border border-border bg-background px-0.5 py-0.5">
@@ -98,7 +99,15 @@ function PopularCard({ item, onOpen }: { item: MenuItem; onOpen: (item: MenuItem
   );
 }
 
-export function TenantPopularSection({ items, onOpen }: { items: MenuItem[]; onOpen: (item: MenuItem) => void }) {
+export function TenantPopularSection({
+  items,
+  currency,
+  onOpen,
+}: {
+  items: MenuItem[];
+  currency: string | null;
+  onOpen: (item: MenuItem) => void;
+}) {
   const featured = items.filter((item) => item.featured);
   if (featured.length === 0) return null;
 
@@ -114,7 +123,7 @@ export function TenantPopularSection({ items, onOpen }: { items: MenuItem[]; onO
         <div className="-mx-4 mt-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden">
           <div className="flex w-max gap-2.5">
             {featured.map((item) => (
-              <PopularCard key={item.id} item={item} onOpen={onOpen} />
+              <PopularCard key={item.id} item={item} currency={currency} onOpen={onOpen} />
             ))}
           </div>
         </div>

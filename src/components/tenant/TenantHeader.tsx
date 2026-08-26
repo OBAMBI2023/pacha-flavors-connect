@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, ChevronDown, Menu, X } from "lucide-react";
+import { Bell, ChevronDown, Menu, Phone, X } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { PublicRestaurant } from "@/lib/menu-db";
 import { useDeliveryLocation } from "@/lib/deliveryLocation";
@@ -48,6 +48,10 @@ export function TenantHeader({
     onOpenOffers,
   });
 
+  // tel: hrefs must be digits/+ only -- the stored phone value may contain
+  // spaces or separators meant for human display.
+  const phoneHref = restaurant.phone ? `tel:${restaurant.phone.replace(/[^0-9+]/g, "")}` : null;
+
   const logo = restaurant.logo_url ? (
     <img src={restaurant.logo_url} alt={restaurant.name} className="h-9 w-9 shrink-0 rounded-full object-contain lg:h-14 lg:w-14" />
   ) : (
@@ -79,6 +83,11 @@ export function TenantHeader({
           <span className="text-[0.7rem] font-medium text-primary">{locationSecondaryLabel}</span>
         </button>
         <div className="flex flex-1 items-center justify-end gap-2 lg:hidden">
+          {phoneHref && (
+            <a href={phoneHref} aria-label={`Appeler ${restaurant.name}`} className="grid h-10 w-10 place-items-center rounded-full border border-border text-foreground hover:bg-muted">
+              <Phone className="h-5 w-5" />
+            </a>
+          )}
           <button onClick={onOpenNotifications} aria-label="Notifications" className="relative grid h-10 w-10 place-items-center rounded-full border border-border text-foreground hover:bg-muted">
             <Bell className="h-5 w-5" />
             {unreadNotifications > 0 && (
@@ -93,6 +102,15 @@ export function TenantHeader({
         <div className="hidden min-w-0 items-center gap-3 lg:flex">
           {logo}
           <span className="min-w-0 truncate font-display text-xl font-semibold tracking-wide">{restaurant.name}</span>
+          {phoneHref && (
+            <a
+              href={phoneHref}
+              className="flex shrink-0 items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted"
+            >
+              <Phone className="h-3.5 w-3.5 text-primary" />
+              {restaurant.phone}
+            </a>
+          )}
         </div>
         <nav className="hidden items-center gap-1 lg:flex" aria-label="Navigation principale">
           {items.map((item) => {

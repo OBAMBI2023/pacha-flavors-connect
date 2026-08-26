@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { fetchCustomerOrder, formatOrderNumber, getDriverStepLabel, type OrderRow, type OrderStatus } from "@/lib/orders";
+import { formatMoney } from "@/lib/currency";
 import { CartProvider } from "@/lib/cart";
 import { OrderStatusTimeline } from "@/components/tenant/OrderStatusTimeline";
 import { useStorefrontTheme } from "@/components/tenant/tenantTheme";
@@ -116,7 +117,7 @@ function ConfirmationPage() {
                         <span className="min-w-0 truncate">
                           <span className="font-semibold text-foreground">{item.quantity}×</span> <span className="text-foreground">{item.product_name}</span>
                         </span>
-                        <span className="shrink-0 font-semibold text-foreground">{item.line_total.toLocaleString("fr-FR")} FCFA</span>
+                        <span className="shrink-0 font-semibold text-foreground">{formatMoney(item.line_total, order.currency)}</span>
                       </li>
                     ))}
                   </ul>
@@ -124,7 +125,7 @@ function ConfirmationPage() {
 
                 <div className="flex items-center justify-between border-t border-border pt-4 text-base font-extrabold text-foreground">
                   <span>Total</span>
-                  <span>{order.total_amount.toLocaleString("fr-FR")} FCFA</span>
+                  <span>{formatMoney(order.total_amount, order.currency)}</span>
                 </div>
               </div>
 

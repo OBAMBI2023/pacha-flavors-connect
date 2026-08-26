@@ -7,12 +7,17 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { fetchCustomer, fetchCustomerOrderHistory, normalizePhoneForWhatsApp, type Customer, type CustomerOrderSummary } from "@/lib/customers-db";
 import { STATUS_LABELS } from "@/components/admin/orders/orderStatusMeta";
 import type { OrderStatus } from "@/lib/orders-db";
+import { formatMoney as money } from "@/lib/currency";
 
-function money(amount: number, currency = "FCFA") {
-  return `${amount.toLocaleString("fr-FR")} ${currency}`;
-}
-
-export function CustomerDetailSheet({ customerId, onClose }: { customerId: string | null; onClose: () => void }) {
+export function CustomerDetailSheet({
+  customerId,
+  currency,
+  onClose,
+}: {
+  customerId: string | null;
+  currency: string;
+  onClose: () => void;
+}) {
   const isMobile = useIsMobile();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [history, setHistory] = useState<CustomerOrderSummary[]>([]);
@@ -99,7 +104,7 @@ export function CustomerDetailSheet({ customerId, onClose }: { customerId: strin
                 </div>
                 <div className="rounded-2xl border border-border p-4">
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Total dépensé</p>
-                  <p className="mt-1 font-display text-2xl font-semibold">{money(customer.total_spent)}</p>
+                  <p className="mt-1 font-display text-2xl font-semibold">{money(customer.total_spent, currency)}</p>
                 </div>
               </section>
 

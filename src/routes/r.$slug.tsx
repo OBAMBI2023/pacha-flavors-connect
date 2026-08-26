@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { MapPin, Navigation } from "lucide-react";
+import { MapPin, Navigation, Phone } from "lucide-react";
 import { useMenuData } from "@/lib/menu-db";
+import { formatMoney } from "@/lib/currency";
 import { DEFAULT_DELIVERY_FEE_FALLBACK } from "@/lib/deliveryPricing";
 import { CartProvider, useCart } from "@/lib/cart";
 import { DeliveryLocationProvider } from "@/lib/deliveryLocation";
@@ -33,13 +34,30 @@ import {
 } from "@/components/tenant/TenantStorefrontStates";
 import type { MenuItem } from "@/data/menu";
 
-function TenantLocationSection({ name, address, commune, city, countryCode }: { name: string; address: string | null; commune: string | null; city: string | null; countryCode: string | null; }) {
+function TenantLocationSection({
+  name,
+  address,
+  commune,
+  city,
+  countryCode,
+  phone,
+}: {
+  name: string;
+  address: string | null;
+  commune: string | null;
+  city: string | null;
+  countryCode: string | null;
+  phone: string | null;
+}) {
   const addressLines = [address, commune, city].filter(Boolean) as string[];
   if (addressLines.length === 0) return null;
 
   const mapsQuery = [address, commune, city, countryCode].filter(Boolean).join(", ");
   const mapsDirectionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapsQuery)}`;
   const mapsEmbedUrl = `https://www.google.com/maps?q=${encodeURIComponent(mapsQuery)}&output=embed`;
+  // tel: hrefs must be digits/+ only -- the stored phone value may contain
+  // spaces or separators meant for human display.
+  const phoneHref = phone ? `tel:${phone.replace(/[^0-9+]/g, "")}` : null;
 
   return (
     <section id="localisation" className="section-pad bg-secondary/40">
@@ -51,6 +69,14 @@ function TenantLocationSection({ name, address, commune, city, countryCode }: { 
             <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
             <span>{addressLines.join(", ")}</span>
           </address>
+          {phoneHref && (
+            <p className="mt-3 flex items-center gap-3 text-sm leading-relaxed">
+              <Phone className="h-5 w-5 shrink-0 text-primary" />
+              <a href={phoneHref} className="font-semibold hover:text-primary">
+                {phone}
+              </a>
+            </p>
+          )}
           <a href={mapsDirectionsUrl} target="_blank" rel="noopener noreferrer" className="mt-8 inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-3 text-sm font-semibold hover:bg-accent">
             <Navigation className="h-4 w-4" /> Itinéraire
           </a>
@@ -132,7 +158,7 @@ function TenantStorefront({ slug }: { slug: string }) {
       const haystack = `${i.name} ${i.subtitle ?? ""} ${i.description}`.toLowerCase();
       return haystack.includes(normalizedQuery);
     });
-  const subtotalLabel = hasUnpriced ? (subtotal > 0 ? `${subtotal.toLocaleString("fr-FR")} FCFA` : "À confirmer") : `${subtotal.toLocaleString("fr-FR")} FCFA`;
+  const subtotalLabel = hasUnpriced ? (subtotal > 0 ? formatMoney(subtotal, restaurant.currency) : "À confirmer") : formatMoney(subtotal, restaurant.currency);
   const hasContact = Boolean(restaurant.address || restaurant.commune || restaurant.city);
   const openOffers = () => { setOpenOfferId(null); setOffersOpen(true); };
 
@@ -145,24 +171,25 @@ function TenantStorefront({ slug }: { slug: string }) {
       <main>
         <TenantHero restaurant={restaurant} />
         {hasMenu && <TenantCategoryNav tabs={tabs} active={active} onSelect={setActive} onOpenCategories={() => setCategoriesOpen(true)} />}
-        {hasMenu && <TenantPopularSection items={data.items} onOpen={setOpenItem} />}
+        {hasMenu && <TenantPopularSection items={data.items} currency={restaurant.currency} onOpen={setOpenItem} />}
         <section id="carte" className="pb-16 pt-3 md:pb-24 bg-background">
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
             {!hasMenu ? <TenantEmptyMenuState /> : items.length === 0 ? (
               <p className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">Aucun plat ne correspond à votre recherche.</p>
             ) : (
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{items.map((item) => <TenantProductCard key={item.id} item={item} onOpen={setOpenItem} />)}</div>
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{items.map((item) => <TenantProductCard key={item.id} item={item} currency={restaurant.currency} onOpen={setOpenItem} />)}</div>
             )}
           </div>
         </section>
         {hasMenu && <TenantTrustBar />}
-        <TenantLocationSection name={restaurant.name} address={restaurant.address} commune={restaurant.commune} city={restaurant.city} countryCode={restaurant.country_code} />
+        <TenantLocationSection name={restaurant.name} address={restaurant.address} commune={restaurant.commune} city={restaurant.city} countryCode={restaurant.country_code} phone={restaurant.phone} />
       </main>
 
       <PublicFooter restaurantName={restaurant.name} />
 
       <TenantProductModal
         item={openItem}
+        currency={restaurant.currency}
         onClose={() => { setOpenItem(null); setPendingOfferClaim(null); }}
         onAdd={(item, qty, options) => {
           add(item, qty, options);
@@ -175,12 +202,13 @@ function TenantStorefront({ slug }: { slug: string }) {
       />
       <TenantCartBar count={count} subtotalLabel={subtotalLabel} onOpenCart={openCart} />
       <TenantBottomNav restaurantSlug={restaurant.slug} restaurantName={restaurant.name} onOpenOffers={openOffers} />
-      <TenantOrderDrawer restaurantSlug={restaurant.slug} restaurantName={restaurant.name} availability={data.availability} timezone={restaurant.timezone ?? "Africa/Abidjan"} deliveryFeeFallback={settings?.delivery_fee_fallback ?? DEFAULT_DELIVERY_FEE_FALLBACK} restaurantLat={restaurant.lat} restaurantLng={restaurant.lng} deliveryEnabled={settings?.delivery_enabled ?? true} pickupEnabled={settings?.pickup_enabled ?? true} />
+      <TenantOrderDrawer restaurantSlug={restaurant.slug} restaurantName={restaurant.name} currency={restaurant.currency} availability={data.availability} timezone={restaurant.timezone ?? "Africa/Abidjan"} deliveryFeeFallback={settings?.delivery_fee_fallback ?? DEFAULT_DELIVERY_FEE_FALLBACK} restaurantLat={restaurant.lat} restaurantLng={restaurant.lng} deliveryEnabled={settings?.delivery_enabled ?? true} pickupEnabled={settings?.pickup_enabled ?? true} />
       <TenantLocationModal />
       <CategoriesSheet slug={slug} open={categoriesOpen} onOpenChange={setCategoriesOpen} onSelectCategory={setActive} />
       <TenantOffersSheet
         slug={restaurant.slug}
         items={data.items}
+        currency={restaurant.currency}
         open={offersOpen}
         onOpenChange={(v) => { setOffersOpen(v); if (!v) setOpenOfferId(null); }}
         openOfferId={openOfferId}

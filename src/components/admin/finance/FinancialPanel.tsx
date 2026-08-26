@@ -11,12 +11,11 @@ function toInputDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function FinancialPanel() {
+export function FinancialPanel({ currency }: { currency: string }) {
   const [preset, setPreset] = useState<PeriodPreset>("last7");
   const [customRange, setCustomRange] = useState<PeriodRange>(() => resolvePeriod("today"));
   const period = useMemo(() => resolvePeriod(preset, customRange), [preset, customRange]);
   const { stats, loading, error, refresh } = useDashboardStats(period);
-  const currency = "XOF";
 
   return (
     <div className="space-y-6">

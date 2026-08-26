@@ -86,13 +86,14 @@ export function MenuCategories({
             <p className="col-span-full text-sm text-muted-foreground">Chargement de la carte…</p>
           )}
           {items.map((item) => (
-            <MenuCard key={item.id} item={item} onOpen={setOpenItem} />
+            <MenuCard key={item.id} item={item} currency={data?.restaurant?.currency} onOpen={setOpenItem} />
           ))}
         </div>
       </div>
 
       <TenantProductModal
         item={openItem}
+        currency={data?.restaurant?.currency ?? null}
         onClose={() => setOpenItem(null)}
         onAdd={(item, qty) => {
           for (let i = 0; i < qty; i += 1) add(item);

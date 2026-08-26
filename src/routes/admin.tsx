@@ -95,7 +95,9 @@ import { NotificationBell } from "@/components/admin/notifications/NotificationB
 import { SubscriptionCard } from "@/components/admin/settings/SubscriptionCard";
 import { SecurityCard } from "@/components/admin/settings/SecurityCard";
 import { FulfillmentSettingsCard } from "@/components/admin/settings/FulfillmentSettingsCard";
+import { CurrencyCard } from "@/components/admin/settings/CurrencyCard";
 import { useRestaurantTheme } from "@/hooks/useRestaurantTheme";
+import { DEFAULT_CURRENCY_CODE, currencySymbol, formatMoney } from "@/lib/currency";
 
 const TITLE = "Administration du restaurant";
 const DESCRIPTION = "Gestion compacte de la carte, de la vitrine et des coordonnées du restaurant.";
@@ -842,28 +844,29 @@ export default function AdminPage() {
             <TabsContent value="accueil">
               <DashboardHome
                 restaurantId={restaurantId}
+                currency={restaurant?.currency ?? DEFAULT_CURRENCY_CODE}
                 publicHref={publicHref}
                 menuItems={data?.rows ?? []}
                 onNavigateTab={setTab}
               />
             </TabsContent>
             <TabsContent value="commandes">
-              <OrdersPanel restaurantId={restaurantId} {...ordersAlert} />
+              <OrdersPanel restaurantId={restaurantId} restaurant={restaurant} {...ordersAlert} />
             </TabsContent>
             <TabsContent value="clients">
-              <CustomersPanel restaurantId={restaurantId} />
+              <CustomersPanel restaurantId={restaurantId} currency={restaurant?.currency ?? DEFAULT_CURRENCY_CODE} />
             </TabsContent>
             <TabsContent value="livreurs">
               {restaurantId && <DriversPanel restaurantId={restaurantId} />}
             </TabsContent>
             <TabsContent value="statistiques">
-              <StatisticsPanel />
+              <StatisticsPanel currency={restaurant?.currency ?? DEFAULT_CURRENCY_CODE} />
             </TabsContent>
             <TabsContent value="visiteurs">
               <VisitorsPanel />
             </TabsContent>
             <TabsContent value="finances">
-              <FinancialPanel />
+              <FinancialPanel currency={restaurant?.currency ?? DEFAULT_CURRENCY_CODE} />
             </TabsContent>
             <TabsContent value="menu" className="space-y-6">
               <Card className="p-5">
@@ -888,6 +891,7 @@ export default function AdminPage() {
                 <MenuItemsPanel
                   rows={filteredRows}
                   categories={data?.categories ?? []}
+                  currency={restaurant?.currency ?? DEFAULT_CURRENCY_CODE}
                   busy={busy}
                   togglingItemIds={togglingItemIds}
                   search={search}
@@ -952,16 +956,23 @@ export default function AdminPage() {
               {promotionsSubTab === "produits" ? (
                 <PromotionsPanel
                   restaurantId={restaurantId}
+                  currency={restaurant?.currency ?? DEFAULT_CURRENCY_CODE}
                   products={data?.rows ?? []}
                   refreshSignal={promotionsRefreshSignal}
                 />
               ) : (
-                restaurantId && <PromoCodesPanel restaurantId={restaurantId} />
+                restaurantId && (
+                  <PromoCodesPanel restaurantId={restaurantId} currency={restaurant?.currency ?? DEFAULT_CURRENCY_CODE} />
+                )
               )}
             </TabsContent>
             <TabsContent value="marketing">
               {restaurantId && (
-                <MarketingPanel restaurantId={restaurantId} products={data?.rows ?? []} />
+                <MarketingPanel
+                  restaurantId={restaurantId}
+                  currency={restaurant?.currency ?? DEFAULT_CURRENCY_CODE}
+                  products={data?.rows ?? []}
+                />
               )}
             </TabsContent>
             <TabsContent value="avis">
@@ -1195,6 +1206,11 @@ export default function AdminPage() {
                 </p>
               </Card>
               <FulfillmentSettingsCard restaurantId={restaurantId} />
+              <CurrencyCard
+                restaurantId={restaurantId}
+                currentCurrency={restaurant?.currency ?? DEFAULT_CURRENCY_CODE}
+                onSaved={() => void refresh()}
+              />
               <SubscriptionCard restaurantId={restaurantId} />
               <SecurityCard email={user.email ?? null} />
             </TabsContent>
@@ -1348,7 +1364,7 @@ export default function AdminPage() {
             </Field>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Prix (FCFA)">
+              <Field label={`Prix (${currencySymbol(restaurant?.currency)})`}>
                 <Input
                   type="number"
                   min={0}
@@ -1414,10 +1430,10 @@ export default function AdminPage() {
                       <p className="text-xs text-muted-foreground sm:col-span-2">
                         Aperçu client :{" "}
                         <span className="line-through">
-                          {Number(itemForm.price).toLocaleString("fr-FR")} FCFA
+                          {formatMoney(Number(itemForm.price), restaurant?.currency)}
                         </span>{" "}
                         <span className="font-semibold text-primary">
-                          {Number(itemForm.promotionalPrice).toLocaleString("fr-FR")} FCFA
+                          {formatMoney(Number(itemForm.promotionalPrice), restaurant?.currency)}
                         </span>
                       </p>
                     )}
@@ -1469,6 +1485,7 @@ export default function AdminPage() {
             {restaurantId && (
               <OptionGroupsManager
                 restaurantId={restaurantId}
+                currency={restaurant?.currency ?? DEFAULT_CURRENCY_CODE}
                 productId={editingItem?.id ?? null}
               />
             )}
@@ -1987,6 +2004,7 @@ function MenuCategoriesPanel({
 function MenuItemsPanel({
   rows,
   categories,
+  currency,
   busy,
   togglingItemIds,
   search,
@@ -2000,6 +2018,7 @@ function MenuItemsPanel({
 }: {
   rows: DbMenuItem[];
   categories: Cat[];
+  currency: string;
   busy: boolean;
   togglingItemIds: Set<string>;
   search: string;
@@ -2083,7 +2102,7 @@ function MenuItemsPanel({
                   {cat} ·{" "}
                   {row.price === null
                     ? "Prix sur demande"
-                    : `${row.price.toLocaleString("fr-FR")} FCFA`}{" "}
+                    : formatMoney(row.price, currency)}{" "}
                   · Ordre {row.position}
                 </p>
               </div>

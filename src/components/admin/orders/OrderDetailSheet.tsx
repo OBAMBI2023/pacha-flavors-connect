@@ -1,19 +1,18 @@
 import { useEffect, useState } from "react";
-import { Banknote, Copy, MapPin, Share2, Truck, Undo2, UserRoundCog } from "lucide-react";
+import { Banknote, Copy, MapPin, Printer, Share2, Truck, Undo2, UserRoundCog } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsMobile } from "@/hooks/use-mobile";
+import type { DbRestaurant } from "@/lib/menu-db";
 import { fetchOrderDetail, type Order, type OrderDetail, type OrderStatus } from "@/lib/orders-db";
 import { DRIVER_STATUS_BUCKET_CLASSNAMES, DRIVER_STATUS_BUCKET_LABELS, driverStatusBucket, fetchDriver, type Driver } from "@/lib/drivers";
+import { formatMoney as money } from "@/lib/currency";
 import { STATUS_BADGE_CLASS, STATUS_LABELS, buildDeliveryDetailsText, deliveryAddressLine, fulfillmentLabel, googleMapsUrl, nextActions } from "./orderStatusMeta";
 import { PAYMENT_METHOD_LABELS, PAYMENT_STATUS_BADGE_CLASS, PAYMENT_STATUS_LABELS } from "./paymentStatusMeta";
-
-function money(amount: number, currency: string) {
-  return `${amount.toLocaleString("fr-FR")} ${currency}`;
-}
+import { OrderPrintTicket } from "./OrderPrintTicket";
 
 async function copyText(text: string, successMessage: string) {
   try {
@@ -26,6 +25,7 @@ async function copyText(text: string, successMessage: string) {
 
 export function OrderDetailSheet({
   orderId,
+  restaurant,
   busy,
   onClose,
   onAdvance,
@@ -35,6 +35,7 @@ export function OrderDetailSheet({
   onAssign,
 }: {
   orderId: string | null;
+  restaurant: DbRestaurant | null;
   busy: boolean;
   onClose: () => void;
   onAdvance: (order: Order, nextStatus: OrderStatus) => void;
@@ -108,6 +109,14 @@ export function OrderDetailSheet({
                 <Badge variant="outline" className={PAYMENT_STATUS_BADGE_CLASS[detail.payment_status]}>
                   {PAYMENT_STATUS_LABELS[detail.payment_status]}
                 </Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="ml-auto h-8"
+                  onClick={() => window.print()}
+                >
+                  <Printer className="mr-1.5 h-3.5 w-3.5" /> Imprimer le ticket
+                </Button>
               </div>
               <SheetDescription>
                 {new Date(detail.created_at).toLocaleString("fr-FR")}
@@ -392,6 +401,8 @@ export function OrderDetailSheet({
                 ))}
               </div>
             )}
+
+            <OrderPrintTicket order={detail} restaurant={restaurant} />
           </>
         )}
       </SheetContent>

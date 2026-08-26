@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, ChevronRight, ClipboardList, LogOut, RefreshCcw, UserRound } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchCustomerOrders, formatOrderNumber, type OrderRow } from "@/lib/orders";
+import { formatMoney } from "@/lib/currency";
 import { CartProvider } from "@/lib/cart";
 import { OrderStatusTimeline } from "@/components/tenant/OrderStatusTimeline";
 import { useStorefrontTheme } from "@/components/tenant/tenantTheme";
@@ -99,7 +100,7 @@ function OrdersPage() {
                       <p className="text-sm text-muted-foreground">{order.restaurant?.name ?? "Restaurant"}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold">{order.total_amount.toLocaleString("fr-FR")} FCFA</p>
+                      <p className="font-semibold">{formatMoney(order.total_amount, order.currency)}</p>
                       <p className="text-sm text-muted-foreground">{new Date(order.created_at).toLocaleDateString("fr-FR")}</p>
                     </div>
                   </div>

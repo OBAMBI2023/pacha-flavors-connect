@@ -1,8 +1,17 @@
 import { Minus, Plus } from "lucide-react";
 import { useCart, computeLineKey } from "@/lib/cart";
 import { formatPrepTime, getPromotionBadgeLabel, type MenuItem } from "@/data/menu";
+import { formatMoney } from "@/lib/currency";
 
-export function TenantProductCard({ item, onOpen }: { item: MenuItem; onOpen: (item: MenuItem) => void }) {
+export function TenantProductCard({
+  item,
+  currency,
+  onOpen,
+}: {
+  item: MenuItem;
+  currency: string | null;
+  onOpen: (item: MenuItem) => void;
+}) {
   const { lines, add, increment, decrement } = useCart();
 
   function open() {
@@ -73,7 +82,7 @@ export function TenantProductCard({ item, onOpen }: { item: MenuItem; onOpen: (i
           )}
           {promotion && (
             <span className="rounded-full bg-primary px-3 py-1 text-[0.65rem] font-bold uppercase tracking-wide text-primary-foreground shadow-sm">
-              {getPromotionBadgeLabel(promotion)}
+              {getPromotionBadgeLabel(promotion, currency)}
             </span>
           )}
         </div>
@@ -88,11 +97,11 @@ export function TenantProductCard({ item, onOpen }: { item: MenuItem; onOpen: (i
           {item.available ? (
             hasPriceDiscount ? (
               <span className="flex flex-col">
-                <span className="text-base font-bold text-primary">{promotion!.final_price.toLocaleString("fr-FR")} FCFA</span>
-                <span className="text-xs font-medium text-muted-foreground line-through">{item.price!.toLocaleString("fr-FR")} FCFA</span>
+                <span className="text-base font-bold text-primary">{formatMoney(promotion!.final_price, currency)}</span>
+                <span className="text-xs font-medium text-muted-foreground line-through">{formatMoney(item.price!, currency)}</span>
               </span>
             ) : (
-              <span className="text-base font-bold text-primary">{item.price === null ? "À confirmer" : `${item.price.toLocaleString("fr-FR")} FCFA`}</span>
+              <span className="text-base font-bold text-primary">{item.price === null ? "À confirmer" : formatMoney(item.price, currency)}</span>
             )
           ) : (
             <span className="rounded-full bg-muted px-2 py-1 text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">Indisponible</span>

@@ -245,3 +245,123 @@
   --input: #e7e2da;
   --ring: #ff5a00;
 }
+
+/*
+ * Printable order ticket (Admin > Commandes > OrderPrintTicket.tsx). The
+ * ticket markup is always present in the DOM but hidden on screen; when
+ * window.print() is called, this @media print block hides every other
+ * element on the page and reveals only the ticket, sized for an 80mm
+ * thermal roll with a max-width so it also prints centered (not clipped
+ * or stretched) on A4.
+ */
+.order-print-ticket {
+  display: none;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .order-print-ticket,
+  .order-print-ticket * {
+    visibility: visible;
+  }
+
+  .order-print-ticket {
+    display: block !important;
+    position: fixed;
+    inset: 0;
+    margin: 0;
+    background: #fff;
+  }
+
+  .order-print-ticket__inner {
+    width: 76mm;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 3mm 2mm;
+    color: #000;
+    background: #fff;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 9.5pt;
+    line-height: 1.4;
+  }
+
+  .order-print-ticket__inner p {
+    margin: 0 0 1mm;
+  }
+
+  .order-print-ticket__header {
+    text-align: center;
+    margin-bottom: 1mm;
+  }
+
+  .order-print-ticket__logo {
+    display: block;
+    max-height: 14mm;
+    max-width: 60mm;
+    margin: 0 auto 1.5mm;
+    filter: grayscale(1);
+  }
+
+  .order-print-ticket__name {
+    font-size: 12pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin: 0 0 0.5mm;
+  }
+
+  .order-print-ticket__order-number {
+    font-size: 11pt;
+    font-weight: 700;
+  }
+
+  .order-print-ticket__rule {
+    border-top: 1px dashed #000;
+    margin: 2mm 0;
+  }
+
+  .order-print-ticket__items {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .order-print-ticket__item {
+    margin-bottom: 1.5mm;
+  }
+
+  .order-print-ticket__option {
+    padding-left: 3mm;
+    font-size: 8.5pt;
+  }
+
+  .order-print-ticket__row {
+    display: flex;
+    justify-content: space-between;
+    gap: 3mm;
+    margin: 0 0 0.5mm;
+  }
+
+  .order-print-ticket__row > span:last-child {
+    white-space: nowrap;
+  }
+
+  .order-print-ticket__row--total {
+    border-top: 1px solid #000;
+    margin-top: 1mm;
+    padding-top: 1mm;
+    font-size: 11pt;
+    font-weight: 700;
+  }
+
+  .order-print-ticket__allergy {
+    font-weight: 700;
+  }
+
+  @page {
+    size: 80mm auto;
+    margin: 2mm;
+  }
+}

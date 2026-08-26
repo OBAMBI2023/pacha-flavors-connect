@@ -3,7 +3,15 @@ import { formatPrice, type MenuItem } from "@/data/menu";
 import { useCart } from "@/lib/cart";
 import { useMenuFavorites } from "@/lib/menu-favorites";
 
-export function MenuCard({ item, onOpen }: { item: MenuItem; onOpen?: (item: MenuItem) => void }) {
+export function MenuCard({
+  item,
+  currency,
+  onOpen,
+}: {
+  item: MenuItem;
+  currency?: string | null | undefined;
+  onOpen?: (item: MenuItem) => void;
+}) {
   const { add, openCart } = useCart();
   const { favorites, toggle } = useMenuFavorites();
   const isFavorite = favorites.includes(item.id);
@@ -66,7 +74,7 @@ export function MenuCard({ item, onOpen }: { item: MenuItem; onOpen?: (item: Men
         </button>
         <div className="mt-3 flex items-center justify-between gap-2 sm:mt-5 sm:flex-wrap">
           <span className="font-display text-sm font-semibold text-foreground sm:text-lg">
-            {formatPrice(item.price)}
+            {formatPrice(item.price, currency)}
           </span>
           <div className="flex items-center gap-2">
             <button

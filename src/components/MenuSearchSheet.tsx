@@ -86,7 +86,7 @@ export function MenuSearchSheet({
                     <p className="truncate text-xs text-muted-foreground">{item.description}</p>
                   </div>
                   <span className="shrink-0 text-sm font-semibold text-primary">
-                    {formatPrice(item.price)}
+                    {formatPrice(item.price, data?.restaurant?.currency)}
                   </span>
                 </button>
                 <button

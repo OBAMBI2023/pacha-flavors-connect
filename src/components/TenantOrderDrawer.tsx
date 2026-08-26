@@ -30,6 +30,7 @@ import { lookupCustomerName } from "@/lib/customers-db";
 import { computeDistanceBasedDelivery } from "@/lib/deliveryPricing";
 import { geocodeAddress } from "@/lib/geolocation";
 import { getOrCreateVisitorId } from "@/lib/visitorTracking";
+import { formatMoney } from "@/lib/currency";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Switch } from "@/components/ui/switch";
 
@@ -178,6 +179,7 @@ function SwitchOption({
 export function TenantOrderDrawer({
   restaurantSlug,
   restaurantName,
+  currency,
   availability,
   timezone,
   deliveryFeeFallback,
@@ -188,6 +190,7 @@ export function TenantOrderDrawer({
 }: {
   restaurantSlug: string;
   restaurantName: string;
+  currency: string | null;
   availability: RestaurantAvailability | null;
   timezone: string;
   /** Preview only -- applied when a distance-based quote isn't available (tenant or customer has no GPS coordinates). Never 0: create_order's own fallback branch uses this exact same tenant setting (default 1500 FCFA) so a customer is never shown or charged free delivery just because their position couldn't be determined. */
@@ -460,7 +463,7 @@ export function TenantOrderDrawer({
     }
   }
 
-  const subtotalLabel = hasUnpriced ? (subtotal > 0 ? `${subtotal.toLocaleString("fr-FR")} FCFA` : "À confirmer") : `${subtotal.toLocaleString("fr-FR")} FCFA`;
+  const subtotalLabel = hasUnpriced ? (subtotal > 0 ? formatMoney(subtotal, currency) : "À confirmer") : formatMoney(subtotal, currency);
   // Preview only -- create_order always recomputes and charges the
   // authoritative total server-side (it also knows about free-delivery
   // promotions this preview can't see). Prefers the distance-based quote;
@@ -473,12 +476,12 @@ export function TenantOrderDrawer({
   const resolvedDeliveryFee =
     mode === "delivery" ? (promoDiscount?.waivesDelivery ? 0 : deliveryQuote?.fee ?? deliveryFeeFallback) : null;
   const showDeliveryFeeLine = mode === "delivery" && resolvedDeliveryFee !== null;
-  const deliveryFeeLabel = `${(resolvedDeliveryFee ?? 0).toLocaleString("fr-FR")} FCFA`;
+  const deliveryFeeLabel = formatMoney(resolvedDeliveryFee ?? 0, currency);
   const promoDiscountAmount = promoDiscount?.discountAmount ?? 0;
   const showDiscountLine = promoDiscountAmount > 0;
-  const discountLabel = `-${promoDiscountAmount.toLocaleString("fr-FR")} FCFA`;
+  const discountLabel = `-${formatMoney(promoDiscountAmount, currency)}`;
   const totalAmount = Math.max(subtotal - promoDiscountAmount, 0) + (mode === "delivery" ? resolvedDeliveryFee ?? 0 : 0);
-  const totalLabel = hasUnpriced ? (subtotal > 0 ? `${totalAmount.toLocaleString("fr-FR")} FCFA` : "À confirmer") : `${totalAmount.toLocaleString("fr-FR")} FCFA`;
+  const totalLabel = hasUnpriced ? (subtotal > 0 ? formatMoney(totalAmount, currency) : "À confirmer") : formatMoney(totalAmount, currency);
   const orderButtonLabel = geocoding
     ? "Recherche de l'adresse..."
     : submitting
@@ -545,7 +548,7 @@ export function TenantOrderDrawer({
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-[15px] font-medium text-foreground">{l.item.name}</p>
                           {l.options.length > 0 && <p className="truncate text-xs text-muted-foreground">{formatSelectedOptions(l.options)}</p>}
-                          <p className="text-[15px] font-semibold text-foreground">{((l.item.price ?? 0) + optionsExtra).toLocaleString("fr-FR")} FCFA</p>
+                          <p className="text-[15px] font-semibold text-foreground">{formatMoney((l.item.price ?? 0) + optionsExtra, currency)}</p>
                           <div className="mt-1.5 flex items-center gap-2">
                             <QuantitySelector value={l.qty} onDecrement={() => decrement(l.key)} onIncrement={() => increment(l.key)} />
                             <button onClick={() => remove(l.key)} aria-label="Supprimer" className="ml-auto grid h-11 w-11 place-items-center rounded-full text-muted-foreground hover:bg-accent">×</button>
@@ -642,16 +645,16 @@ export function TenantOrderDrawer({
                       {deliveryQuote ? (
                         <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-sm">
                           <span className="text-muted-foreground">Distance : {deliveryQuote.distanceKm.toFixed(1)} km</span>
-                          <span className="font-semibold text-foreground">Livraison : {deliveryQuote.fee.toLocaleString("fr-FR")} FCFA</span>
+                          <span className="font-semibold text-foreground">Livraison : {formatMoney(deliveryQuote.fee, currency)}</span>
                         </div>
                       ) : location?.confirmed ? (
                         <div className="mt-3 border-t border-border pt-3">
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground">Livraison forfaitaire</span>
-                            <span className="font-semibold text-foreground">{deliveryFeeFallback.toLocaleString("fr-FR")} FCFA</span>
+                            <span className="font-semibold text-foreground">{formatMoney(deliveryFeeFallback, currency)}</span>
                           </div>
                           <p className="mt-1 text-xs text-muted-foreground">
-                            La position n'a pas pu être déterminée. Un forfait de livraison de {deliveryFeeFallback.toLocaleString("fr-FR")} FCFA est appliqué.
+                            La position n'a pas pu être déterminée. Un forfait de livraison de {formatMoney(deliveryFeeFallback, currency)} est appliqué.
                           </p>
                         </div>
                       ) : null}

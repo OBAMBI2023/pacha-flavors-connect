@@ -22,13 +22,14 @@ export function DailyMenu({ slug }: { slug: string }) {
         <h2 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">Menu du jour</h2>
         <div className="mt-10 grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-4">
           {daily.map((item) => (
-            <MenuCard key={item.id} item={item} onOpen={setOpenItem} />
+            <MenuCard key={item.id} item={item} currency={data?.restaurant?.currency} onOpen={setOpenItem} />
           ))}
         </div>
       </div>
 
       <TenantProductModal
         item={openItem}
+        currency={data?.restaurant?.currency ?? null}
         onClose={() => setOpenItem(null)}
         onAdd={(item, qty) => {
           for (let i = 0; i < qty; i += 1) add(item);

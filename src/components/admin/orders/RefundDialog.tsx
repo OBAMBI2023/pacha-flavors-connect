@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { Order } from "@/lib/orders-db";
+import { formatMoney } from "@/lib/currency";
 
 export function RefundDialog({
   order,
@@ -43,7 +44,7 @@ export function RefundDialog({
         <DialogHeader>
           <DialogTitle>Rembourser la commande {order ? `#${order.order_number}` : ""}</DialogTitle>
           <DialogDescription>
-            Montant remboursable restant : {remaining.toLocaleString("fr-FR")} {order?.currency}. Cette action est
+            Montant remboursable restant : {formatMoney(remaining, order?.currency)}. Cette action est
             définitive et enregistrée dans l'historique des paiements.
           </DialogDescription>
         </DialogHeader>

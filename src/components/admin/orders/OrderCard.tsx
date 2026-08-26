@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Order, OrderStatus } from "@/lib/orders-db";
 import type { DispatchProposalWithDriver } from "@/lib/delivery";
+import { formatMoney } from "@/lib/currency";
 import { STATUS_BADGE_CLASS, STATUS_LABELS, deliveryAddressLine, elapsedLabel, fulfillmentLabel, googleMapsUrl, nextActions } from "./orderStatusMeta";
 import { PAYMENT_STATUS_BADGE_CLASS, PAYMENT_STATUS_LABELS } from "./paymentStatusMeta";
 
@@ -185,7 +186,7 @@ export function OrderCard({
         )}
         <div className="flex items-center justify-end">
           <span className="font-display text-base font-semibold">
-            {order.total_amount.toLocaleString("fr-FR")} {order.currency}
+            {formatMoney(order.total_amount, order.currency)}
           </span>
         </div>
       </div>

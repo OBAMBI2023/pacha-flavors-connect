@@ -9,10 +9,7 @@ import { getOrCreateVisitorId } from "@/lib/visitorTracking";
 import { fetchTenantOffers, markOfferRead, notifyOfferRead, trackOfferClick, type TenantOffer } from "@/lib/offers";
 import { useCart } from "@/lib/cart";
 import type { MenuItem } from "@/data/menu";
-
-function money(amount: number) {
-  return `${amount.toLocaleString("fr-FR")} FCFA`;
-}
+import { formatMoney as money } from "@/lib/currency";
 
 function imageUrl(path: string | null): string | null {
   return path ? supabase.storage.from(MENU_BUCKET).getPublicUrl(path).data.publicUrl : null;
@@ -30,6 +27,7 @@ function endsLabel(iso: string | null): string | null {
 export function TenantOffersSheet({
   slug,
   items,
+  currency,
   open,
   onOpenChange,
   openOfferId,
@@ -38,6 +36,7 @@ export function TenantOffersSheet({
   slug: string;
   /** Full storefront catalog, used to resolve an offer's product back into a cart-addable MenuItem. */
   items: MenuItem[];
+  currency: string | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
   /** Set (e.g. from a notification tap) to jump straight into that offer's detail once the list loads, instead of showing the list first. */
@@ -144,8 +143,8 @@ export function TenantOffersSheet({
                 {detail.description && <p className="mt-1 text-sm leading-relaxed">{detail.description}</p>}
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="font-display text-2xl font-semibold text-primary">{money(detail.offer_price)}</span>
-                <span className="text-sm text-muted-foreground line-through">{money(detail.original_price)}</span>
+                <span className="font-display text-2xl font-semibold text-primary">{money(detail.offer_price, currency)}</span>
+                <span className="text-sm text-muted-foreground line-through">{money(detail.original_price, currency)}</span>
               </div>
             </div>
             <Button size="lg" className="mt-4 w-full" onClick={() => void claim(detail)}>
@@ -185,8 +184,8 @@ export function TenantOffersSheet({
                         <p className="truncate text-sm font-semibold">{offer.title}</p>
                         <p className="truncate text-xs text-muted-foreground">{offer.product_name}</p>
                         <div className="mt-1 flex items-baseline gap-1.5">
-                          <span className="text-sm font-bold text-primary">{money(offer.offer_price)}</span>
-                          <span className="text-xs text-muted-foreground line-through">{money(offer.original_price)}</span>
+                          <span className="text-sm font-bold text-primary">{money(offer.offer_price, currency)}</span>
+                          <span className="text-xs text-muted-foreground line-through">{money(offer.original_price, currency)}</span>
                         </div>
                       </div>
                       <span className="shrink-0 rounded-full bg-primary/10 px-2 py-1 text-[0.7rem] font-bold text-primary">-{offer.discount_percent}%</span>

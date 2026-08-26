@@ -2,14 +2,17 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, ShoppingCart } from "lucide-react";
 import { formatPrepTime, getPromotionBadgeLabel, type MenuItem } from "@/data/menu";
 import type { CartOptionSelection } from "@/lib/cart";
+import { formatMoney } from "@/lib/currency";
 import { QuantitySelector } from "@/components/tenant/QuantitySelector";
 
 export function TenantProductModal({
   item,
+  currency,
   onClose,
   onAdd,
 }: {
   item: MenuItem | null;
+  currency: string | null;
   onClose: () => void;
   onAdd: (item: MenuItem, qty: number, options: CartOptionSelection[]) => void;
 }) {
@@ -73,7 +76,7 @@ export function TenantProductModal({
             {item.image ? <img src={item.image} alt={item.name} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Aucune image</div>}
             {promotion && (
               <span className="absolute left-3 top-3 rounded-full bg-primary px-3 py-1 text-[0.65rem] font-bold uppercase tracking-wide text-primary-foreground shadow-sm">
-                {getPromotionBadgeLabel(promotion)}
+                {getPromotionBadgeLabel(promotion, currency)}
               </span>
             )}
           </div>
@@ -89,11 +92,11 @@ export function TenantProductModal({
             <div className="flex items-center justify-between">
               {hasPriceDiscount ? (
                 <span className="flex items-baseline gap-2">
-                  <span className="text-[21px] font-bold text-primary">{unitPrice.toLocaleString("fr-FR")} FCFA</span>
-                  <span className="text-sm text-muted-foreground line-through">{item.price!.toLocaleString("fr-FR")} FCFA</span>
+                  <span className="text-[21px] font-bold text-primary">{formatMoney(unitPrice, currency)}</span>
+                  <span className="text-sm text-muted-foreground line-through">{formatMoney(item.price!, currency)}</span>
                 </span>
               ) : (
-                <span className="text-[21px] font-bold text-primary">{item.price === null ? "À confirmer" : `${unitPrice.toLocaleString("fr-FR")} FCFA`}</span>
+                <span className="text-[21px] font-bold text-primary">{item.price === null ? "À confirmer" : formatMoney(unitPrice, currency)}</span>
               )}
               {prepTimeLabel && <span className="text-sm font-medium text-muted-foreground">{prepTimeLabel}</span>}
             </div>
@@ -131,7 +134,7 @@ export function TenantProductModal({
                               }`}
                             >
                               {option.name}
-                              {option.extra_price > 0 && <span className="ml-1 opacity-80">+{option.extra_price.toLocaleString("fr-FR")} FCFA</span>}
+                              {option.extra_price > 0 && <span className="ml-1 opacity-80">+{formatMoney(option.extra_price, currency)}</span>}
                             </button>
                           );
                         })}
@@ -158,7 +161,7 @@ export function TenantProductModal({
         <div className="border-t border-border px-5 py-4">
           <div className="flex items-center justify-between text-sm">
             <span className="font-medium text-muted-foreground">Total</span>
-            <span className="text-lg font-bold text-foreground">{total.toLocaleString("fr-FR")} FCFA</span>
+            <span className="text-lg font-bold text-foreground">{formatMoney(total, currency)}</span>
           </div>
           <button
             onClick={() => {

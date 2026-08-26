@@ -4,6 +4,7 @@ import { Bell, BellOff, RadioTower, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { OrdersAlert, RealtimeConnectionState } from "@/hooks/useOrdersAlert";
 import { useDeliveryDispatch } from "@/hooks/useDeliveryDispatch";
+import type { DbRestaurant } from "@/lib/menu-db";
 import { createRefund, fetchOrderPaymentSummary, markCashPaymentReceived, updateOrderStatus, type Order, type OrderStatus } from "@/lib/orders-db";
 import { fetchDriverLocationFreshnessMinutes } from "@/lib/delivery";
 import { assignDriverToOrder } from "@/lib/drivers";
@@ -27,6 +28,7 @@ const TICK_MS = 30_000;
 
 export function OrdersPanel({
   restaurantId,
+  restaurant,
   orders,
   connectionState,
   newOrderIds,
@@ -36,7 +38,7 @@ export function OrdersPanel({
   soundEnabled,
   enableSound,
   disableSound,
-}: OrdersAlert & { restaurantId: string | null }) {
+}: OrdersAlert & { restaurantId: string | null; restaurant: DbRestaurant | null }) {
   const [filter, setFilter] = useState<"all" | OrderStatus>("all");
   const dispatchByOrderId = useDeliveryDispatch(restaurantId);
   const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
@@ -251,6 +253,7 @@ export function OrdersPanel({
 
       <OrderDetailSheet
         orderId={detailOrderId}
+        restaurant={restaurant}
         busy={busyOrderId === detailOrderId}
         onClose={() => setDetailOrderId(null)}
         onAdvance={(o, next) => void handleAdvance(o, next)}

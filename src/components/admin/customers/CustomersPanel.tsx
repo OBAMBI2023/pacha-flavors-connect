@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { fetchCustomers, normalizePhoneForWhatsApp, type Customer, type CustomerSource } from "@/lib/customers-db";
+import { formatMoney as money } from "@/lib/currency";
 import { CustomerDetailSheet } from "./CustomerDetailSheet";
 import { EditCustomerDialog } from "./EditCustomerDialog";
 import { AddClientDialog } from "./AddClientDialog";
@@ -18,10 +19,6 @@ const SOURCE_BADGE: Record<CustomerSource, { label: string; className: string }>
   website: { label: "Client du site", className: "bg-muted text-muted-foreground" },
   restaurant: { label: "Ajouté par le restaurant", className: "bg-primary/10 text-primary" },
 };
-
-function money(amount: number) {
-  return `${amount.toLocaleString("fr-FR")} FCFA`;
-}
 
 function timeAgo(iso: string | null) {
   if (!iso) return "Jamais";
@@ -53,7 +50,7 @@ function customerStatus(customer: Customer): { label: string; className: string 
   return { label: "Actif", className: "bg-primary/10 text-primary" };
 }
 
-export function CustomersPanel({ restaurantId }: { restaurantId: string | null }) {
+export function CustomersPanel({ restaurantId, currency }: { restaurantId: string | null; currency: string }) {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
@@ -194,7 +191,7 @@ export function CustomersPanel({ restaurantId }: { restaurantId: string | null }
                       <td className="px-4 py-3 text-muted-foreground">{c.email ?? "—"}</td>
                       <td className="px-4 py-3"><Badge className={SOURCE_BADGE[c.source].className}>{SOURCE_BADGE[c.source].label}</Badge></td>
                       <td className="px-4 py-3 text-right">{c.orders_count}</td>
-                      <td className="px-4 py-3 text-right font-medium">{money(c.total_spent)}</td>
+                      <td className="px-4 py-3 text-right font-medium">{money(c.total_spent, currency)}</td>
                       <td className="px-4 py-3 text-muted-foreground">{timeAgo(c.last_order_at)}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1">
@@ -239,7 +236,7 @@ export function CustomersPanel({ restaurantId }: { restaurantId: string | null }
                   </div>
                   <div className="mt-2.5 flex items-center justify-between text-xs text-muted-foreground">
                     <span>{c.phone}</span>
-                    <span>{c.orders_count} commande{c.orders_count > 1 ? "s" : ""} · {money(c.total_spent)}</span>
+                    <span>{c.orders_count} commande{c.orders_count > 1 ? "s" : ""} · {money(c.total_spent, currency)}</span>
                   </div>
                   <div className="mt-2.5 flex items-center justify-between border-t border-border pt-2.5">
                     <span className="text-xs text-muted-foreground">{timeAgo(c.last_order_at)}</span>
@@ -272,7 +269,7 @@ export function CustomersPanel({ restaurantId }: { restaurantId: string | null }
         </>
       )}
 
-      <CustomerDetailSheet customerId={detailId} onClose={() => setDetailId(null)} />
+      <CustomerDetailSheet customerId={detailId} currency={currency} onClose={() => setDetailId(null)} />
       <EditCustomerDialog
         customer={editTarget}
         onClose={() => setEditTarget(null)}
