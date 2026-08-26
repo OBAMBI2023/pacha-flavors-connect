@@ -96,6 +96,7 @@ import { SubscriptionCard } from "@/components/admin/settings/SubscriptionCard";
 import { SecurityCard } from "@/components/admin/settings/SecurityCard";
 import { FulfillmentSettingsCard } from "@/components/admin/settings/FulfillmentSettingsCard";
 import { CurrencyCard } from "@/components/admin/settings/CurrencyCard";
+import { SeoSettingsCard } from "@/components/admin/settings/SeoSettingsCard";
 import { useRestaurantTheme } from "@/hooks/useRestaurantTheme";
 import { DEFAULT_CURRENCY_CODE, currencySymbol, formatMoney } from "@/lib/currency";
 
@@ -1211,6 +1212,7 @@ export default function AdminPage() {
                 currentCurrency={restaurant?.currency ?? DEFAULT_CURRENCY_CODE}
                 onSaved={() => void refresh()}
               />
+              <SeoSettingsCard restaurantId={restaurantId} restaurant={restaurant} />
               <SubscriptionCard restaurantId={restaurantId} />
               <SecurityCard email={user.email ?? null} />
             </TabsContent>

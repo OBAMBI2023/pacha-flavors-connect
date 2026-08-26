@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build && node scripts/generate-sw.mjs",
-    "build:dev": "vite build --mode development && node scripts/generate-sw.mjs",
+    "build": "vite build && node scripts/generate-sw.mjs && node scripts/generate-seo-files.mjs",
+    "build:dev": "vite build --mode development && node scripts/generate-sw.mjs && node scripts/generate-seo-files.mjs",
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write ."

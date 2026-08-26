@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { MapPin, Navigation, Phone } from "lucide-react";
-import { useMenuData } from "@/lib/menu-db";
+import { fetchMenuData, useMenuData, type MenuData } from "@/lib/menu-db";
 import { formatMoney } from "@/lib/currency";
+import { buildBreadcrumbJsonLd, buildMenuJsonLd, buildRestaurantJsonLd, buildTenantHeadMeta, jsonLdMetaEntry, tenantCanonicalUrl } from "@/lib/seo";
 import { DEFAULT_DELIVERY_FEE_FALLBACK } from "@/lib/deliveryPricing";
 import { CartProvider, useCart } from "@/lib/cart";
 import { DeliveryLocationProvider } from "@/lib/deliveryLocation";
@@ -94,15 +95,52 @@ function slugify(value: string) {
 }
 
 export const Route = createFileRoute("/r/$slug")({
-  ssr: false,
-  head: () => ({
-    meta: [
-      { name: "robots", content: "noindex" },
-      { name: "description", content: "Consultez le menu et les informations de ce restaurant." },
-      { name: "author", content: "Pacha Flavors Connect" },
-      { property: "og:description", content: "Consultez le menu et les informations de ce restaurant." },
-    ],
-  }),
+  // SSR'd so per-tenant title/description/OG/Twitter/JSON-LD are already in
+  // the initial HTML -- required for crawlers that don't execute JS
+  // (WhatsApp, Facebook, LinkedIn link previews) to see the real tenant,
+  // not a generic shell. The loader primes the exact same React Query
+  // cache key useMenuData() reads client-side, so this changes nothing
+  // about how the page fetches or renders its data.
+  loader: ({ params, context }) =>
+    context.queryClient.ensureQueryData({
+      queryKey: ["menu-data", params.slug],
+      queryFn: () => fetchMenuData(params.slug),
+    }),
+  head: ({ loaderData }) => {
+    const data = loaderData as MenuData | undefined;
+    const restaurant = data?.restaurant;
+    if (!restaurant) {
+      // Unknown/private slug -- never fabricate tenant data, never index.
+      return { meta: [{ name: "robots", content: "noindex" }] };
+    }
+    const canonicalUrl = tenantCanonicalUrl(restaurant, data.settings);
+    const { meta, links } = buildTenantHeadMeta({ restaurant, settings: data.settings });
+    const restaurantJsonLd = buildRestaurantJsonLd({
+      restaurant,
+      settings: data.settings,
+      businessHours: data.businessHours,
+      canonicalUrl,
+    });
+    const menuJsonLd = buildMenuJsonLd({
+      categories: data.categories,
+      items: data.items,
+      currency: restaurant.currency,
+      canonicalUrl,
+    });
+    const breadcrumbJsonLd = buildBreadcrumbJsonLd([
+      { name: "Accueil", url: tenantCanonicalUrl(restaurant, data.settings) },
+      { name: restaurant.name, url: canonicalUrl },
+    ]);
+    return {
+      meta: [
+        ...meta,
+        jsonLdMetaEntry(restaurantJsonLd),
+        ...(menuJsonLd ? [jsonLdMetaEntry(menuJsonLd)] : []),
+        jsonLdMetaEntry(breadcrumbJsonLd),
+      ],
+      links,
+    };
+  },
   component: TenantStorefrontPage,
 });
 

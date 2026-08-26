@@ -30,6 +30,8 @@ export type DbMenuItem = {
 export type PublicRestaurant = {
   id: string;
   name: string;
+  /** Registered/legal business name, distinct from the tenant's display `name` -- used by SEO structured data when present, never shown in the UI. */
+  legal_name: string | null;
   slug: string;
   phone: string | null;
   whatsapp_phone: string | null;
@@ -42,18 +44,27 @@ export type PublicRestaurant = {
   timezone: string | null;
   logo_url: string | null;
   cover_url: string | null;
+  favicon_url: string | null;
   /** Used client-side only for a live delivery-distance preview (see deliveryPricing.ts) -- create_order independently re-reads these same columns server-side, so a tampered client value can never change what's billed. Null when the tenant hasn't configured a position yet. */
   lat: number | null;
   lng: number | null;
+  /** Used as the sitemap/structured-data lastmod signal -- never shown in the UI. */
+  updated_at: string | null;
 };
+
+export type OpeningHoursSpec = Record<string, { open: string; close: string; closed?: boolean } | null>;
 
 export type PublicRestaurantSettings = {
   description: string | null;
+  /** Short marketing tagline/slogan -- optional, distinct from `description`. Used by the SEO module in the schema.org `slogan` property and, when set, prepended to the default title. */
+  tagline: string | null;
+  opening_hours: OpeningHoursSpec | null;
   delivery_enabled: boolean | null;
   pickup_enabled: boolean | null;
   dine_in_enabled: boolean | null;
   reservation_enabled: boolean | null;
   whatsapp_message_template: string | null;
+  social_links: Record<string, string> | null;
   /** Already returned by get_public_menu; lets the storefront apply the tenant's own brand color. */
   primary_color: string | null;
   /** Flat citywide fee (already in get_public_menu's payload) -- shown as a preview in the cart; the authoritative charge is still always computed server-side by create_order. */
@@ -61,12 +72,30 @@ export type PublicRestaurantSettings = {
   /** Applied instead of the distance-based fee (never 0) when either endpoint's GPS coordinates are unavailable -- see create_order's fallback branch. Defaults to 1500 FCFA per tenant, but is stored per-restaurant so it can be tuned later without a code change. */
   delivery_fee_fallback: number | null;
   minimum_order: number | null;
+  /** SEO overrides -- all optional, the SEO module (@/lib/seo) falls back to name/description/logo_url when null. */
+  seo_title: string | null;
+  seo_description: string | null;
+  seo_keywords: string | null;
+  seo_og_image_url: string | null;
+  google_site_verification: string | null;
+  bing_site_verification: string | null;
+  /** Architecture placeholder for a future custom-domain feature -- not yet wired to any request routing. When set, the SEO module treats it as the tenant's canonical origin. */
+  custom_domain: string | null;
+};
+
+/** Public weekly opening-hours row -- day_of_week follows JS Date.getDay() (0 = Sunday). */
+export type PublicBusinessHoursEntry = {
+  day_of_week: number;
+  is_open: boolean;
+  opening_time: string | null;
+  closing_time: string | null;
 };
 
 export type MenuData = {
   restaurant: PublicRestaurant | null;
   settings: PublicRestaurantSettings | null;
   availability: RestaurantAvailability | null;
+  businessHours: PublicBusinessHoursEntry[];
   categories: DbCategory[];
   rows: DbMenuItem[];
   items: MenuItem[];
@@ -74,7 +103,7 @@ export type MenuData = {
 
 export const MENU_BUCKET = "menu-images";
 
-function slugify(value: string) {
+export function slugify(value: string) {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
@@ -82,6 +111,7 @@ type PublicMenuRow = {
   restaurant: PublicRestaurant | null;
   settings: PublicRestaurantSettings | null;
   availability?: RestaurantAvailability | null;
+  business_hours?: PublicBusinessHoursEntry[];
   categories: Array<{
     id: string;
     name: string;
@@ -154,6 +184,7 @@ export async function fetchMenuData(slug: string): Promise<MenuData> {
     restaurant: payload?.restaurant ?? null,
     settings: payload?.settings ?? null,
     availability: payload?.availability ?? null,
+    businessHours: payload?.business_hours ?? [],
     categories: cats,
     rows: list,
     items,
