@@ -19,15 +19,51 @@ export function useAuth() {
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [membership, setMembership] = useState<MembershipRow | null>(null);
   const [loading, setLoading] = useState(true);
+  // Distinguishes "haven't restored the persisted session yet" from
+  // "restored it and there genuinely isn't one" -- both look like
+  // `session === null` on the very first render, since getSession() below
+  // is async and resolves after this hook's initial mount.
+  const [sessionChecked, setSessionChecked] = useState(false);
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
+    // TEMP DEBUG -- remove once the /auth -> /admin session-loss issue is
+    // confirmed diagnosed. Never logs token values, only which sb-* keys
+    // exist in localStorage at the moment useAuth mounts on this route.
+    if (typeof window !== "undefined") {
+      const sbKeys = Object.keys(window.localStorage).filter((k) => k.startsWith("sb-"));
+      console.log("[session-debug] useAuth mount", {
+        path: window.location.pathname,
+        sbKeysPresent: sbKeys,
+      });
+    }
+
+    const { data: sub } = supabase.auth.onAuthStateChange((event, next) => {
+      console.log("[session-debug] onAuthStateChange", {
+        path: typeof window === "undefined" ? "server" : window.location.pathname,
+        event,
+        hasSession: Boolean(next),
+        userId: next?.user?.id ?? null,
+      });
       setSession(next);
     });
 
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(({ data, error }) => {
+      console.log("[session-debug] useAuth getSession()", {
+        path: typeof window === "undefined" ? "server" : window.location.pathname,
+        hasSession: Boolean(data.session),
+        userId: data.session?.user?.id ?? null,
+        error: error ? { message: error.message } : null,
+      });
       setSession(data.session);
-      setLoading(false);
+      setSessionChecked(true);
+    });
+
+    supabase.auth.getUser().then(({ data, error }) => {
+      console.log("[session-debug] useAuth getUser()", {
+        path: typeof window === "undefined" ? "server" : window.location.pathname,
+        userId: data.user?.id ?? null,
+        error: error ? { message: error.message, status: (error as { status?: number }).status } : null,
+      });
     });
 
     return () => sub.subscription.unsubscribe();
@@ -39,6 +75,10 @@ export function useAuth() {
     async function loadAccess() {
       const userId = session?.user?.id;
       if (!userId) {
+        // Still waiting on the initial getSession() restore -- session===null
+        // here doesn't yet mean "logged out", so don't report loading=false
+        // (and let a route guard bounce the user away) until it settles.
+        if (!sessionChecked) return;
         setProfile(null);
         setMembership(null);
         setLoading(false);
@@ -46,7 +86,10 @@ export function useAuth() {
       }
 
       setLoading(true);
-      const [{ data: profileData }, { data: membershipData }] = await Promise.all([
+      const [
+        { data: profileData, error: profileError },
+        { data: membershipData, error: membershipError },
+      ] = await Promise.all([
         supabase.from("profiles").select("id,is_super_admin").eq("id", userId).maybeSingle(),
         supabase
           .from("restaurant_memberships")
@@ -57,6 +100,16 @@ export function useAuth() {
           .limit(1)
           .maybeSingle(),
       ]);
+
+      // TEMP DEBUG -- remove once the Food Partner dashboard redirect issue
+      // is confirmed diagnosed. Never logs tokens/passwords.
+      console.log("[partner-auth-debug] useAuth.loadAccess", {
+        userId,
+        profileData,
+        profileError: profileError ? { message: profileError.message, code: profileError.code } : null,
+        membershipData,
+        membershipError: membershipError ? { message: membershipError.message, code: membershipError.code } : null,
+      });
 
       if (cancelled) return;
       setProfile((profileData as ProfileRow | null) ?? null);
@@ -69,7 +122,7 @@ export function useAuth() {
     return () => {
       cancelled = true;
     };
-  }, [session?.user?.id]);
+  }, [session?.user?.id, sessionChecked]);
 
   const user: User | null = session?.user ?? null;
   const role = membership?.role ?? null;
@@ -79,6 +132,20 @@ export function useAuth() {
   const isSuperAdmin = Boolean(profile?.is_super_admin);
   const restaurantId = membership?.restaurant_id ?? null;
   const canManageMenu = isSuperAdmin || isOwner || isManager;
+
+  // TEMP DEBUG -- remove once the Food Partner dashboard redirect issue is
+  // confirmed diagnosed. Never logs tokens/passwords.
+  useEffect(() => {
+    console.log("[partner-auth-debug] useAuth state", {
+      hasSession: Boolean(session),
+      userId: user?.id ?? null,
+      userEmail: user?.email ?? null,
+      loading,
+      role,
+      restaurantId,
+      canManageMenu,
+    });
+  }, [session, user, loading, role, restaurantId, canManageMenu]);
 
   return useMemo(
     () => ({

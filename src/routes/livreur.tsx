@@ -134,6 +134,7 @@ function CenteredMessage({ children }: { children: React.ReactNode }) {
 
 /** Styling only -- the actual auth call (signInWithPassword) is untouched, matching the already-fixed and separately-validated /delivery/login flow. */
 function DriverLoginForm() {
+  const [view, setView] = useState<"login" | "forgot" | "forgot-sent">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -148,6 +149,20 @@ function DriverLoginForm() {
     if (result.error) setMessage(result.error.message);
   }
 
+  async function onForgotSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (busy || !email) return;
+    setBusy(true);
+    setMessage(null);
+    // Same success message whether or not the address has an account, so the
+    // form never confirms/denies an email's existence.
+    await supabase.auth
+      .resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/livreur/activation` })
+      .catch(() => {});
+    setBusy(false);
+    setView("forgot-sent");
+  }
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4 py-16">
       <div className="w-full max-w-md rounded-3xl bg-card p-8 shadow-sm">
@@ -157,33 +172,88 @@ function DriverLoginForm() {
         <p className="mt-4 text-center text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-primary">
           SAOVIA
         </p>
-        <h1 className="text-center font-display text-2xl font-semibold">Connexion partenaire</h1>
-        <form onSubmit={onSubmit} className="mt-6 space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">E-mail</Label>
-            <Input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Mot de passe</Label>
-            <Input
-              id="password"
-              type="password"
-              required
-              minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-          <Button type="submit" className="h-12 w-full rounded-2xl" disabled={busy}>
-            {busy ? "Connexion..." : "Se connecter"}
-          </Button>
-        </form>
+
+        {view === "login" && (
+          <>
+            <h1 className="text-center font-display text-2xl font-semibold">Connexion partenaire</h1>
+            <form onSubmit={onSubmit} className="mt-6 space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">E-mail</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Mot de passe</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  minLength={6}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => { setMessage(null); setView("forgot"); }}
+                className="block text-right text-sm font-medium text-primary hover:underline underline-offset-4"
+              >
+                Mot de passe oublié ?
+              </button>
+              <Button type="submit" className="h-12 w-full rounded-2xl" disabled={busy}>
+                {busy ? "Connexion..." : "Se connecter"}
+              </Button>
+            </form>
+          </>
+        )}
+
+        {view === "forgot" && (
+          <>
+            <h1 className="text-center font-display text-2xl font-semibold">Mot de passe oublié</h1>
+            <p className="mt-1 text-center text-sm text-muted-foreground">Recevez un lien pour le réinitialiser</p>
+            <form onSubmit={onForgotSubmit} className="mt-6 space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="forgot-email">E-mail</Label>
+                <Input
+                  id="forgot-email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <Button type="submit" className="h-12 w-full rounded-2xl" disabled={busy}>
+                {busy ? "Envoi..." : "Envoyer le lien"}
+              </Button>
+              <button
+                type="button"
+                onClick={() => setView("login")}
+                className="block w-full text-center text-sm font-medium text-muted-foreground hover:text-foreground"
+              >
+                ← Retour à la connexion
+              </button>
+            </form>
+          </>
+        )}
+
+        {view === "forgot-sent" && (
+          <>
+            <h1 className="text-center font-display text-2xl font-semibold">Vérifiez votre boîte mail</h1>
+            <p className="mt-3 text-center text-sm text-muted-foreground">
+              Si un compte existe pour <span className="font-medium text-foreground">{email}</span>, un lien de
+              réinitialisation vient d&apos;être envoyé.
+            </p>
+            <Button variant="outline" className="mt-6 h-12 w-full rounded-2xl" onClick={() => setView("login")}>
+              ← Retour à la connexion
+            </Button>
+          </>
+        )}
+
         {message && <p className="mt-4 text-center text-sm text-muted-foreground">{message}</p>}
       </div>
     </main>

@@ -19,35 +19,17 @@ function json(body: unknown, status = 200) {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/**
- * Drivers log in with real email/password (see livreur.tsx), but phone is
- * the required contact field here and many drivers won't have an email --
- * when none is given we synthesize a non-deliverable placeholder purely so
- * auth.users has the identifier it needs. The driver still needs to know
- * this string to log in, so it's always returned to the admin (and stored)
- * regardless of whether it's real or synthetic.
- */
-function synthesizeEmail(): string {
-  return `driver-${crypto.randomUUID().slice(0, 8)}@drivers.saovia.internal`;
-}
-
-function generateTempPassword(): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
-  const bytes = new Uint8Array(12);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, (b) => chars[b % chars.length]).join("");
-}
-
 type CreateDriverPayload = {
   restaurant_id: string;
   full_name: string;
   phone: string;
-  email?: string | null;
+  email: string;
   phone_secondary?: string | null;
   address?: string | null;
   date_of_birth?: string | null;
   hired_at?: string | null;
   internal_note?: string | null;
+  activation_redirect_to: string;
 };
 
 Deno.serve(async (req: Request) => {
@@ -59,7 +41,7 @@ Deno.serve(async (req: Request) => {
 
   // Client scoped to the CALLER's own JWT -- the permission check runs as
   // this user, never as service_role. service_role below is only ever used
-  // for auth.admin.createUser/deleteUser.
+  // for auth.admin.generateLink and the find_auth_user_id_by_email RPC.
   const callerClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: authHeader } },
   });
@@ -77,12 +59,17 @@ Deno.serve(async (req: Request) => {
   const restaurantId = (payload.restaurant_id ?? "").trim();
   const fullName = (payload.full_name ?? "").trim();
   const phone = (payload.phone ?? "").trim();
-  const emailInput = (payload.email ?? "").trim().toLowerCase();
+  const email = (payload.email ?? "").trim().toLowerCase();
+  const redirectTo = (payload.activation_redirect_to ?? "").trim();
 
   if (!restaurantId) return json({ error: "restaurant_id requis." }, 400);
   if (!fullName) return json({ error: "Le nom complet est requis." }, 400);
   if (!phone) return json({ error: "Le téléphone est requis." }, 400);
-  if (emailInput && !EMAIL_RE.test(emailInput)) return json({ error: "E-mail invalide." }, 400);
+  if (!email || !EMAIL_RE.test(email)) return json({ error: "E-mail invalide." }, 400);
+  if (!redirectTo) return json({ error: "URL d'activation manquante." }, 400);
+  // TEMP DEBUG -- remove once the redirect_to loss is confirmed fixed. Logs
+  // only the redirect target, never the generated token/link.
+  console.log("[activation-debug] admin-create-driver received activation_redirect_to:", redirectTo);
 
   const { data: membership, error: membershipError } = await callerClient
     .from("restaurant_memberships")
@@ -96,31 +83,89 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Accès refusé : réservé au propriétaire ou au gérant de ce restaurant." }, 403);
   }
 
-  const email = emailInput || synthesizeEmail();
-  const tempPassword = generateTempPassword();
+  // Soft duplicate check: no DB-level uniqueness on phone today, so this is
+  // a friendly guard, not a new business rule -- scoped to this restaurant
+  // like everything else here, not a global phone registry.
+  const { data: existingPhone } = await callerClient
+    .from("driver_profiles")
+    .select("id")
+    .eq("restaurant_id", restaurantId)
+    .eq("phone", phone)
+    .maybeSingle();
+  if (existingPhone) return json({ error: "Un livreur avec ce numéro de téléphone existe déjà." }, 400);
 
-  // service_role is only ever used for this one call -- never for table
-  // reads/writes, which happen on adminClient below only because the
-  // driver_profiles insert must succeed even though the newly created
-  // auth user has no restaurant_memberships row (driver_profiles_insert_owner_manager
-  // is keyed on the CALLER's membership, not the new user's).
+  // service_role is only ever used for generateLink and the auth.users email
+  // lookup below -- every table read/write still goes through adminClient
+  // only because the driver_profiles insert must succeed even though the
+  // newly created auth user has no restaurant_memberships row
+  // (driver_profiles_insert_owner_manager is keyed on the CALLER's
+  // membership, not the new user's).
   const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-  const { data: createdUser, error: createUserError } = await adminClient.auth.admin.createUser({
+  let driverId: string;
+  let activationLink: string;
+
+  // TEMP DEBUG -- remove once the redirect_to loss is confirmed fixed.
+  console.log("[activation-debug] admin-create-driver calling generateLink(invite) with redirectTo:", redirectTo);
+  const inviteResult = await adminClient.auth.admin.generateLink({
+    type: "invite",
     email,
-    password: tempPassword,
-    email_confirm: true,
-    user_metadata: { full_name: fullName, role: "driver" },
+    options: { redirectTo, data: { full_name: fullName, role: "driver" } },
   });
 
-  if (createUserError || !createdUser?.user) {
-    const message = createUserError?.message?.includes("already been registered")
-      ? "Cet e-mail est déjà utilisé par un autre compte."
-      : (createUserError?.message ?? "Impossible de créer le compte du livreur.");
-    return json({ error: message }, 400);
+  if (inviteResult.error || !inviteResult.data.user) {
+    const alreadyRegistered = /already.*registered|already.*exists/i.test(inviteResult.error?.message ?? "");
+    if (!alreadyRegistered) {
+      return json({ error: inviteResult.error?.message ?? "Impossible de créer le compte du livreur." }, 400);
+    }
+
+    // "Compte Auth existe mais profil driver absent" / "Email déjà utilisé":
+    // find the existing account and decide which case this is.
+    const { data: existingUserId, error: lookupError } = await adminClient.rpc("find_auth_user_id_by_email", {
+      p_email: email,
+    });
+    if (lookupError || !existingUserId) {
+      return json({ error: "Cet e-mail est déjà utilisé et le compte associé est introuvable." }, 400);
+    }
+
+    const { data: existingDriverProfile } = await adminClient
+      .from("driver_profiles")
+      .select("id")
+      .eq("id", existingUserId)
+      .maybeSingle();
+    if (existingDriverProfile) {
+      return json({ error: "Un livreur existe déjà avec cet e-mail." }, 400);
+    }
+
+    // Orphaned auth account, no driver profile: attach this profile to it
+    // instead of creating a duplicate account. A recovery link re-activates
+    // it exactly like an invite would.
+    const recoveryResult = await adminClient.auth.admin.generateLink({
+      type: "recovery",
+      email,
+      options: { redirectTo },
+    });
+    if (recoveryResult.error || !recoveryResult.data.properties?.action_link) {
+      return json({ error: recoveryResult.error?.message ?? "Impossible de générer le lien d'activation." }, 400);
+    }
+    driverId = existingUserId as string;
+    activationLink = recoveryResult.data.properties.action_link;
+  } else {
+    driverId = inviteResult.data.user.id;
+    activationLink = inviteResult.data.properties?.action_link ?? "";
+    if (!activationLink) return json({ error: "Impossible de générer le lien d'activation." }, 400);
   }
 
-  const driverId = createdUser.user.id;
+  // TEMP DEBUG -- remove once the redirect_to loss is confirmed fixed. Logs
+  // only the redirect_to param GoTrue actually recorded, never the token.
+  try {
+    console.log(
+      "[activation-debug] generateLink response redirect_to param:",
+      new URL(activationLink).searchParams.get("redirect_to"),
+    );
+  } catch {
+    console.log("[activation-debug] could not parse activationLink as URL");
+  }
 
   const { error: insertError } = await adminClient.from("driver_profiles").insert({
     id: driverId,
@@ -134,13 +179,18 @@ Deno.serve(async (req: Request) => {
     hired_at: payload.hired_at || null,
     internal_note: payload.internal_note?.trim() || null,
     status: "available",
+    account_status: "pending_invitation",
+    invited_at: new Date().toISOString(),
   });
 
   if (insertError) {
-    // Never leave an orphaned Auth account with no driver_profiles row.
-    await adminClient.auth.admin.deleteUser(driverId);
+    // Never leave a brand-new orphaned Auth account with no driver_profiles
+    // row. Only delete the auth user if we just created it -- an existing
+    // (previously orphaned) account being re-attached must survive a failed
+    // insert here so it can be retried, not be deleted out from under it.
+    if (!inviteResult.error) await adminClient.auth.admin.deleteUser(driverId);
     return json({ error: insertError.message ?? "Impossible de créer le livreur." }, 400);
   }
 
-  return json({ driver_id: driverId, email_used: email, temp_password: tempPassword });
+  return json({ driver_id: driverId, email_used: email, activation_link: activationLink });
 });

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { PencilLine, ShieldAlert } from "lucide-react";
+import { Check, Copy, PencilLine, ShieldAlert } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,11 +10,13 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import {
   DOCUMENT_STATUS_CLASSNAMES,
   DOCUMENT_STATUS_LABELS,
+  DRIVER_ACCOUNT_STATUS_CLASSNAMES,
   DRIVER_STATUS_BUCKET_CLASSNAMES,
   DRIVER_STATUS_BUCKET_LABELS,
   IDENTITY_DOCUMENT_TYPE_LABELS,
   VEHICLE_TYPE_LABELS,
   documentStatus,
+  driverAccountStatusLabel,
   driverStatusBucket,
   fetchDriver,
   fetchDriverAssignmentHistory,
@@ -22,6 +24,7 @@ import {
   fetchDriverFleetStats,
   fetchVehicles,
   getDriverFileUrl,
+  resendDriverInvite,
   setDriverActive,
   suspendDriver,
   unsuspendDriver,
@@ -70,6 +73,9 @@ export function DriverProfileSheet({
   const [busy, setBusy] = useState(false);
   const [vehicleDialogOpen, setVehicleDialogOpen] = useState(false);
   const [documentDialogKind, setDocumentDialogKind] = useState<"identity" | "license" | null>(null);
+  const [activationLink, setActivationLink] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [resending, setResending] = useState(false);
 
   async function refresh() {
     if (!driverId) return;
@@ -99,6 +105,8 @@ export function DriverProfileSheet({
   }
 
   useEffect(() => {
+    setActivationLink(null);
+    setLinkCopied(false);
     if (!driverId) {
       setDriver(null);
       return;
@@ -175,6 +183,31 @@ export function DriverProfileSheet({
     }
   }
 
+  async function handleResendInvite() {
+    if (!driver) return;
+    setResending(true);
+    setActivationLink(null);
+    setLinkCopied(false);
+    try {
+      const { activation_link } = await resendDriverInvite(driver.id);
+      setActivationLink(activation_link);
+      await refresh();
+      onChanged();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Impossible de renvoyer l'invitation.");
+    } finally {
+      setResending(false);
+    }
+  }
+
+  function copyActivationLink() {
+    if (!activationLink) return;
+    void navigator.clipboard.writeText(activationLink).then(() => {
+      setLinkCopied(true);
+      window.setTimeout(() => setLinkCopied(false), 2000);
+    });
+  }
+
   async function handleActiveToggle() {
     if (!driver) return;
     setBusy(true);
@@ -217,6 +250,7 @@ export function DriverProfileSheet({
                     <SheetTitle className="flex flex-wrap items-center gap-2">
                       {driver.full_name}
                       {bucket && <Badge className={DRIVER_STATUS_BUCKET_CLASSNAMES[bucket]}>{DRIVER_STATUS_BUCKET_LABELS[bucket]}</Badge>}
+                      <Badge className={DRIVER_ACCOUNT_STATUS_CLASSNAMES[driver.account_status]}>{driverAccountStatusLabel(driver)}</Badge>
                       {!driver.is_active && <Badge className="bg-muted text-muted-foreground">Désactivé</Badge>}
                     </SheetTitle>
                     <SheetDescription>{driver.phone}{vehicle ? ` · ${VEHICLE_TYPE_LABELS[vehicle.vehicle_type]} · ${vehicle.plate_number}` : ""}</SheetDescription>
@@ -230,7 +264,21 @@ export function DriverProfileSheet({
                   <Button variant="outline" size="sm" onClick={() => void handleActiveToggle()} disabled={busy}>
                     {driver.is_active ? "Désactiver" : "Réactiver"}
                   </Button>
+                  {driver.email && (
+                    <Button variant="outline" size="sm" onClick={() => void handleResendInvite()} disabled={resending}>
+                      {resending ? "Envoi..." : "Renvoyer l'invitation"}
+                    </Button>
+                  )}
                 </div>
+                {activationLink && (
+                  <div className="mt-2 flex items-center justify-between gap-2 rounded-2xl border border-border bg-card p-3">
+                    <p className="truncate font-mono text-xs">{activationLink}</p>
+                    <Button variant="outline" size="sm" onClick={copyActivationLink}>
+                      {linkCopied ? <Check className="mr-1.5 h-3.5 w-3.5" /> : <Copy className="mr-1.5 h-3.5 w-3.5" />}
+                      {linkCopied ? "Copié" : "Copier"}
+                    </Button>
+                  </div>
+                )}
               </SheetHeader>
 
               <div className="mt-5 space-y-6 text-sm">

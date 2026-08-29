@@ -16,6 +16,8 @@ export type Driver = {
   internal_note: string | null;
   is_active: boolean;
   status: DriverStatus;
+  account_status: DriverAccountStatus;
+  invited_at: string | null;
   last_lat: number | null;
   last_lng: number | null;
   last_location_at: string | null;
@@ -24,7 +26,33 @@ export type Driver = {
 };
 
 const DRIVER_COLUMNS =
-  "id,restaurant_id,full_name,phone,email,phone_secondary,address,photo_path,date_of_birth,hired_at,internal_note,is_active,status,last_lat,last_lng,last_location_at,created_at,updated_at";
+  "id,restaurant_id,full_name,phone,email,phone_secondary,address,photo_path,date_of_birth,hired_at,internal_note,is_active,status,account_status,invited_at,last_lat,last_lng,last_location_at,created_at,updated_at";
+
+export type DriverAccountStatus = "pending_invitation" | "active";
+
+export const DRIVER_ACCOUNT_STATUS_LABELS: Record<DriverAccountStatus, string> = {
+  pending_invitation: "Invitation en attente",
+  active: "Compte actif",
+};
+
+export const DRIVER_ACCOUNT_STATUS_CLASSNAMES: Record<DriverAccountStatus, string> = {
+  pending_invitation: "bg-amber-100 text-amber-700",
+  active: "bg-primary/10 text-primary",
+};
+
+/** Cosmetic only -- the real link TTL is whatever the Supabase project's OTP/link expiry is set to. Just tells the admin "this is probably stale, consider resending" instead of hard-blocking anything. */
+const INVITATION_EXPIRY_HOURS = 72;
+
+export function isInvitationExpired(driver: Pick<Driver, "account_status" | "invited_at">): boolean {
+  if (driver.account_status !== "pending_invitation" || !driver.invited_at) return false;
+  const hours = (Date.now() - new Date(driver.invited_at).getTime()) / 3_600_000;
+  return hours > INVITATION_EXPIRY_HOURS;
+}
+
+export function driverAccountStatusLabel(driver: Pick<Driver, "account_status" | "invited_at">): string {
+  if (isInvitationExpired(driver)) return "Invitation expirée";
+  return DRIVER_ACCOUNT_STATUS_LABELS[driver.account_status];
+}
 
 const PAGE_SIZE = 25;
 
@@ -92,7 +120,7 @@ export type CreateDriverInput = {
   restaurant_id: string;
   full_name: string;
   phone: string;
-  email?: string | null;
+  email: string;
   phone_secondary?: string | null;
   address?: string | null;
   date_of_birth?: string | null;
@@ -100,16 +128,38 @@ export type CreateDriverInput = {
   internal_note?: string | null;
 };
 
-export type CreateDriverResult = { driver_id: string; email_used: string; temp_password: string };
+export type CreateDriverResult = { driver_id: string; email_used: string; activation_link: string };
 
-/** Calls the admin-create-driver Edge Function -- creates a real Supabase Auth account (drivers log in with email/password) plus the driver_profiles row in one step. The temp password is returned once and must be shown to the admin immediately; it is never retrievable again. */
+export const DRIVER_ACTIVATION_PATH = "/livreur/activation";
+
+/** Calls the admin-create-driver Edge Function -- creates a Supabase Auth account (unconfirmed, no password) plus the driver_profiles row, and returns a one-time activation link for the admin to share with the driver. The driver sets their own password when they open it; the admin never sees or stores a password. */
 export async function createDriver(input: CreateDriverInput): Promise<CreateDriverResult> {
-  const { data, error } = await supabase.functions.invoke("admin-create-driver", { body: input });
+  const activationRedirectTo = `${window.location.origin}${DRIVER_ACTIVATION_PATH}`;
+  // TEMP DEBUG -- remove once the redirect_to loss is confirmed fixed.
+  console.debug("[activation-debug] frontend activation_redirect_to:", activationRedirectTo);
+  const { data, error } = await supabase.functions.invoke("admin-create-driver", {
+    body: { ...input, activation_redirect_to: activationRedirectTo },
+  });
   if (error) {
     const message = (data as { error?: string } | null)?.error ?? error.message;
     throw new Error(message);
   }
   return data as CreateDriverResult;
+}
+
+/** "Renvoyer l'invitation" -- regenerates a fresh activation link for a driver still stuck in pending_invitation (or reissues one for an active driver who lost access, same mechanism as a password reset). */
+export async function resendDriverInvite(driverId: string): Promise<{ activation_link: string }> {
+  const activationRedirectTo = `${window.location.origin}${DRIVER_ACTIVATION_PATH}`;
+  // TEMP DEBUG -- remove once the redirect_to loss is confirmed fixed.
+  console.debug("[activation-debug] frontend activation_redirect_to (resend):", activationRedirectTo);
+  const { data, error } = await supabase.functions.invoke("admin-resend-driver-invite", {
+    body: { driver_id: driverId, activation_redirect_to: activationRedirectTo },
+  });
+  if (error) {
+    const message = (data as { error?: string } | null)?.error ?? error.message;
+    throw new Error(message);
+  }
+  return data as { activation_link: string };
 }
 
 export async function updateDriver(
@@ -345,6 +395,22 @@ export async function fetchDriverIdsWithExpiredDocuments(restaurantId: string): 
 
 export const DRIVER_DOCUMENTS_BUCKET = "driver-documents";
 
+/**
+ * `crypto.randomUUID()` is spec'd to require a secure context (HTTPS or
+ * localhost); on plain-HTTP admin deployments it's simply undefined and
+ * throws "crypto.randomUUID is not a function" mid-upload. `getRandomValues`
+ * has no such restriction, so build a v4 UUID from it when `randomUUID` is
+ * missing -- still CSPRNG-backed, not a Math.random() fallback.
+ */
+function randomUUID(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6]! & 0x0f) | 0x40;
+  bytes[8] = (bytes[8]! & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 export async function uploadDriverFile(
   restaurantId: string,
   driverId: string,
@@ -352,7 +418,7 @@ export async function uploadDriverFile(
   file: File,
 ): Promise<string> {
   const ext = file.name.split(".").pop() ?? "jpg";
-  const path = `${restaurantId}/${driverId}/${kind}/${crypto.randomUUID()}.${ext}`;
+  const path = `${restaurantId}/${driverId}/${kind}/${randomUUID()}.${ext}`;
   const { error } = await supabase.storage.from(DRIVER_DOCUMENTS_BUCKET).upload(path, file, { upsert: true, contentType: file.type });
   if (error) throw error;
   return path;

@@ -5,8 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  DRIVER_ACCOUNT_STATUS_CLASSNAMES,
   DRIVER_STATUS_BUCKET_CLASSNAMES,
   DRIVER_STATUS_BUCKET_LABELS,
+  driverAccountStatusLabel,
   fetchDriverIdsWithExpiredDocuments,
   fetchDrivers,
   fetchVehicles,
@@ -131,6 +133,9 @@ export function DriversListPanel({ restaurantId }: { restaurantId: string }) {
                   <div className="flex flex-wrap items-center gap-1.5">
                     <p className="truncate text-sm font-semibold">{d.full_name}</p>
                     <Badge className={DRIVER_STATUS_BUCKET_CLASSNAMES[bucket]}>{DRIVER_STATUS_BUCKET_LABELS[bucket]}</Badge>
+                    {d.account_status === "pending_invitation" && (
+                      <Badge className={DRIVER_ACCOUNT_STATUS_CLASSNAMES[d.account_status]}>{driverAccountStatusLabel(d)}</Badge>
+                    )}
                     {!d.is_active && <Badge className="bg-muted text-muted-foreground">Désactivé</Badge>}
                     {expiredIds.has(d.id) && <Badge className="bg-destructive/10 text-destructive">Document expiré</Badge>}
                   </div>

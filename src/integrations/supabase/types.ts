@@ -11,7 +11,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -764,6 +764,7 @@ export type Database = {
       }
       driver_profiles: {
         Row: {
+          account_status: string
           address: string | null
           created_at: string
           date_of_birth: string | null
@@ -772,6 +773,7 @@ export type Database = {
           hired_at: string | null
           id: string
           internal_note: string | null
+          invited_at: string | null
           is_active: boolean
           is_saovia_agent: boolean
           last_lat: number | null
@@ -785,6 +787,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          account_status?: string
           address?: string | null
           created_at?: string
           date_of_birth?: string | null
@@ -793,6 +796,7 @@ export type Database = {
           hired_at?: string | null
           id: string
           internal_note?: string | null
+          invited_at?: string | null
           is_active?: boolean
           is_saovia_agent?: boolean
           last_lat?: number | null
@@ -806,6 +810,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          account_status?: string
           address?: string | null
           created_at?: string
           date_of_birth?: string | null
@@ -814,6 +819,7 @@ export type Database = {
           hired_at?: string | null
           id?: string
           internal_note?: string | null
+          invited_at?: string | null
           is_active?: boolean
           is_saovia_agent?: boolean
           last_lat?: number | null
@@ -3126,6 +3132,7 @@ export type Database = {
         Args: { p_accept: boolean; p_proposal_id: string }
         Returns: Json
       }
+      find_auth_user_id_by_email: { Args: { p_email: string }; Returns: string }
       get_active_promotion: {
         Args: { p_product_id: string }
         Returns: {

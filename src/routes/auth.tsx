@@ -75,13 +75,21 @@ const FEATURES = [
  * requirement.
  */
 async function resolvePostLoginPath(userId: string): Promise<"/super-admin" | "/admin"> {
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from("profiles")
     .select("is_super_admin")
     .eq("id", userId)
     .maybeSingle();
-  if (profile?.is_super_admin) return "/super-admin";
-  return "/admin";
+  const destination = profile?.is_super_admin ? "/super-admin" : "/admin";
+  // TEMP DEBUG -- remove once the Food Partner dashboard redirect issue is
+  // confirmed diagnosed. Never logs tokens/passwords.
+  console.log("[partner-auth-debug] resolvePostLoginPath", {
+    userId,
+    profile,
+    error: error ? { message: error.message, code: error.code } : null,
+    destination,
+  });
+  return destination;
 }
 
 function validateNewPassword(password: string): string | null {
@@ -127,6 +135,13 @@ function AuthPage() {
       // visitor opt in.
       setExistingSessionEmail(data.session?.user?.email ?? null);
       setExistingSessionUserId(data.session?.user?.id ?? null);
+      // TEMP DEBUG -- remove once the Food Partner dashboard redirect issue
+      // is confirmed diagnosed. Never logs tokens/passwords.
+      console.log("[partner-auth-debug] /auth mount getSession", {
+        hasSession: Boolean(data.session),
+        userId: data.session?.user?.id ?? null,
+        userEmail: data.session?.user?.email ?? null,
+      });
     });
 
     // A "Mot de passe oublié" email link lands back on this same page with a
@@ -315,6 +330,13 @@ function AuthPage() {
                   const destination = existingSessionUserId
                     ? await resolvePostLoginPath(existingSessionUserId)
                     : "/admin";
+                  // TEMP DEBUG -- remove once the Food Partner dashboard
+                  // redirect issue is confirmed diagnosed.
+                  console.log("[partner-auth-debug] 'Accéder à mon espace' clicked", {
+                    existingSessionUserId,
+                    destination,
+                    currentPath: window.location.pathname,
+                  });
                   navigate({ to: destination });
                 }}
               >

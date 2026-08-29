@@ -13,12 +13,13 @@ function emptyForm() {
 }
 
 /**
- * "Ajouter un livreur" -- creates a real login-capable account via the
- * admin-create-driver Edge Function (service-role auth.admin.createUser +
- * driver_profiles insert), then optionally uploads a profile photo. Vehicle
- * and documents are added afterwards from the driver's own profile sheet,
- * not crammed into this same submission (keeps the Edge Function itself
- * small and un-bloated by file bytes).
+ * "Ajouter un livreur" -- creates an unconfirmed, passwordless Supabase Auth
+ * account plus the driver_profiles row via the admin-create-driver Edge
+ * Function, and returns a one-time activation link (the driver sets their
+ * own password when they open it -- the admin never sees or stores one).
+ * Vehicle and documents are added afterwards from the driver's own profile
+ * sheet, not crammed into this same submission (keeps the Edge Function
+ * itself small and un-bloated by file bytes).
  */
 export function AddDriverDialog({
   restaurantId,
@@ -36,12 +37,14 @@ export function AddDriverDialog({
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<CreateDriverResult | null>(null);
   const [copied, setCopied] = useState(false);
+  const [phoneCopied, setPhoneCopied] = useState(false);
 
   function reset() {
     setForm(emptyForm());
     setPhotoFile(null);
     setResult(null);
     setCopied(false);
+    setPhoneCopied(false);
   }
 
   function handleOpenChange(next: boolean) {
@@ -54,8 +57,8 @@ export function AddDriverDialog({
 
   async function save() {
     const fullName = `${form.lastName.trim()} ${form.firstName.trim()}`.trim();
-    if (!form.lastName.trim() || !form.firstName.trim() || !form.phone.trim()) {
-      toast.error("Nom, prénom et téléphone sont requis.");
+    if (!form.lastName.trim() || !form.firstName.trim() || !form.phone.trim() || !form.email.trim()) {
+      toast.error("Nom, prénom, téléphone et e-mail sont requis.");
       return;
     }
     setSaving(true);
@@ -64,7 +67,7 @@ export function AddDriverDialog({
         restaurant_id: restaurantId,
         full_name: fullName,
         phone: form.phone.trim(),
-        email: form.email.trim() || null,
+        email: form.email.trim(),
         phone_secondary: form.phoneSecondary.trim() || null,
         address: form.address.trim() || null,
         date_of_birth: form.dateOfBirth || null,
@@ -84,11 +87,19 @@ export function AddDriverDialog({
     }
   }
 
-  function copyPassword() {
+  function copyActivationLink() {
     if (!result) return;
-    void navigator.clipboard.writeText(result.temp_password).then(() => {
+    void navigator.clipboard.writeText(result.activation_link).then(() => {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  function copyPhone() {
+    if (!form.phone.trim()) return;
+    void navigator.clipboard.writeText(form.phone.trim()).then(() => {
+      setPhoneCopied(true);
+      window.setTimeout(() => setPhoneCopied(false), 2000);
     });
   }
 
@@ -99,7 +110,10 @@ export function AddDriverDialog({
           <>
             <DialogHeader>
               <DialogTitle>Livreur créé</DialogTitle>
-              <DialogDescription>Communiquez ces identifiants au livreur. Le mot de passe ne sera plus jamais affiché.</DialogDescription>
+              <DialogDescription>
+                Transmettez ce lien au livreur (SMS, WhatsApp...) pour qu'il active son compte et choisisse
+                lui-même son mot de passe. Vous ne verrez jamais son mot de passe.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-3">
               <div className="rounded-2xl border border-border bg-card p-4">
@@ -107,10 +121,24 @@ export function AddDriverDialog({
                 <p className="mt-1 font-mono text-sm">{result.email_used}</p>
               </div>
               <div className="rounded-2xl border border-border bg-card p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Mot de passe temporaire</p>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Téléphone</p>
                 <div className="mt-1 flex items-center justify-between gap-2">
-                  <p className="font-mono text-lg font-semibold">{result.temp_password}</p>
-                  <Button variant="outline" size="sm" onClick={copyPassword}>
+                  <p className="font-mono text-sm">{form.phone}</p>
+                  <Button variant="outline" size="sm" onClick={copyPhone}>
+                    {phoneCopied ? <Check className="mr-1.5 h-3.5 w-3.5" /> : <Copy className="mr-1.5 h-3.5 w-3.5" />}
+                    {phoneCopied ? "Copié" : "Copier"}
+                  </Button>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-border bg-card p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Statut du compte</p>
+                <p className="mt-1 text-sm">Invitation en attente</p>
+              </div>
+              <div className="rounded-2xl border border-border bg-card p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Lien d'activation</p>
+                <div className="mt-1 flex items-center justify-between gap-2">
+                  <p className="truncate font-mono text-xs">{result.activation_link}</p>
+                  <Button variant="outline" size="sm" onClick={copyActivationLink}>
                     {copied ? <Check className="mr-1.5 h-3.5 w-3.5" /> : <Copy className="mr-1.5 h-3.5 w-3.5" />}
                     {copied ? "Copié" : "Copier"}
                   </Button>
@@ -149,8 +177,8 @@ export function AddDriverDialog({
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label>Email</Label>
-                <Input type="email" value={form.email} onChange={(e) => setForm((c) => ({ ...c, email: e.target.value }))} placeholder="Optionnel -- sinon un identifiant est généré" />
+                <Label>Email *</Label>
+                <Input type="email" value={form.email} onChange={(e) => setForm((c) => ({ ...c, email: e.target.value }))} placeholder="Un lien d'activation lui sera envoyé" />
               </div>
               <div className="space-y-1.5">
                 <Label>Adresse</Label>

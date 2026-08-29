@@ -25,6 +25,7 @@ import { Route as DeliveryDashboardRouteImport } from './routes/delivery.dashboa
 import { Route as DeliveryLoginRouteImport } from './routes/delivery.login'
 import { Route as DeliveryNewRouteImport } from './routes/delivery.new'
 import { Route as DeliverySignupRouteImport } from './routes/delivery.signup'
+import { Route as LivreurActivationRouteImport } from './routes/livreur.activation'
 import { Route as RSlugRouteImport } from './routes/r.$slug'
 import { Route as RestaurantSlugRouteImport } from './routes/restaurant.$slug'
 import { Route as SuperAdminIndexRouteImport } from './routes/super-admin.index'
@@ -112,6 +113,11 @@ const DeliverySignupRoute = DeliverySignupRouteImport.update({
   path: '/signup',
   getParentRoute: () => DeliveryRoute,
 } as any)
+const LivreurActivationRoute = LivreurActivationRouteImport.update({
+  id: '/activation',
+  path: '/activation',
+  getParentRoute: () => LivreurRoute,
+} as any)
 const RSlugRoute = RSlugRouteImport.update({
   id: '/r/$slug',
   path: '/r/$slug',
@@ -153,7 +159,7 @@ export interface FileRoutesByFullPath {
   '/commandes': typeof CommandesRoute
   '/deliver': typeof DeliverRoute
   '/delivery': typeof DeliveryRouteWithChildren
-  '/livreur': typeof LivreurRoute
+  '/livreur': typeof LivreurRouteWithChildren
   '/rechercher': typeof RechercherRoute
   '/restaurants': typeof RestaurantsRouteWithChildren
   '/super-admin': typeof SuperAdminRouteWithChildren
@@ -162,6 +168,7 @@ export interface FileRoutesByFullPath {
   '/delivery/login': typeof DeliveryLoginRoute
   '/delivery/new': typeof DeliveryNewRoute
   '/delivery/signup': typeof DeliverySignupRoute
+  '/livreur/activation': typeof LivreurActivationRoute
   '/r/$slug': typeof RSlugRoute
   '/restaurant/$slug': typeof RestaurantSlugRoute
   '/delivery/': typeof DeliveryIndexRoute
@@ -176,7 +183,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/commandes': typeof CommandesRoute
   '/deliver': typeof DeliverRoute
-  '/livreur': typeof LivreurRoute
+  '/livreur': typeof LivreurRouteWithChildren
   '/rechercher': typeof RechercherRoute
   '/restaurants': typeof RestaurantsRouteWithChildren
   '/delivery/$id': typeof DeliveryIdRoute
@@ -184,6 +191,7 @@ export interface FileRoutesByTo {
   '/delivery/login': typeof DeliveryLoginRoute
   '/delivery/new': typeof DeliveryNewRoute
   '/delivery/signup': typeof DeliverySignupRoute
+  '/livreur/activation': typeof LivreurActivationRoute
   '/r/$slug': typeof RSlugRoute
   '/restaurant/$slug': typeof RestaurantSlugRoute
   '/delivery': typeof DeliveryIndexRoute
@@ -200,7 +208,7 @@ export interface FileRoutesById {
   '/commandes': typeof CommandesRoute
   '/deliver': typeof DeliverRoute
   '/delivery': typeof DeliveryRouteWithChildren
-  '/livreur': typeof LivreurRoute
+  '/livreur': typeof LivreurRouteWithChildren
   '/rechercher': typeof RechercherRoute
   '/restaurants': typeof RestaurantsRouteWithChildren
   '/super-admin': typeof SuperAdminRouteWithChildren
@@ -209,6 +217,7 @@ export interface FileRoutesById {
   '/delivery/login': typeof DeliveryLoginRoute
   '/delivery/new': typeof DeliveryNewRoute
   '/delivery/signup': typeof DeliverySignupRoute
+  '/livreur/activation': typeof LivreurActivationRoute
   '/r/$slug': typeof RSlugRoute
   '/restaurant/$slug': typeof RestaurantSlugRoute
   '/delivery/': typeof DeliveryIndexRoute
@@ -235,6 +244,7 @@ export interface FileRouteTypes {
     | '/delivery/login'
     | '/delivery/new'
     | '/delivery/signup'
+    | '/livreur/activation'
     | '/r/$slug'
     | '/restaurant/$slug'
     | '/delivery/'
@@ -257,6 +267,7 @@ export interface FileRouteTypes {
     | '/delivery/login'
     | '/delivery/new'
     | '/delivery/signup'
+    | '/livreur/activation'
     | '/r/$slug'
     | '/restaurant/$slug'
     | '/delivery'
@@ -281,6 +292,7 @@ export interface FileRouteTypes {
     | '/delivery/login'
     | '/delivery/new'
     | '/delivery/signup'
+    | '/livreur/activation'
     | '/r/$slug'
     | '/restaurant/$slug'
     | '/delivery/'
@@ -297,7 +309,7 @@ export interface RootRouteChildren {
   CommandesRoute: typeof CommandesRoute
   DeliverRoute: typeof DeliverRoute
   DeliveryRoute: typeof DeliveryRouteWithChildren
-  LivreurRoute: typeof LivreurRoute
+  LivreurRoute: typeof LivreurRouteWithChildren
   RechercherRoute: typeof RechercherRoute
   RestaurantsRoute: typeof RestaurantsRouteWithChildren
   SuperAdminRoute: typeof SuperAdminRouteWithChildren
@@ -420,6 +432,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DeliverySignupRouteImport
       parentRoute: typeof DeliveryRoute
     }
+    '/livreur/activation': {
+      id: '/livreur/activation'
+      path: '/activation'
+      fullPath: '/livreur/activation'
+      preLoaderRoute: typeof LivreurActivationRouteImport
+      parentRoute: typeof LivreurRoute
+    }
     '/r/$slug': {
       id: '/r/$slug'
       path: '/r/$slug'
@@ -487,6 +506,17 @@ const DeliveryRouteWithChildren = DeliveryRoute._addFileChildren(
   DeliveryRouteChildren,
 )
 
+interface LivreurRouteChildren {
+  LivreurActivationRoute: typeof LivreurActivationRoute
+}
+
+const LivreurRouteChildren: LivreurRouteChildren = {
+  LivreurActivationRoute: LivreurActivationRoute,
+}
+
+const LivreurRouteWithChildren =
+  LivreurRoute._addFileChildren(LivreurRouteChildren)
+
 interface RestaurantsRouteChildren {
   RestaurantsCategorieCategorySlugRoute: typeof RestaurantsCategorieCategorySlugRoute
 }
@@ -521,7 +551,7 @@ const rootRouteChildren: RootRouteChildren = {
   CommandesRoute: CommandesRoute,
   DeliverRoute: DeliverRoute,
   DeliveryRoute: DeliveryRouteWithChildren,
-  LivreurRoute: LivreurRoute,
+  LivreurRoute: LivreurRouteWithChildren,
   RechercherRoute: RechercherRoute,
   RestaurantsRoute: RestaurantsRouteWithChildren,
   SuperAdminRoute: SuperAdminRouteWithChildren,
