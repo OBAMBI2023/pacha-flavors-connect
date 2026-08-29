@@ -1239,6 +1239,7 @@ export type Database = {
           restaurant_id: string
           restaurant_lat_snapshot: number | null
           restaurant_lng_snapshot: number | null
+          scheduled_for: string | null
           source_metadata: Json
           status: Database["public"]["Enums"]["order_status"]
           subtotal_amount: number
@@ -1310,6 +1311,7 @@ export type Database = {
           restaurant_id: string
           restaurant_lat_snapshot?: number | null
           restaurant_lng_snapshot?: number | null
+          scheduled_for?: string | null
           source_metadata?: Json
           status?: Database["public"]["Enums"]["order_status"]
           subtotal_amount: number
@@ -1381,6 +1383,7 @@ export type Database = {
           restaurant_id?: string
           restaurant_lat_snapshot?: number | null
           restaurant_lng_snapshot?: number | null
+          scheduled_for?: string | null
           source_metadata?: Json
           status?: Database["public"]["Enums"]["order_status"]
           subtotal_amount?: number
@@ -3025,43 +3028,82 @@ export type Database = {
         }
         Returns: undefined
       }
-      create_order: {
-        Args: {
-          p_allergy_information?: string
-          p_customer_name: string
-          p_customer_notes?: string
-          p_customer_phone: string
-          p_customer_profile_address?: string
-          p_cutlery_requested?: boolean
-          p_delivery_address?: string
-          p_delivery_city?: string
-          p_delivery_commune?: string
-          p_delivery_instructions?: string
-          p_delivery_landmark?: string
-          p_delivery_latitude?: number
-          p_delivery_longitude?: number
-          p_delivery_neighborhood?: string
-          p_driver_note?: string
-          p_fulfillment_type: Database["public"]["Enums"]["order_fulfillment_type"]
-          p_is_for_someone_else?: boolean
-          p_items: Json
-          p_offer_id?: string
-          p_order_source?: string
-          p_payment_method?: string
-          p_promo_code?: string
-          p_recipient_additional_info?: string
-          p_recipient_address?: string
-          p_recipient_city?: string
-          p_recipient_landmark?: string
-          p_recipient_name?: string
-          p_recipient_neighborhood?: string
-          p_recipient_phone?: string
-          p_slug: string
-          p_source_metadata?: Json
-          p_visitor_id?: string
-        }
-        Returns: Json
-      }
+      create_order:
+        | {
+            Args: {
+              p_allergy_information?: string
+              p_customer_name: string
+              p_customer_notes?: string
+              p_customer_phone: string
+              p_customer_profile_address?: string
+              p_cutlery_requested?: boolean
+              p_delivery_address?: string
+              p_delivery_city?: string
+              p_delivery_commune?: string
+              p_delivery_instructions?: string
+              p_delivery_landmark?: string
+              p_delivery_latitude?: number
+              p_delivery_longitude?: number
+              p_delivery_neighborhood?: string
+              p_driver_note?: string
+              p_fulfillment_type: Database["public"]["Enums"]["order_fulfillment_type"]
+              p_is_for_someone_else?: boolean
+              p_items: Json
+              p_offer_id?: string
+              p_order_source?: string
+              p_payment_method?: string
+              p_promo_code?: string
+              p_recipient_additional_info?: string
+              p_recipient_address?: string
+              p_recipient_city?: string
+              p_recipient_landmark?: string
+              p_recipient_name?: string
+              p_recipient_neighborhood?: string
+              p_recipient_phone?: string
+              p_slug: string
+              p_source_metadata?: Json
+              p_visitor_id?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_allergy_information?: string
+              p_customer_name: string
+              p_customer_notes?: string
+              p_customer_phone: string
+              p_customer_profile_address?: string
+              p_cutlery_requested?: boolean
+              p_delivery_address?: string
+              p_delivery_city?: string
+              p_delivery_commune?: string
+              p_delivery_instructions?: string
+              p_delivery_landmark?: string
+              p_delivery_latitude?: number
+              p_delivery_longitude?: number
+              p_delivery_neighborhood?: string
+              p_driver_note?: string
+              p_fulfillment_type: Database["public"]["Enums"]["order_fulfillment_type"]
+              p_is_for_someone_else?: boolean
+              p_items: Json
+              p_offer_id?: string
+              p_order_source?: string
+              p_payment_method?: string
+              p_promo_code?: string
+              p_recipient_additional_info?: string
+              p_recipient_address?: string
+              p_recipient_city?: string
+              p_recipient_landmark?: string
+              p_recipient_name?: string
+              p_recipient_neighborhood?: string
+              p_recipient_phone?: string
+              p_scheduled_for?: string
+              p_slug: string
+              p_source_metadata?: Json
+              p_visitor_id?: string
+            }
+            Returns: Json
+          }
       create_pickup_point: {
         Args: {
           p_address: string

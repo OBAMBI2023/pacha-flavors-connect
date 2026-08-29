@@ -60,6 +60,13 @@ function loadStoredCustomer(): { name: string; phone: string } {
   }
 }
 
+/** Formats an ISO instant as the local `YYYY-MM-DDTHH:mm` a native `<input type="datetime-local">` expects, in the browser's own timezone (matches how the value is read back: `new Date(localValue)` interprets it in that same local timezone, so the round-trip instant is always correct). */
+function toDatetimeLocalValue(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 /**
  * The customer's payment *preference*, distinct from the backend's
  * payment_method enum ("cash" | "mobile_money" | "card" | "online"). Only
@@ -258,6 +265,22 @@ export function TenantOrderDrawer({
   // "unconfigured = open" default -- the cart is never cleared or blocked
   // by a transient fetch issue, only by a real, confirmed closure.
   const isClosed = availability !== null && !availability.is_open;
+  // Scheduled checkout while closed: a datetime-local input value (browser's
+  // own local time -- converted to an absolute instant via `new Date()` right
+  // before submit, so the UTC moment sent to create_order is always correct
+  // regardless of display timezone). Defaulted to the server's own computed
+  // next opening the moment it becomes known; create_order is the sole
+  // authority on whether the final chosen instant actually falls in an open
+  // window -- this default is only ever a convenience, never trusted.
+  const [scheduledFor, setScheduledFor] = useState("");
+  useEffect(() => {
+    if (isClosed && availability?.next_opens_at && !scheduledFor) {
+      setScheduledFor(toDatetimeLocalValue(availability.next_opens_at));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isClosed, availability?.next_opens_at]);
+  const scheduledForDate = scheduledFor ? new Date(scheduledFor) : null;
+  const needsSchedule = isClosed && (!scheduledForDate || Number.isNaN(scheduledForDate.getTime()) || scheduledForDate.getTime() <= Date.now());
   // A delivery order without a confirmed drop-off point can't be fulfilled --
   // pickup never needs one, matching the server's own delivery-only address check.
   // Ordering for someone else replaces the delivery point with the
@@ -268,7 +291,7 @@ export function TenantOrderDrawer({
   const needsLocation = mode === "delivery" && !orderingForSomeone && !location?.confirmed;
   const nameEmpty = !form.name.trim();
   const phoneEmpty = !form.phone.trim();
-  const canSubmit = lines.length > 0 && !submitting && !geocoding && !isClosed && !needsLocation && !nameEmpty && !phoneEmpty;
+  const canSubmit = lines.length > 0 && !submitting && !geocoding && !needsSchedule && !needsLocation && !nameEmpty && !phoneEmpty;
   const itemCountLabel = useMemo(() => `${count} article${count > 1 ? "s" : ""}`, [count]);
   // Cart items typically prepare in parallel in the kitchen, not one after
   // another -- the longest single dish is a more honest "when will this be
@@ -431,6 +454,7 @@ export function TenantOrderDrawer({
         driver_note: mode === "delivery" ? form.instructions.trim() || null : null,
         customer_profile_address: mode === "delivery" ? location?.address ?? null : null,
         promo_code: appliedPromoCode,
+        scheduled_for: isClosed && scheduledForDate ? scheduledForDate.toISOString() : null,
       });
 
       window.localStorage.setItem(CUSTOMER_PHONE_KEY, form.phone.trim());
@@ -485,12 +509,16 @@ export function TenantOrderDrawer({
   const orderButtonLabel = geocoding
     ? "Recherche de l'adresse..."
     : submitting
-    ? "Création en cours..."
-    : isClosed
-      ? "Fermé pour le moment"
-      : needsLocation
-        ? "Confirmez votre adresse"
-        : `Commander · ${totalLabel}`;
+    ? isClosed
+      ? "Programmation en cours..."
+      : "Création en cours..."
+    : needsSchedule
+      ? "Choisissez un créneau"
+      : isClosed
+        ? `Programmer ma commande · ${totalLabel}`
+        : needsLocation
+          ? "Confirmez votre adresse"
+          : `Commander · ${totalLabel}`;
 
   const addressHeadline = location ? location.commune ?? location.neighborhood ?? location.city ?? location.address : null;
   const addressDetail = location
@@ -520,11 +548,27 @@ export function TenantOrderDrawer({
 
         <div className="flex-1 overflow-y-auto px-6 py-[18px]">
           {isClosed && (
-            <div className="mb-4 space-y-2 rounded-2xl border border-destructive/20 bg-destructive/5 p-3">
+            <div className="mb-4 space-y-3 rounded-2xl border border-violet-200 bg-violet-50 p-3">
+              <div className="space-y-1">
+                <p className="flex items-center gap-1.5 text-sm font-semibold text-violet-900">
+                  <Clock className="h-4 w-4 shrink-0" /> Restaurant actuellement fermé
+                </p>
+                <p className="text-sm text-violet-700">
+                  Vous pouvez programmer votre commande pour le prochain créneau disponible.
+                </p>
+              </div>
               <AvailabilityBadge availability={availability} timezone={timezone} />
-              <p className="text-sm text-destructive">
-                Les commandes sont actuellement fermées. Votre panier est conservé — vous pourrez commander dès la réouverture.
-              </p>
+              <label className="block space-y-1.5">
+                <span className="text-sm font-medium text-foreground">Date et heure souhaitées *</span>
+                <input
+                  type="datetime-local"
+                  required
+                  min={toDatetimeLocalValue(new Date().toISOString())}
+                  value={scheduledFor}
+                  onChange={(e) => setScheduledFor(e.target.value)}
+                  className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm"
+                />
+              </label>
             </div>
           )}
           {lines.length === 0 ? (

@@ -1,4 +1,4 @@
-import { AlertTriangle, Banknote, Bike, MapPin, Phone, ShoppingBag, Utensils } from "lucide-react";
+import { AlertTriangle, Banknote, Bike, CalendarClock, MapPin, Phone, ShoppingBag, Utensils } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Order, OrderStatus } from "@/lib/orders-db";
@@ -92,6 +92,14 @@ export function OrderCard({
           </Badge>
         </div>
       </button>
+
+      {order.scheduled_for && (
+        <p className="flex items-center gap-1.5 rounded-xl border border-violet-200 bg-violet-50 px-2.5 py-1.5 text-sm font-semibold text-violet-700">
+          <CalendarClock className="h-3.5 w-3.5 shrink-0" />
+          Commande programmée ·{" "}
+          {new Date(order.scheduled_for).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+        </p>
+      )}
 
       <div className="space-y-1 text-sm min-w-0">
         <p className="flex items-center gap-1.5 truncate font-medium">

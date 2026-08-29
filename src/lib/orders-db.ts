@@ -206,6 +206,8 @@ export type Order = {
   payment_reference: string | null;
   paid_at: string | null;
   cancel_reason: string | null;
+  /** Set only for orders placed while the restaurant was closed, for a future slot the customer picked -- see create_order's p_scheduled_for. Null for every normal immediate order. */
+  scheduled_for: string | null;
   created_at: string;
   updated_at: string;
   confirmed_at: string | null;

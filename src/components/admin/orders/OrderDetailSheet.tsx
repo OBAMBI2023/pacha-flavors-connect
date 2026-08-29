@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Banknote, Copy, MapPin, Printer, Share2, Truck, Undo2, UserRoundCog } from "lucide-react";
+import { Banknote, CalendarClock, Copy, MapPin, Printer, Share2, Truck, Undo2, UserRoundCog } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
@@ -121,6 +121,12 @@ export function OrderDetailSheet({
               <SheetDescription>
                 {new Date(detail.created_at).toLocaleString("fr-FR")}
               </SheetDescription>
+              {detail.scheduled_for && (
+                <p className="mt-2 flex items-center gap-1.5 rounded-xl border border-violet-200 bg-violet-50 px-2.5 py-1.5 text-sm font-semibold text-violet-700">
+                  <CalendarClock className="h-3.5 w-3.5 shrink-0" />
+                  Commande programmée · {new Date(detail.scheduled_for).toLocaleString("fr-FR")}
+                </p>
+              )}
             </SheetHeader>
 
             <div className="mt-5 space-y-6 text-sm">

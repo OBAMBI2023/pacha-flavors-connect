@@ -92,6 +92,8 @@ export type CreateOrderInput = {
   customer_profile_address?: string | null;
   /** Set when a promo code was applied at Checkout. create_order re-resolves and re-validates it server-side (active, in-window, visibility, usage limits) -- never trusted for the discount amount, only the code string is sent. */
   promo_code?: string | null;
+  /** Set only when checking out while the restaurant is closed -- an ISO timestamp for the customer-picked future slot. create_order re-validates it server-side against get_restaurant_availability(id, this timestamp); the client's own read of availability is only ever a display hint. Omitted (not just null) for a normal immediate order. */
+  scheduled_for?: string | null;
 };
 
 export type CreateOrderResult = {
@@ -108,6 +110,7 @@ export type CreateOrderResult = {
   payment_method: string;
   payment_status: string;
   promo_code_id: string | null;
+  scheduled_for: string | null;
 };
 
 /**
@@ -149,6 +152,7 @@ export async function createRestaurantOrder(input: CreateOrderInput): Promise<Cr
     p_driver_note: input.driver_note ?? null,
     p_customer_profile_address: input.customer_profile_address ?? null,
     p_promo_code: input.promo_code ?? null,
+    p_scheduled_for: input.scheduled_for ?? null,
   });
 
   if (error) throw error;
