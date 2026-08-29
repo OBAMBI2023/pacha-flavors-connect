@@ -1776,6 +1776,7 @@ export type Database = {
       payments: {
         Row: {
           amount: number
+          collected_by_driver_id: string | null
           created_at: string
           created_by: string | null
           currency: string
@@ -1792,6 +1793,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          collected_by_driver_id?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -1808,6 +1810,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          collected_by_driver_id?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -1823,6 +1826,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "payments_collected_by_driver_id_fkey"
+            columns: ["collected_by_driver_id"]
+            isOneToOne: false
+            referencedRelation: "driver_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "payments_order_id_fkey"
             columns: ["order_id"]
@@ -2488,6 +2498,7 @@ export type Database = {
           background_color: string | null
           bing_site_verification: string | null
           border_radius: string | null
+          commission_rate: number
           created_at: string
           custom_domain: string | null
           default_prep_time_minutes: number | null
@@ -2525,6 +2536,7 @@ export type Database = {
           background_color?: string | null
           bing_site_verification?: string | null
           border_radius?: string | null
+          commission_rate?: number
           created_at?: string
           custom_domain?: string | null
           default_prep_time_minutes?: number | null
@@ -2562,6 +2574,7 @@ export type Database = {
           background_color?: string | null
           bing_site_verification?: string | null
           border_radius?: string | null
+          commission_rate?: number
           created_at?: string
           custom_domain?: string | null
           default_prep_time_minutes?: number | null
@@ -3460,6 +3473,10 @@ export type Database = {
         Returns: string
       }
       get_offers_analytics: { Args: never; Returns: Json }
+      get_order_financial_breakdown: {
+        Args: { p_order_id: string }
+        Returns: Json
+      }
       get_order_review: {
         Args: { p_customer_phone: string; p_order_id: string }
         Returns: Json
@@ -3835,6 +3852,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      set_restaurant_commission_rate: {
+        Args: { p_rate: number; p_restaurant_id: string }
+        Returns: Json
       }
       signup_organization: {
         Args: { p_name: string; p_slug: string }

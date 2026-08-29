@@ -13,8 +13,10 @@ import {
   updateDriverLocation,
   fetchDriverTodayStats,
   fetchDriverRecentOrders,
+  fetchDriverCollections,
   type DriverActiveDelivery,
   type DriverOrderHistoryEntry,
+  type DriverCollectionEntry,
 } from "@/lib/delivery";
 import { fetchAgentAssignedDeliveries, type AgentAssignedDelivery } from "@/lib/dispatch";
 import {
@@ -277,6 +279,8 @@ function DriverDashboard({
   const [statsLoading, setStatsLoading] = useState(true);
   const [recentOrders, setRecentOrders] = useState<DriverOrderHistoryEntry[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
+  const [collections, setCollections] = useState<DriverCollectionEntry[]>([]);
+  const [collectionsLoading, setCollectionsLoading] = useState(true);
   const [saoviaMissions, setSaoviaMissions] = useState<AgentAssignedDelivery[]>([]);
   const [saoviaMissionsLoading, setSaoviaMissionsLoading] = useState(driver.is_saovia_agent);
   const [completedDelivery, setCompletedDelivery] = useState<CompletedDeliverySummary | null>(null);
@@ -358,17 +362,20 @@ function DriverDashboard({
     let cancelled = false;
     setStatsLoading(true);
     setOrdersLoading(true);
-    Promise.all([fetchDriverTodayStats(driverId), fetchDriverRecentOrders(driverId)])
-      .then(([s, orders]) => {
+    setCollectionsLoading(true);
+    Promise.all([fetchDriverTodayStats(driverId), fetchDriverRecentOrders(driverId), fetchDriverCollections(driverId)])
+      .then(([s, orders, coll]) => {
         if (cancelled) return;
         setStats(s);
         setRecentOrders(orders);
+        setCollections(coll);
       })
       .catch(() => {})
       .finally(() => {
         if (cancelled) return;
         setStatsLoading(false);
         setOrdersLoading(false);
+        setCollectionsLoading(false);
       });
     return () => {
       cancelled = true;
@@ -539,6 +546,8 @@ function DriverDashboard({
                 stats={stats}
                 recentOrders={recentOrders}
                 ordersLoading={ordersLoading}
+                collections={collections}
+                collectionsLoading={collectionsLoading}
                 onBack={() => setTab("accueil")}
               />
             )}
@@ -781,14 +790,39 @@ function GainsTab({
   stats,
   recentOrders,
   ordersLoading,
+  collections,
+  collectionsLoading,
   onBack,
 }: {
   stats: DriverStatsData | null;
   recentOrders: DriverOrderHistoryEntry[];
   ordersLoading: boolean;
+  collections: DriverCollectionEntry[];
+  collectionsLoading: boolean;
   onBack: () => void;
 }) {
   const deliveredOrders = recentOrders.filter((o) => o.status === "delivered");
+  const pendingCashOrders = recentOrders.filter(
+    (o) => o.fulfillment_type === "delivery" && o.payment_status === "cash_pending",
+  );
+
+  const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfWeek = new Date(startOfDay);
+  startOfWeek.setDate(startOfDay.getDate() - startOfDay.getDay());
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  function sumDeliveryFeesSince(since: Date): number {
+    return collections
+      .filter((c) => c.status === "paid" && new Date(c.created_at) >= since)
+      .reduce((sum, c) => sum + c.delivery_fee_amount, 0);
+  }
+
+  const collectedToday = sumDeliveryFeesSince(startOfDay);
+  const collectedWeek = sumDeliveryFeesSince(startOfWeek);
+  const collectedMonth = sumDeliveryFeesSince(startOfMonth);
+  const pendingAmount = pendingCashOrders.reduce((sum, o) => sum + o.delivery_fee_amount, 0);
+  const currency = collections[0]?.currency ?? recentOrders[0]?.currency ?? "FCFA";
 
   return (
     <>
@@ -810,7 +844,62 @@ function GainsTab({
       </div>
 
       <div>
-        <h2 className="mb-3 font-display text-base font-semibold">Historique</h2>
+        <h2 className="mb-1 font-display text-lg font-semibold">Encaissements de livraison</h2>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Frais de livraison que vous avez personnellement encaissés en espèces -- distinct de vos gains Saovia ci-dessus.
+        </p>
+        {collectionsLoading ? (
+          <Skeleton className="h-20 w-full rounded-2xl" />
+        ) : (
+          <>
+            <div className="grid grid-cols-3 gap-3">
+              <EarningsCard label="Aujourd'hui" amount={collectedToday} />
+              <EarningsCard label="Cette semaine" amount={collectedWeek} />
+              <EarningsCard label="Ce mois" amount={collectedMonth} />
+            </div>
+            <div className="mt-3 flex items-center justify-between rounded-2xl bg-card p-4 shadow-sm">
+              <span className="text-sm text-muted-foreground">Encaissements en attente</span>
+              <span className="text-sm font-semibold">
+                {pendingCashOrders.length} course{pendingCashOrders.length > 1 ? "s" : ""} ·{" "}
+                {pendingAmount.toLocaleString("fr-FR")} {currency}
+              </span>
+            </div>
+          </>
+        )}
+      </div>
+
+      <div>
+        <h2 className="mb-3 font-display text-base font-semibold">Historique des encaissements</h2>
+        {collectionsLoading ? (
+          <Skeleton className="h-16 w-full rounded-2xl" />
+        ) : collections.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border bg-card py-8 text-center text-sm text-muted-foreground">
+            Aucun encaissement pour le moment.
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {collections.map((c) => (
+              <li key={c.id} className="flex items-center justify-between rounded-2xl bg-card p-3.5 shadow-sm">
+                <div>
+                  <p className="text-sm font-semibold">Commande #{c.order_number}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {c.restaurant_name} · {new Date(c.created_at).toLocaleDateString("fr-FR")}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-semibold">
+                    {c.delivery_fee_amount.toLocaleString("fr-FR")} {c.currency}
+                  </p>
+                  <p className="text-[0.65rem] text-muted-foreground">dont livraison</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div>
+        <h2 className="mb-3 font-display text-base font-semibold">Historique des courses</h2>
         {ordersLoading ? (
           <Skeleton className="h-16 w-full rounded-2xl" />
         ) : deliveredOrders.length === 0 ? (

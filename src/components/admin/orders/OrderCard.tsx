@@ -199,7 +199,7 @@ export function OrderCard({
         </div>
       </div>
 
-      {order.payment_status === "cash_pending" && (
+      {order.payment_status === "cash_pending" && order.fulfillment_type !== "delivery" && (
         <div className="pt-1">
           <Button
             size="sm"
@@ -211,6 +211,9 @@ export function OrderCard({
             <Banknote className="mr-2 h-4 w-4" /> Marquer comme encaissée
           </Button>
         </div>
+      )}
+      {order.payment_status === "cash_pending" && order.fulfillment_type === "delivery" && (
+        <p className="pt-1 text-center text-xs text-muted-foreground">En attente d'encaissement par le livreur</p>
       )}
 
       {order.fulfillment_type === "delivery" &&

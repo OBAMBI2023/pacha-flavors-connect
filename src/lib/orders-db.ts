@@ -124,6 +124,45 @@ export async function fetchOrderPaymentSummary(orderId: string): Promise<{ paid:
   return { paid, refunded, remaining: Math.max(0, paid - refunded) };
 }
 
+/**
+ * Server-computed financial detail for one order (restaurant_total,
+ * saovia_commission, restaurant_net are never trusted from the frontend --
+ * see get_order_financial_breakdown). Restaurant-side only, same boundary as
+ * fetchOrderDetail.
+ */
+export type OrderPaymentRow = {
+  id: string;
+  amount: number;
+  method: PaymentMethod;
+  status: PaymentStatus;
+  collected_by_driver: boolean;
+  created_at: string;
+  paid_at: string | null;
+};
+
+export type OrderFinancialBreakdown = {
+  order_id: string;
+  currency: string;
+  subtotal_amount: number;
+  discount_amount: number;
+  restaurant_total: number;
+  delivery_fee_amount: number;
+  customer_total: number;
+  commission_rate: number;
+  saovia_commission: number;
+  restaurant_net: number;
+  payment_status: PaymentStatus;
+  payment_method: PaymentMethod;
+  fulfillment_type: FulfillmentType;
+  payments: OrderPaymentRow[];
+};
+
+export async function fetchOrderFinancialBreakdown(orderId: string): Promise<OrderFinancialBreakdown> {
+  const { data, error } = await supabase.rpc("get_order_financial_breakdown", { p_order_id: orderId });
+  if (error) throw error;
+  return data as unknown as OrderFinancialBreakdown;
+}
+
 export async function createRefund(
   orderId: string,
   amount: number,
@@ -424,6 +463,21 @@ export type OperationalMetrics = {
 export type PaymentBreakdownRow = { payment_status: PaymentStatus; orders_count: number; amount: number };
 export type MethodBreakdownRow = { payment_method: PaymentMethod; orders_count: number; amount: number };
 
+/**
+ * Restaurant-only revenue (delivery fee excluded) vs. Saovia commission,
+ * over the same delivered-orders population as `current.revenue`.
+ * commission_rate is 0 until a Super Admin sets one for this restaurant --
+ * see restaurant_settings.commission_rate.
+ */
+export type FinancialsSummary = {
+  commission_rate: number;
+  restaurant_revenue: number;
+  delivery_fee_total: number;
+  discount_total: number;
+  saovia_commission: number;
+  restaurant_net: number;
+};
+
 export type DashboardStats = {
   restaurant_id: string;
   period: { start_date: string; end_date: string };
@@ -439,6 +493,7 @@ export type DashboardStats = {
   method_breakdown: MethodBreakdownRow[];
   collected_revenue: number;
   refunded_amount: number;
+  financials: FinancialsSummary;
 };
 
 /**

@@ -72,6 +72,7 @@ export type DriverActiveDelivery = {
   delivery_commune: string | null;
   fulfillment_type: "delivery" | "pickup";
   total_amount: number;
+  delivery_fee_amount: number;
   currency: string;
   status: string;
   restaurant_name: string;
@@ -274,6 +275,9 @@ export type DriverOrderHistoryEntry = {
   order_number: number;
   status: string;
   total_amount: number;
+  delivery_fee_amount: number;
+  fulfillment_type: "delivery" | "pickup";
+  payment_status: PaymentStatus;
   currency: string;
   created_at: string;
   delivered_at: string | null;
@@ -284,7 +288,9 @@ export type DriverOrderHistoryEntry = {
 export async function fetchDriverRecentOrders(driverId: string, limit = 20): Promise<DriverOrderHistoryEntry[]> {
   const { data, error } = await supabase
     .from("orders")
-    .select("id,order_number,status,total_amount,currency,created_at,delivered_at,restaurant:restaurants(name)")
+    .select(
+      "id,order_number,status,total_amount,delivery_fee_amount,fulfillment_type,payment_status,currency,created_at,delivered_at,restaurant:restaurants(name)",
+    )
     .eq("assigned_driver_id", driverId)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -292,6 +298,58 @@ export async function fetchDriverRecentOrders(driverId: string, limit = 20): Pro
   return ((data ?? []) as unknown as Array<Omit<DriverOrderHistoryEntry, "restaurant_name"> & { restaurant: { name: string } | null }>).map((row) => ({
     ...row,
     restaurant_name: row.restaurant?.name ?? "Restaurant",
+  }));
+}
+
+export type DriverCollectionEntry = {
+  id: string;
+  order_id: string;
+  order_number: number;
+  restaurant_name: string;
+  amount: number;
+  delivery_fee_amount: number;
+  currency: string;
+  status: PaymentStatus;
+  created_at: string;
+};
+
+/**
+ * The driver's own collected-cash history -- readable under
+ * payments_select_own_driver_collections (collected_by_driver_id = auth.uid()),
+ * the only RLS path that ever lets a driver see `payments` rows. `amount` is
+ * the full total_amount collected in cash (product + delivery, since that's
+ * the single physical handover); delivery_fee_amount is surfaced alongside
+ * so the UI can show what of that is the driver's own delivery-fee
+ * collection versus the restaurant's product revenue held on its behalf.
+ */
+export async function fetchDriverCollections(driverId: string, limit = 50): Promise<DriverCollectionEntry[]> {
+  const { data, error } = await supabase
+    .from("payments")
+    .select("id,order_id,amount,currency,status,created_at,order:orders(order_number,delivery_fee_amount,restaurant:restaurants(name))")
+    .eq("collected_by_driver_id", driverId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (
+    (data ?? []) as unknown as Array<{
+      id: string;
+      order_id: string;
+      amount: number;
+      currency: string;
+      status: PaymentStatus;
+      created_at: string;
+      order: { order_number: number; delivery_fee_amount: number; restaurant: { name: string } | null } | null;
+    }>
+  ).map((row) => ({
+    id: row.id,
+    order_id: row.order_id,
+    order_number: row.order?.order_number ?? 0,
+    restaurant_name: row.order?.restaurant?.name ?? "Restaurant",
+    amount: row.amount,
+    delivery_fee_amount: row.order?.delivery_fee_amount ?? 0,
+    currency: row.currency,
+    status: row.status,
+    created_at: row.created_at,
   }));
 }
 
