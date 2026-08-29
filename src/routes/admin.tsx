@@ -99,6 +99,7 @@ import { SecurityCard } from "@/components/admin/settings/SecurityCard";
 import { FulfillmentSettingsCard } from "@/components/admin/settings/FulfillmentSettingsCard";
 import { CurrencyCard } from "@/components/admin/settings/CurrencyCard";
 import { SeoSettingsCard } from "@/components/admin/settings/SeoSettingsCard";
+import { QrCodeCard } from "@/components/admin/settings/QrCodeCard";
 import { useRestaurantTheme } from "@/hooks/useRestaurantTheme";
 import { DEFAULT_CURRENCY_CODE, currencySymbol, formatMoney } from "@/lib/currency";
 import { fetchInventoryForRestaurant } from "@/lib/inventory";
@@ -1110,6 +1111,7 @@ export default function AdminPage() {
                     onSaved={() => void refresh()}
                   />
                   <SeoSettingsCard restaurantId={restaurantId} restaurant={restaurant} />
+                  <QrCodeCard restaurant={restaurant} />
                   <SubscriptionCard restaurantId={restaurantId} />
                   <SecurityCard email={user.email ?? null} />
                 </div>

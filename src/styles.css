@@ -365,3 +365,84 @@
     margin: 2mm;
   }
 }
+
+/*
+ * Printable tenant QR code (Admin > Paramètres > QrCodeCard.tsx). Same
+ * hidden-until-print mechanism as .order-print-ticket above -- always in the
+ * DOM, revealed exclusively inside @media print so window.print() from that
+ * card produces just this A4-friendly sheet.
+ */
+.qr-print-sheet {
+  display: none;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .qr-print-sheet,
+  .qr-print-sheet * {
+    visibility: visible;
+  }
+
+  .qr-print-sheet {
+    display: block !important;
+    position: fixed;
+    inset: 0;
+    margin: 0;
+    background: #fff;
+  }
+
+  .qr-print-sheet__inner {
+    width: 100mm;
+    max-width: 100%;
+    margin: 40mm auto 0;
+    padding: 8mm;
+    text-align: center;
+    color: #000;
+    background: #fff;
+  }
+
+  .qr-print-sheet__logo {
+    display: block;
+    max-height: 20mm;
+    max-width: 60mm;
+    margin: 0 auto 4mm;
+  }
+
+  .qr-print-sheet__name {
+    font-size: 16pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin: 0 0 6mm;
+  }
+
+  .qr-print-sheet__qr {
+    width: 70mm;
+    height: 70mm;
+    margin: 0 auto;
+  }
+
+  .qr-print-sheet__qr svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .qr-print-sheet__cta {
+    font-size: 12pt;
+    font-weight: 600;
+    margin: 6mm 0 2mm;
+  }
+
+  .qr-print-sheet__url {
+    font-size: 9pt;
+    color: #555;
+    word-break: break-all;
+  }
+
+  @page {
+    size: auto;
+    margin: 10mm;
+  }
+}
