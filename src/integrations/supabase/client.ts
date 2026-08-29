@@ -44,17 +44,6 @@ function createSupabaseClient() {
     throw new Error(message);
   }
 
-  // TEMP DEBUG -- remove once the /auth -> /admin session-loss issue is
-  // confirmed diagnosed. Logging this more than once per page load means two
-  // separate module instances (and two separate GoTrueClient/storage state)
-  // exist in the bundle -- the actual bug we're hunting for. Never logs the
-  // key itself.
-  console.log("[session-debug] createSupabaseClient() called", {
-    url: SUPABASE_URL,
-    at: typeof window === "undefined" ? "server" : window.location.pathname,
-    time: Date.now(),
-  });
-
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     global: {
       fetch: createSupabaseFetch(SUPABASE_PUBLISHABLE_KEY),

@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Bell, ChevronDown, Menu, Phone, X } from "lucide-react";
+import { Bell, ChevronDown, LayoutDashboard, Menu, Phone, X } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { PublicRestaurant } from "@/lib/menu-db";
 import { useDeliveryLocation } from "@/lib/deliveryLocation";
 import { useUnreadClientNotificationsCount } from "@/lib/clientNotifications";
 import { useTenantNavItems } from "@/components/tenant/tenantNavItems";
 import { AccountLookupModal } from "@/components/tenant/AccountLookupModal";
+import { useAuth } from "@/hooks/useAuth";
 
 function scrollToId(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -24,6 +25,15 @@ export function TenantHeader({
   onOpenNotifications: () => void;
 }) {
   const [navOpen, setNavOpen] = useState(false);
+  // Same session/membership/RBAC hook the Dashboard itself uses -- gated to
+  // THIS storefront's own tenant (restaurant.id, resolved by the route, not
+  // hardcoded), so an owner of a different restaurant browsing this one
+  // never sees a Dashboard link into it. Super admin oversees every tenant,
+  // so tenant-matching doesn't apply there.
+  const { user, loading: authLoading, isSuperAdmin, isOwner, isManager, restaurantId } = useAuth();
+  const isTenantAdmin = (isOwner || isManager) && restaurantId === restaurant.id;
+  const showDashboardLink = !authLoading && Boolean(user) && (isSuperAdmin || isTenantAdmin);
+  const dashboardHref = isSuperAdmin ? "/super-admin" : "/admin";
   const { location, openModal: openLocationModal } = useDeliveryLocation();
   const unreadNotifications = useUnreadClientNotificationsCount(restaurant.slug);
   const shortLocation = location ? (location.commune ?? location.neighborhood ?? location.city ?? location.address) : null;
@@ -160,6 +170,18 @@ export function TenantHeader({
       {navOpen && (
         <nav className="border-t border-border bg-card px-4 py-3 lg:hidden">
           <ul className="flex flex-col">
+            {showDashboardLink && (
+              <li>
+                <Link
+                  to={dashboardHref}
+                  onClick={() => setNavOpen(false)}
+                  className="flex min-h-11 items-center gap-2 border-b border-border py-3 text-left text-sm font-medium text-primary"
+                >
+                  <LayoutDashboard className="h-4 w-4" aria-hidden="true" />
+                  Mon Dashboard
+                </Link>
+              </li>
+            )}
             {navLinks.map((link) => (
               <li key={link.id}>
                 <button

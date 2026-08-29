@@ -26,44 +26,13 @@ export function useAuth() {
   const [sessionChecked, setSessionChecked] = useState(false);
 
   useEffect(() => {
-    // TEMP DEBUG -- remove once the /auth -> /admin session-loss issue is
-    // confirmed diagnosed. Never logs token values, only which sb-* keys
-    // exist in localStorage at the moment useAuth mounts on this route.
-    if (typeof window !== "undefined") {
-      const sbKeys = Object.keys(window.localStorage).filter((k) => k.startsWith("sb-"));
-      console.log("[session-debug] useAuth mount", {
-        path: window.location.pathname,
-        sbKeysPresent: sbKeys,
-      });
-    }
-
-    const { data: sub } = supabase.auth.onAuthStateChange((event, next) => {
-      console.log("[session-debug] onAuthStateChange", {
-        path: typeof window === "undefined" ? "server" : window.location.pathname,
-        event,
-        hasSession: Boolean(next),
-        userId: next?.user?.id ?? null,
-      });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
       setSession(next);
     });
 
-    supabase.auth.getSession().then(({ data, error }) => {
-      console.log("[session-debug] useAuth getSession()", {
-        path: typeof window === "undefined" ? "server" : window.location.pathname,
-        hasSession: Boolean(data.session),
-        userId: data.session?.user?.id ?? null,
-        error: error ? { message: error.message } : null,
-      });
+    supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setSessionChecked(true);
-    });
-
-    supabase.auth.getUser().then(({ data, error }) => {
-      console.log("[session-debug] useAuth getUser()", {
-        path: typeof window === "undefined" ? "server" : window.location.pathname,
-        userId: data.user?.id ?? null,
-        error: error ? { message: error.message, status: (error as { status?: number }).status } : null,
-      });
     });
 
     return () => sub.subscription.unsubscribe();
@@ -86,10 +55,7 @@ export function useAuth() {
       }
 
       setLoading(true);
-      const [
-        { data: profileData, error: profileError },
-        { data: membershipData, error: membershipError },
-      ] = await Promise.all([
+      const [{ data: profileData }, { data: membershipData }] = await Promise.all([
         supabase.from("profiles").select("id,is_super_admin").eq("id", userId).maybeSingle(),
         supabase
           .from("restaurant_memberships")
@@ -100,16 +66,6 @@ export function useAuth() {
           .limit(1)
           .maybeSingle(),
       ]);
-
-      // TEMP DEBUG -- remove once the Food Partner dashboard redirect issue
-      // is confirmed diagnosed. Never logs tokens/passwords.
-      console.log("[partner-auth-debug] useAuth.loadAccess", {
-        userId,
-        profileData,
-        profileError: profileError ? { message: profileError.message, code: profileError.code } : null,
-        membershipData,
-        membershipError: membershipError ? { message: membershipError.message, code: membershipError.code } : null,
-      });
 
       if (cancelled) return;
       setProfile((profileData as ProfileRow | null) ?? null);
@@ -132,20 +88,6 @@ export function useAuth() {
   const isSuperAdmin = Boolean(profile?.is_super_admin);
   const restaurantId = membership?.restaurant_id ?? null;
   const canManageMenu = isSuperAdmin || isOwner || isManager;
-
-  // TEMP DEBUG -- remove once the Food Partner dashboard redirect issue is
-  // confirmed diagnosed. Never logs tokens/passwords.
-  useEffect(() => {
-    console.log("[partner-auth-debug] useAuth state", {
-      hasSession: Boolean(session),
-      userId: user?.id ?? null,
-      userEmail: user?.email ?? null,
-      loading,
-      role,
-      restaurantId,
-      canManageMenu,
-    });
-  }, [session, user, loading, role, restaurantId, canManageMenu]);
 
   return useMemo(
     () => ({

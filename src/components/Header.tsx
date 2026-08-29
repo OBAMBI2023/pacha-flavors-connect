@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { Menu, ShoppingBag, X } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { LayoutDashboard, Menu, ShoppingBag, X } from "lucide-react";
 import { useCart } from "@/lib/cart";
+import { useAuth } from "@/hooks/useAuth";
 
 const NAV = [
   { href: "#accueil", label: "Accueil" },
@@ -14,6 +16,12 @@ const NAV = [
 export function Header() {
   const [open, setOpen] = useState(false);
   const { count, openCart } = useCart();
+  // Reuses the exact same session/profile/membership hook the Dashboard
+  // itself uses -- same RBAC, same tenant membership, no separate check.
+  // canManageMenu already excludes staff (owner/manager/super_admin only).
+  const { user, loading: authLoading, isSuperAdmin, canManageMenu } = useAuth();
+  const showDashboardLink = !authLoading && Boolean(user) && canManageMenu;
+  const dashboardHref = isSuperAdmin ? "/super-admin" : "/admin";
 
   return (
     <header className="sticky top-0 z-40 bg-cocoa text-cocoa-foreground lg:border-b lg:border-border/60 lg:bg-background/90 lg:text-foreground lg:backdrop-blur">
@@ -45,6 +53,15 @@ export function Header() {
         </nav>
 
         <div className="flex shrink-0 items-center gap-2">
+          {showDashboardLink && (
+            <Link
+              to={dashboardHref}
+              className="hidden h-11 items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-4 text-sm font-medium text-primary transition-colors hover:bg-primary/10 lg:inline-flex"
+            >
+              <LayoutDashboard className="h-4 w-4" aria-hidden="true" />
+              Mon Dashboard
+            </Link>
+          )}
           <a
             href="#reservation"
             className="hidden rounded-full border border-cocoa/30 px-4 py-2 text-sm font-medium transition-colors hover:bg-accent md:inline-flex"
@@ -82,6 +99,18 @@ export function Header() {
       {open && (
         <nav className="border-t border-cocoa-foreground/15 bg-cocoa px-4 py-3 lg:hidden">
           <ul className="flex flex-col">
+            {showDashboardLink && (
+              <li>
+                <Link
+                  to={dashboardHref}
+                  onClick={() => setOpen(false)}
+                  className="flex min-h-11 items-center gap-2 border-b border-cocoa-foreground/10 py-3 text-sm font-medium text-gold"
+                >
+                  <LayoutDashboard className="h-4 w-4" aria-hidden="true" />
+                  Mon Dashboard
+                </Link>
+              </li>
+            )}
             {NAV.map((n) => (
               <li key={n.href}>
                 <a
