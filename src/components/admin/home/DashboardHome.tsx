@@ -131,8 +131,8 @@ export function DashboardHome({
         </p>
       )}
 
-      <div className="grid gap-4 xl:grid-cols-[1.3fr_1fr]">
-        <section className="rounded-2xl border border-border bg-card p-5">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.3fr_1fr]">
+        <section className="min-w-0 rounded-2xl border border-border bg-card p-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <h3 className="font-semibold">Performance des ventes</h3>
@@ -163,7 +163,7 @@ export function DashboardHome({
           </div>
         </section>
 
-        <section className="rounded-2xl border border-border bg-card p-5">
+        <section className="min-w-0 rounded-2xl border border-border bg-card p-5">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold">Commandes récentes</h3>
             <button

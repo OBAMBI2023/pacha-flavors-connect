@@ -68,8 +68,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { AvailabilityBadge } from "@/components/tenant/AvailabilityBadge";
-import { fetchAvailability, type RestaurantAvailability } from "@/lib/businessHours";
+import { fetchAvailability, setManualOverride, type RestaurantAvailability } from "@/lib/businessHours";
 import { OrdersPanel } from "@/components/admin/orders/OrdersPanel";
 import { useOrdersAlert } from "@/hooks/useOrdersAlert";
 import { DashboardHome } from "@/components/admin/home/DashboardHome";
@@ -252,6 +251,8 @@ export default function AdminPage() {
   useRestaurantTheme(restaurantId);
   const [tab, setTab] = useState("accueil");
   const [availability, setAvailability] = useState<RestaurantAvailability | null>(null);
+  const [availabilityBusy, setAvailabilityBusy] = useState(false);
+  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
   useEffect(() => {
     if (!restaurantId) {
       setAvailability(null);
@@ -267,6 +268,31 @@ export default function AdminPage() {
       cancelled = true;
     };
   }, [restaurantId]);
+
+  // Header Ouvert/Fermé switch -- reuses the same manual-override RPC/table
+  // as the Disponibilité panel (Paramètres). Opening applies immediately;
+  // closing is confirmed first since it blocks new customer orders.
+  async function applyManualOverride(mode: "open" | "closed") {
+    if (!restaurantId) return;
+    const previous = availability;
+    setAvailabilityBusy(true);
+    try {
+      await setManualOverride(restaurantId, mode);
+      setAvailability(await fetchAvailability(restaurantId));
+      toast.success(mode === "open" ? "Restaurant ouvert" : "Restaurant fermé");
+    } catch (err) {
+      setAvailability(previous);
+      toast.error(err instanceof Error ? err.message : "Impossible de mettre à jour le statut.");
+    } finally {
+      setAvailabilityBusy(false);
+      setCloseConfirmOpen(false);
+    }
+  }
+
+  function handleToggleOpen(nextOpen: boolean) {
+    if (nextOpen) void applyManualOverride("open");
+    else setCloseConfirmOpen(true);
+  }
   const ordersAlert = useOrdersAlert(restaurantId, { onViewOrder: () => setTab("commandes") });
   const [busy, setBusy] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -771,6 +797,15 @@ export default function AdminPage() {
             </p>
             <NotificationBell restaurantId={restaurantId} />
           </div>
+          {availability && (
+            <AvailabilityToggleControl
+              availability={availability}
+              canManageMenu={canManageMenu}
+              busy={availabilityBusy}
+              onToggle={handleToggleOpen}
+              className="mb-4 w-full justify-between lg:hidden"
+            />
+          )}
           <header className="mb-6 hidden flex-wrap items-center justify-between gap-4 rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6 lg:flex">
             <div className="min-w-0">
               <h1 className="truncate font-display text-2xl font-semibold sm:text-3xl">
@@ -780,12 +815,13 @@ export default function AdminPage() {
                 Voici ce qui se passe sur votre restaurant aujourd'hui.
               </p>
               {availability && (
-                <div className="mt-3">
-                  <AvailabilityBadge
-                    availability={availability}
-                    timezone={restaurant?.timezone ?? "Africa/Abidjan"}
-                  />
-                </div>
+                <AvailabilityToggleControl
+                  availability={availability}
+                  canManageMenu={canManageMenu}
+                  busy={availabilityBusy}
+                  onToggle={handleToggleOpen}
+                  className="mt-3"
+                />
               )}
             </div>
             <div className="flex shrink-0 items-center gap-2">
@@ -1577,6 +1613,23 @@ export default function AdminPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <AlertDialog open={closeConfirmOpen} onOpenChange={(open) => !open && setCloseConfirmOpen(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Fermer le restaurant maintenant ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Les clients ne pourront plus passer de nouvelles commandes tant que le restaurant est
+              fermé.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={availabilityBusy}>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void applyManualOverride("closed")} disabled={availabilityBusy}>
+              {availabilityBusy ? "Fermeture..." : "Fermer le restaurant"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }
@@ -1878,6 +1931,46 @@ function MobileBottomNav({
         Menu
       </button>
     </nav>
+  );
+}
+
+/**
+ * The single, unified Ouvert/Fermé control -- indicator + label on the left,
+ * switch on the right, in one pill. Replaces the old read-only badge:
+ * displaying and controlling status is now the same element, never two.
+ */
+function AvailabilityToggleControl({
+  availability,
+  canManageMenu,
+  busy,
+  onToggle,
+  className = "",
+}: {
+  availability: RestaurantAvailability;
+  canManageMenu: boolean;
+  busy: boolean;
+  onToggle: (next: boolean) => void;
+  className?: string;
+}) {
+  const isOpen = availability.is_open;
+  return (
+    <div
+      className={`inline-flex items-center gap-3 rounded-2xl border px-4 py-2.5 ${
+        isOpen ? "border-emerald-200 bg-emerald-50" : "border-destructive/20 bg-destructive/5"
+      } ${className}`}
+    >
+      <span className={`flex items-center gap-1.5 text-sm font-semibold ${isOpen ? "text-emerald-700" : "text-destructive"}`}>
+        <span aria-hidden="true">{isOpen ? "🟢" : "🔴"}</span>
+        {isOpen ? "Ouvert" : "Fermé"}
+      </span>
+      <Switch
+        checked={isOpen}
+        disabled={busy || !canManageMenu}
+        onCheckedChange={onToggle}
+        aria-label={isOpen ? "Fermer le restaurant" : "Ouvrir le restaurant"}
+        className="relative shrink-0 before:absolute before:-inset-3 before:content-['']"
+      />
+    </div>
   );
 }
 
