@@ -148,3 +148,32 @@ export async function geocodeAddress(query: string): Promise<{ latitude: number;
     return null;
   }
 }
+
+export type AddressSuggestion = { label: string; latitude: number; longitude: number };
+
+/**
+ * Same provider/no-key rationale as reverseGeocode/geocodeAddress above,
+ * just returning up to 5 candidates instead of 1 -- backs the address
+ * search-as-you-type suggestion list in TenantLocationModal's map picker.
+ * Callers debounce their own calls (one lookup per pause in typing) to stay
+ * well within Nominatim's usage policy; a query under 3 characters is
+ * rejected locally without hitting the network at all.
+ */
+export async function searchAddresses(query: string): Promise<AddressSuggestion[]> {
+  const trimmed = query.trim();
+  if (trimmed.length < 3) return [];
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(trimmed)}&limit=5&accept-language=fr`;
+    const response = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!response.ok) return [];
+    const results = (await response.json()) as Array<{ lat?: string; lon?: string; display_name?: string }>;
+    return results.flatMap((r) => {
+      const latitude = Number(r.lat);
+      const longitude = Number(r.lon);
+      if (!r.display_name || !Number.isFinite(latitude) || !Number.isFinite(longitude)) return [];
+      return [{ label: r.display_name, latitude, longitude }];
+    });
+  } catch {
+    return [];
+  }
+}
