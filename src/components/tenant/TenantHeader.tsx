@@ -156,6 +156,15 @@ export function TenantHeader({
           })}
         </nav>
         <div className="hidden shrink-0 items-center gap-2 lg:flex">
+          {showDashboardLink && (
+            <Link
+              to={dashboardHref}
+              className="inline-flex h-11 items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-4 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
+            >
+              <LayoutDashboard className="h-4 w-4" aria-hidden="true" />
+              Mon Dashboard
+            </Link>
+          )}
           <button onClick={onOpenNotifications} aria-label="Notifications" className="relative grid h-11 w-11 place-items-center rounded-full border border-border hover:bg-muted">
             <Bell className="h-4 w-4" />
             {unreadNotifications > 0 && (
