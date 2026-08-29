@@ -103,13 +103,11 @@ import { DEFAULT_CURRENCY_CODE, currencySymbol, formatMoney } from "@/lib/curren
 const TITLE = "Administration du restaurant";
 const DESCRIPTION = "Gestion compacte de la carte, de la vitrine et des coordonnées du restaurant.";
 /**
- * Top-level sidebar/mobile-nav destinations. "Visiteurs" lives as a
- * sub-tab inside "statistiques", and "Site vitrine" / "Coordonnées" /
- * "Disponibilité" live as sub-tabs inside "settings" (see `statsSubTab` /
- * `settingsSubTab` below) -- every one of those four screens still exists
- * and is still reachable, just nested instead of flat, to match the
- * reference design's 11-destination sidebar. Nothing here changes which
- * `TabsContent` renders what.
+ * Top-level sidebar/mobile-nav destinations. "Site vitrine" / "Coordonnées" /
+ * "Disponibilité" live as sub-tabs inside "settings" (see `settingsSubTab`
+ * below), reachable via the pill sub-nav at the top of that tab -- they
+ * still exist and are still reachable, just nested instead of flat, to
+ * match the reference design's 11-destination sidebar.
  */
 const ADMIN_NAV_ITEMS = [
   { value: "accueil", label: "Tableau de bord", icon: LayoutGrid },
@@ -288,6 +286,9 @@ export default function AdminPage() {
   const [existingPromotion, setExistingPromotion] = useState<Promotion | null>(null);
   const [promotionsRefreshSignal, setPromotionsRefreshSignal] = useState(0);
   const [promotionsSubTab, setPromotionsSubTab] = useState<"produits" | "codes">("produits");
+  const [settingsSubTab, setSettingsSubTab] = useState<"general" | "storefront" | "contact" | "disponibilite">(
+    "general",
+  );
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [togglingItemIds, setTogglingItemIds] = useState<Set<string>>(new Set());
@@ -984,7 +985,59 @@ export default function AdminPage() {
             <TabsContent value="avis">
               {restaurantId && <ReviewsPanel restaurantId={restaurantId} />}
             </TabsContent>
-            <TabsContent value="storefront" className="grid gap-6 lg:grid-cols-2">
+            <TabsContent value="settings" className="space-y-6">
+              <div className="inline-flex flex-wrap rounded-full border border-border bg-muted p-1">
+                <button
+                  type="button"
+                  onClick={() => setSettingsSubTab("general")}
+                  className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${settingsSubTab === "general" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+                >
+                  Général
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSettingsSubTab("storefront")}
+                  className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${settingsSubTab === "storefront" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+                >
+                  Site vitrine
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSettingsSubTab("contact")}
+                  className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${settingsSubTab === "contact" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+                >
+                  Coordonnées
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSettingsSubTab("disponibilite")}
+                  className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${settingsSubTab === "disponibilite" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+                >
+                  Disponibilité
+                </button>
+              </div>
+              {settingsSubTab === "general" && (
+                <div className="space-y-6">
+                  <Card className="p-5">
+                    <h2 className="font-display text-2xl font-semibold">Paramètres</h2>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      Section réservée aux réglages complémentaires sans toucher à l’isolation
+                      multi-tenant.
+                    </p>
+                  </Card>
+                  <FulfillmentSettingsCard restaurantId={restaurantId} />
+                  <CurrencyCard
+                    restaurantId={restaurantId}
+                    currentCurrency={restaurant?.currency ?? DEFAULT_CURRENCY_CODE}
+                    onSaved={() => void refresh()}
+                  />
+                  <SeoSettingsCard restaurantId={restaurantId} restaurant={restaurant} />
+                  <SubscriptionCard restaurantId={restaurantId} />
+                  <SecurityCard email={user.email ?? null} />
+                </div>
+              )}
+              {settingsSubTab === "storefront" && (
+              <div className="grid gap-6 lg:grid-cols-2">
               <Card className="space-y-5 p-5">
                 <div>
                   <h2 className="font-display text-2xl font-semibold">Site vitrine</h2>
@@ -1078,8 +1131,10 @@ export default function AdminPage() {
                   </div>
                 </div>
               </Card>
-            </TabsContent>
-            <TabsContent value="contact" className="grid gap-6 lg:grid-cols-2">
+              </div>
+              )}
+              {settingsSubTab === "contact" && (
+              <div className="grid gap-6 lg:grid-cols-2">
               <Card className="space-y-4 p-5">
                 <div>
                   <h2 className="font-display text-2xl font-semibold">Coordonnées</h2>
@@ -1196,30 +1251,14 @@ export default function AdminPage() {
                   </Button>
                 </div>
               </Card>
-            </TabsContent>
-            <TabsContent value="disponibilite">
-              <AvailabilityPanel
-                restaurantId={restaurantId}
-                timezone={restaurant?.timezone ?? "Africa/Abidjan"}
-              />
-            </TabsContent>
-            <TabsContent value="settings" className="space-y-6">
-              <Card className="p-5">
-                <h2 className="font-display text-2xl font-semibold">Paramètres</h2>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Section réservée aux réglages complémentaires sans toucher à l’isolation
-                  multi-tenant.
-                </p>
-              </Card>
-              <FulfillmentSettingsCard restaurantId={restaurantId} />
-              <CurrencyCard
-                restaurantId={restaurantId}
-                currentCurrency={restaurant?.currency ?? DEFAULT_CURRENCY_CODE}
-                onSaved={() => void refresh()}
-              />
-              <SeoSettingsCard restaurantId={restaurantId} restaurant={restaurant} />
-              <SubscriptionCard restaurantId={restaurantId} />
-              <SecurityCard email={user.email ?? null} />
+              </div>
+              )}
+              {settingsSubTab === "disponibilite" && (
+                <AvailabilityPanel
+                  restaurantId={restaurantId}
+                  timezone={restaurant?.timezone ?? "Africa/Abidjan"}
+                />
+              )}
             </TabsContent>
           </Tabs>
         </div>
