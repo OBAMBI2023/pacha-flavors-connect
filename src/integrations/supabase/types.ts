@@ -173,6 +173,7 @@ export type Database = {
           id: string
           internal_note: string | null
           last_order_at: string | null
+          marketing_opt_out: boolean
           orders_count: number
           phone: string
           restaurant_id: string
@@ -189,6 +190,7 @@ export type Database = {
           id?: string
           internal_note?: string | null
           last_order_at?: string | null
+          marketing_opt_out?: boolean
           orders_count?: number
           phone: string
           restaurant_id: string
@@ -205,6 +207,7 @@ export type Database = {
           id?: string
           internal_note?: string | null
           last_order_at?: string | null
+          marketing_opt_out?: boolean
           orders_count?: number
           phone?: string
           restaurant_id?: string
@@ -835,6 +838,139 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "driver_profiles_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_campaign_recipients: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          customer_id: string
+          id: string
+          message_rendered: string
+          name_snapshot: string
+          phone_snapshot: string
+          restaurant_id: string
+          sent_at: string | null
+          status: string
+          wa_link: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          customer_id: string
+          id?: string
+          message_rendered: string
+          name_snapshot: string
+          phone_snapshot: string
+          restaurant_id: string
+          sent_at?: string | null
+          status?: string
+          wa_link: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          customer_id?: string
+          id?: string
+          message_rendered?: string
+          name_snapshot?: string
+          phone_snapshot?: string
+          restaurant_id?: string
+          sent_at?: string | null
+          status?: string
+          wa_link?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_campaign_recipients_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_campaign_recipients_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_campaign_recipients_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_campaigns: {
+        Row: {
+          audience_filters: Json
+          audience_segment: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          message_template: string
+          name: string
+          objective: string
+          promo_code_id: string | null
+          recipient_count: number
+          restaurant_id: string
+          scheduled_for: string | null
+          sent_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          audience_filters?: Json
+          audience_segment?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          message_template: string
+          name: string
+          objective: string
+          promo_code_id?: string | null
+          recipient_count?: number
+          restaurant_id: string
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          audience_filters?: Json
+          audience_segment?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          message_template?: string
+          name?: string
+          objective?: string
+          promo_code_id?: string | null
+          recipient_count?: number
+          restaurant_id?: string
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_campaigns_promo_code_id_fkey"
+            columns: ["promo_code_id"]
+            isOneToOne: false
+            referencedRelation: "promo_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_campaigns_restaurant_id_fkey"
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "restaurants"
@@ -3028,82 +3164,44 @@ export type Database = {
         }
         Returns: undefined
       }
-      create_order:
-        | {
-            Args: {
-              p_allergy_information?: string
-              p_customer_name: string
-              p_customer_notes?: string
-              p_customer_phone: string
-              p_customer_profile_address?: string
-              p_cutlery_requested?: boolean
-              p_delivery_address?: string
-              p_delivery_city?: string
-              p_delivery_commune?: string
-              p_delivery_instructions?: string
-              p_delivery_landmark?: string
-              p_delivery_latitude?: number
-              p_delivery_longitude?: number
-              p_delivery_neighborhood?: string
-              p_driver_note?: string
-              p_fulfillment_type: Database["public"]["Enums"]["order_fulfillment_type"]
-              p_is_for_someone_else?: boolean
-              p_items: Json
-              p_offer_id?: string
-              p_order_source?: string
-              p_payment_method?: string
-              p_promo_code?: string
-              p_recipient_additional_info?: string
-              p_recipient_address?: string
-              p_recipient_city?: string
-              p_recipient_landmark?: string
-              p_recipient_name?: string
-              p_recipient_neighborhood?: string
-              p_recipient_phone?: string
-              p_slug: string
-              p_source_metadata?: Json
-              p_visitor_id?: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_allergy_information?: string
-              p_customer_name: string
-              p_customer_notes?: string
-              p_customer_phone: string
-              p_customer_profile_address?: string
-              p_cutlery_requested?: boolean
-              p_delivery_address?: string
-              p_delivery_city?: string
-              p_delivery_commune?: string
-              p_delivery_instructions?: string
-              p_delivery_landmark?: string
-              p_delivery_latitude?: number
-              p_delivery_longitude?: number
-              p_delivery_neighborhood?: string
-              p_driver_note?: string
-              p_fulfillment_type: Database["public"]["Enums"]["order_fulfillment_type"]
-              p_is_for_someone_else?: boolean
-              p_items: Json
-              p_offer_id?: string
-              p_order_source?: string
-              p_payment_method?: string
-              p_promo_code?: string
-              p_recipient_additional_info?: string
-              p_recipient_address?: string
-              p_recipient_city?: string
-              p_recipient_landmark?: string
-              p_recipient_name?: string
-              p_recipient_neighborhood?: string
-              p_recipient_phone?: string
-              p_scheduled_for?: string
-              p_slug: string
-              p_source_metadata?: Json
-              p_visitor_id?: string
-            }
-            Returns: Json
-          }
+      create_order: {
+        Args: {
+          p_allergy_information?: string
+          p_customer_name: string
+          p_customer_notes?: string
+          p_customer_phone: string
+          p_customer_profile_address?: string
+          p_cutlery_requested?: boolean
+          p_delivery_address?: string
+          p_delivery_city?: string
+          p_delivery_commune?: string
+          p_delivery_instructions?: string
+          p_delivery_landmark?: string
+          p_delivery_latitude?: number
+          p_delivery_longitude?: number
+          p_delivery_neighborhood?: string
+          p_driver_note?: string
+          p_fulfillment_type: Database["public"]["Enums"]["order_fulfillment_type"]
+          p_is_for_someone_else?: boolean
+          p_items: Json
+          p_offer_id?: string
+          p_order_source?: string
+          p_payment_method?: string
+          p_promo_code?: string
+          p_recipient_additional_info?: string
+          p_recipient_address?: string
+          p_recipient_city?: string
+          p_recipient_landmark?: string
+          p_recipient_name?: string
+          p_recipient_neighborhood?: string
+          p_recipient_phone?: string
+          p_scheduled_for?: string
+          p_slug: string
+          p_source_metadata?: Json
+          p_visitor_id?: string
+        }
+        Returns: Json
+      }
       create_pickup_point: {
         Args: {
           p_address: string

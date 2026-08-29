@@ -29,9 +29,14 @@ import { Route as LivreurActivationRouteImport } from './routes/livreur.activati
 import { Route as RSlugRouteImport } from './routes/r.$slug'
 import { Route as RestaurantSlugRouteImport } from './routes/restaurant.$slug'
 import { Route as SuperAdminIndexRouteImport } from './routes/super-admin.index'
+import { Route as SuperAdminMarketingRouteImport } from './routes/super-admin.marketing'
 import { Route as CommandeOrderIdConfirmationRouteImport } from './routes/commande.$orderId.confirmation'
 import { Route as RestaurantsCategorieCategorySlugRouteImport } from './routes/restaurants.categorie.$categorySlug'
+import { Route as SuperAdminMarketingIndexRouteImport } from './routes/super-admin.marketing.index'
+import { Route as SuperAdminMarketingAudiencesRouteImport } from './routes/super-admin.marketing.audiences'
+import { Route as SuperAdminMarketingCampagnesRouteImport } from './routes/super-admin.marketing.campagnes'
 import { Route as SuperAdminRestaurantsRestaurantIdRouteImport } from './routes/super-admin.restaurants.$restaurantId'
+import { Route as SuperAdminMarketingCampagnesNouvelleRouteImport } from './routes/super-admin.marketing.campagnes_.nouvelle'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -133,6 +138,11 @@ const SuperAdminIndexRoute = SuperAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => SuperAdminRoute,
 } as any)
+const SuperAdminMarketingRoute = SuperAdminMarketingRouteImport.update({
+  id: '/marketing',
+  path: '/marketing',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
 const CommandeOrderIdConfirmationRoute =
   CommandeOrderIdConfirmationRouteImport.update({
     id: '/commande/$orderId/confirmation',
@@ -145,11 +155,35 @@ const RestaurantsCategorieCategorySlugRoute =
     path: '/categorie/$categorySlug',
     getParentRoute: () => RestaurantsRoute,
   } as any)
+const SuperAdminMarketingIndexRoute =
+  SuperAdminMarketingIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => SuperAdminMarketingRoute,
+  } as any)
+const SuperAdminMarketingAudiencesRoute =
+  SuperAdminMarketingAudiencesRouteImport.update({
+    id: '/audiences',
+    path: '/audiences',
+    getParentRoute: () => SuperAdminMarketingRoute,
+  } as any)
+const SuperAdminMarketingCampagnesRoute =
+  SuperAdminMarketingCampagnesRouteImport.update({
+    id: '/campagnes',
+    path: '/campagnes',
+    getParentRoute: () => SuperAdminMarketingRoute,
+  } as any)
 const SuperAdminRestaurantsRestaurantIdRoute =
   SuperAdminRestaurantsRestaurantIdRouteImport.update({
     id: '/restaurants/$restaurantId',
     path: '/restaurants/$restaurantId',
     getParentRoute: () => SuperAdminRoute,
+  } as any)
+const SuperAdminMarketingCampagnesNouvelleRoute =
+  SuperAdminMarketingCampagnesNouvelleRouteImport.update({
+    id: '/campagnes_/nouvelle',
+    path: '/campagnes/nouvelle',
+    getParentRoute: () => SuperAdminMarketingRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -171,11 +205,16 @@ export interface FileRoutesByFullPath {
   '/livreur/activation': typeof LivreurActivationRoute
   '/r/$slug': typeof RSlugRoute
   '/restaurant/$slug': typeof RestaurantSlugRoute
+  '/super-admin/marketing': typeof SuperAdminMarketingRouteWithChildren
   '/delivery/': typeof DeliveryIndexRoute
   '/super-admin/': typeof SuperAdminIndexRoute
   '/commande/$orderId/confirmation': typeof CommandeOrderIdConfirmationRoute
   '/restaurants/categorie/$categorySlug': typeof RestaurantsCategorieCategorySlugRoute
+  '/super-admin/marketing/audiences': typeof SuperAdminMarketingAudiencesRoute
+  '/super-admin/marketing/campagnes': typeof SuperAdminMarketingCampagnesRoute
   '/super-admin/restaurants/$restaurantId': typeof SuperAdminRestaurantsRestaurantIdRoute
+  '/super-admin/marketing/': typeof SuperAdminMarketingIndexRoute
+  '/super-admin/marketing/campagnes/nouvelle': typeof SuperAdminMarketingCampagnesNouvelleRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -198,7 +237,11 @@ export interface FileRoutesByTo {
   '/super-admin': typeof SuperAdminIndexRoute
   '/commande/$orderId/confirmation': typeof CommandeOrderIdConfirmationRoute
   '/restaurants/categorie/$categorySlug': typeof RestaurantsCategorieCategorySlugRoute
+  '/super-admin/marketing/audiences': typeof SuperAdminMarketingAudiencesRoute
+  '/super-admin/marketing/campagnes': typeof SuperAdminMarketingCampagnesRoute
   '/super-admin/restaurants/$restaurantId': typeof SuperAdminRestaurantsRestaurantIdRoute
+  '/super-admin/marketing': typeof SuperAdminMarketingIndexRoute
+  '/super-admin/marketing/campagnes/nouvelle': typeof SuperAdminMarketingCampagnesNouvelleRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -220,11 +263,16 @@ export interface FileRoutesById {
   '/livreur/activation': typeof LivreurActivationRoute
   '/r/$slug': typeof RSlugRoute
   '/restaurant/$slug': typeof RestaurantSlugRoute
+  '/super-admin/marketing': typeof SuperAdminMarketingRouteWithChildren
   '/delivery/': typeof DeliveryIndexRoute
   '/super-admin/': typeof SuperAdminIndexRoute
   '/commande/$orderId/confirmation': typeof CommandeOrderIdConfirmationRoute
   '/restaurants/categorie/$categorySlug': typeof RestaurantsCategorieCategorySlugRoute
+  '/super-admin/marketing/audiences': typeof SuperAdminMarketingAudiencesRoute
+  '/super-admin/marketing/campagnes': typeof SuperAdminMarketingCampagnesRoute
   '/super-admin/restaurants/$restaurantId': typeof SuperAdminRestaurantsRestaurantIdRoute
+  '/super-admin/marketing/': typeof SuperAdminMarketingIndexRoute
+  '/super-admin/marketing/campagnes_/nouvelle': typeof SuperAdminMarketingCampagnesNouvelleRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -247,11 +295,16 @@ export interface FileRouteTypes {
     | '/livreur/activation'
     | '/r/$slug'
     | '/restaurant/$slug'
+    | '/super-admin/marketing'
     | '/delivery/'
     | '/super-admin/'
     | '/commande/$orderId/confirmation'
     | '/restaurants/categorie/$categorySlug'
+    | '/super-admin/marketing/audiences'
+    | '/super-admin/marketing/campagnes'
     | '/super-admin/restaurants/$restaurantId'
+    | '/super-admin/marketing/'
+    | '/super-admin/marketing/campagnes/nouvelle'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -274,7 +327,11 @@ export interface FileRouteTypes {
     | '/super-admin'
     | '/commande/$orderId/confirmation'
     | '/restaurants/categorie/$categorySlug'
+    | '/super-admin/marketing/audiences'
+    | '/super-admin/marketing/campagnes'
     | '/super-admin/restaurants/$restaurantId'
+    | '/super-admin/marketing'
+    | '/super-admin/marketing/campagnes/nouvelle'
   id:
     | '__root__'
     | '/'
@@ -295,11 +352,16 @@ export interface FileRouteTypes {
     | '/livreur/activation'
     | '/r/$slug'
     | '/restaurant/$slug'
+    | '/super-admin/marketing'
     | '/delivery/'
     | '/super-admin/'
     | '/commande/$orderId/confirmation'
     | '/restaurants/categorie/$categorySlug'
+    | '/super-admin/marketing/audiences'
+    | '/super-admin/marketing/campagnes'
     | '/super-admin/restaurants/$restaurantId'
+    | '/super-admin/marketing/'
+    | '/super-admin/marketing/campagnes_/nouvelle'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -460,6 +522,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuperAdminIndexRouteImport
       parentRoute: typeof SuperAdminRoute
     }
+    '/super-admin/marketing': {
+      id: '/super-admin/marketing'
+      path: '/marketing'
+      fullPath: '/super-admin/marketing'
+      preLoaderRoute: typeof SuperAdminMarketingRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
     '/commande/$orderId/confirmation': {
       id: '/commande/$orderId/confirmation'
       path: '/commande/$orderId/confirmation'
@@ -474,12 +543,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RestaurantsCategorieCategorySlugRouteImport
       parentRoute: typeof RestaurantsRoute
     }
+    '/super-admin/marketing/': {
+      id: '/super-admin/marketing/'
+      path: '/'
+      fullPath: '/super-admin/marketing/'
+      preLoaderRoute: typeof SuperAdminMarketingIndexRouteImport
+      parentRoute: typeof SuperAdminMarketingRoute
+    }
+    '/super-admin/marketing/audiences': {
+      id: '/super-admin/marketing/audiences'
+      path: '/audiences'
+      fullPath: '/super-admin/marketing/audiences'
+      preLoaderRoute: typeof SuperAdminMarketingAudiencesRouteImport
+      parentRoute: typeof SuperAdminMarketingRoute
+    }
+    '/super-admin/marketing/campagnes': {
+      id: '/super-admin/marketing/campagnes'
+      path: '/campagnes'
+      fullPath: '/super-admin/marketing/campagnes'
+      preLoaderRoute: typeof SuperAdminMarketingCampagnesRouteImport
+      parentRoute: typeof SuperAdminMarketingRoute
+    }
     '/super-admin/restaurants/$restaurantId': {
       id: '/super-admin/restaurants/$restaurantId'
       path: '/restaurants/$restaurantId'
       fullPath: '/super-admin/restaurants/$restaurantId'
       preLoaderRoute: typeof SuperAdminRestaurantsRestaurantIdRouteImport
       parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/marketing/campagnes_/nouvelle': {
+      id: '/super-admin/marketing/campagnes_/nouvelle'
+      path: '/campagnes/nouvelle'
+      fullPath: '/super-admin/marketing/campagnes/nouvelle'
+      preLoaderRoute: typeof SuperAdminMarketingCampagnesNouvelleRouteImport
+      parentRoute: typeof SuperAdminMarketingRoute
     }
   }
 }
@@ -529,12 +626,32 @@ const RestaurantsRouteWithChildren = RestaurantsRoute._addFileChildren(
   RestaurantsRouteChildren,
 )
 
+interface SuperAdminMarketingRouteChildren {
+  SuperAdminMarketingAudiencesRoute: typeof SuperAdminMarketingAudiencesRoute
+  SuperAdminMarketingCampagnesRoute: typeof SuperAdminMarketingCampagnesRoute
+  SuperAdminMarketingIndexRoute: typeof SuperAdminMarketingIndexRoute
+  SuperAdminMarketingCampagnesNouvelleRoute: typeof SuperAdminMarketingCampagnesNouvelleRoute
+}
+
+const SuperAdminMarketingRouteChildren: SuperAdminMarketingRouteChildren = {
+  SuperAdminMarketingAudiencesRoute: SuperAdminMarketingAudiencesRoute,
+  SuperAdminMarketingCampagnesRoute: SuperAdminMarketingCampagnesRoute,
+  SuperAdminMarketingIndexRoute: SuperAdminMarketingIndexRoute,
+  SuperAdminMarketingCampagnesNouvelleRoute:
+    SuperAdminMarketingCampagnesNouvelleRoute,
+}
+
+const SuperAdminMarketingRouteWithChildren =
+  SuperAdminMarketingRoute._addFileChildren(SuperAdminMarketingRouteChildren)
+
 interface SuperAdminRouteChildren {
+  SuperAdminMarketingRoute: typeof SuperAdminMarketingRouteWithChildren
   SuperAdminIndexRoute: typeof SuperAdminIndexRoute
   SuperAdminRestaurantsRestaurantIdRoute: typeof SuperAdminRestaurantsRestaurantIdRoute
 }
 
 const SuperAdminRouteChildren: SuperAdminRouteChildren = {
+  SuperAdminMarketingRoute: SuperAdminMarketingRouteWithChildren,
   SuperAdminIndexRoute: SuperAdminIndexRoute,
   SuperAdminRestaurantsRestaurantIdRoute:
     SuperAdminRestaurantsRestaurantIdRoute,

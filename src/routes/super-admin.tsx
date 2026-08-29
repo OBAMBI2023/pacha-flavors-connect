@@ -84,6 +84,13 @@ function SuperAdminLayout() {
           <nav className="mt-8 space-y-2 text-sm">
             <Link to="/super-admin" hash="overview" className="block rounded-2xl bg-white/10 px-4 py-3 text-white">Vue d&apos;ensemble</Link>
             <Link to="/super-admin" hash="restaurants" className="block rounded-2xl px-4 py-3 text-slate-300 hover:bg-white/5 hover:text-white">Restaurants</Link>
+            <Link
+              to="/super-admin/marketing"
+              className="block rounded-2xl px-4 py-3 text-slate-300 hover:bg-white/5 hover:text-white"
+              activeProps={{ className: "block rounded-2xl bg-white/10 px-4 py-3 text-white" }}
+            >
+              Marketing
+            </Link>
             <Link to="/super-admin" hash="avis" className="block rounded-2xl px-4 py-3 text-slate-300 hover:bg-white/5 hover:text-white">Avis signalés</Link>
             <Link to="/super-admin" hash="subscriptions" className="block rounded-2xl px-4 py-3 text-slate-300 hover:bg-white/5 hover:text-white">Abonnements</Link>
             <Link to="/super-admin" hash="settings" className="block rounded-2xl px-4 py-3 text-slate-300 hover:bg-white/5 hover:text-white">Parametres</Link>
