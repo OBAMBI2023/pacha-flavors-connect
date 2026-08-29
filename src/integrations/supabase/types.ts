@@ -3077,6 +3077,7 @@ export type Database = {
           id: string
           last_seen_at: string
           restaurant_id: string
+          source: string | null
           started_at: string
           visitor_id: string
         }
@@ -3084,6 +3085,7 @@ export type Database = {
           id?: string
           last_seen_at?: string
           restaurant_id: string
+          source?: string | null
           started_at?: string
           visitor_id: string
         }
@@ -3091,6 +3093,7 @@ export type Database = {
           id?: string
           last_seen_at?: string
           restaurant_id?: string
+          source?: string | null
           started_at?: string
           visitor_id?: string
         }
@@ -3539,7 +3542,11 @@ export type Database = {
         Returns: Json
       }
       get_restaurant_dashboard_stats: {
-        Args: { p_end_date: string; p_start_date: string }
+        Args: {
+          p_end_date: string
+          p_restaurant_id?: string
+          p_start_date: string
+        }
         Returns: Json
       }
       get_reviews_stats: { Args: never; Returns: Json }
@@ -3547,6 +3554,7 @@ export type Database = {
         Args: { p_slug: string; p_visitor_id?: string }
         Returns: Json
       }
+      get_tenant_qr_stats: { Args: { p_restaurant_id?: string }; Returns: Json }
       get_tenant_reviews: {
         Args: { p_limit?: number; p_slug: string }
         Returns: Json
@@ -3937,9 +3945,13 @@ export type Database = {
           status: Database["public"]["Enums"]["restaurant_status"]
         }[]
       }
+      super_admin_set_restaurant_plan: {
+        Args: { _plan_id: string; _restaurant_id: string }
+        Returns: Json
+      }
       track_offer_click: { Args: { p_offer_id: string }; Returns: undefined }
       track_visitor_session: {
-        Args: { p_slug: string; p_visitor_id: string }
+        Args: { p_slug: string; p_source?: string; p_visitor_id: string }
         Returns: undefined
       }
       update_order_status: {

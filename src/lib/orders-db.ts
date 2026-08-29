@@ -508,10 +508,17 @@ function toDateInputValue(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-export async function fetchDashboardStats(startDate: Date, endDate: Date): Promise<DashboardStats> {
+/**
+ * `restaurantId` is an explicit override the RPC only honors for a Super
+ * Admin (checked server-side via is_super_admin()); omitted, this resolves
+ * the caller's own restaurant exactly as before -- every existing call site
+ * (the tenant's own Statistiques/Finances panels) is unaffected.
+ */
+export async function fetchDashboardStats(startDate: Date, endDate: Date, restaurantId?: string): Promise<DashboardStats> {
   const { data, error } = await supabase.rpc("get_restaurant_dashboard_stats", {
     p_start_date: toDateInputValue(startDate),
     p_end_date: toDateInputValue(endDate),
+    ...(restaurantId ? { p_restaurant_id: restaurantId } : {}),
   });
   if (error) throw error;
   return data as unknown as DashboardStats;

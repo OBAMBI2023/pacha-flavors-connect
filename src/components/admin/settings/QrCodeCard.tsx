@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
 import { toast } from "sonner";
-import { Copy, Download, Printer, QrCode as QrCodeIcon } from "lucide-react";
+import { ArrowRight, Copy, Download, Printer, QrCode as QrCodeIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { StatCard } from "@/components/admin/stats/StatCard";
+import { formatMoney } from "@/lib/currency";
+import { fetchTenantQrStats, type TenantQrStats } from "@/lib/visitors-db";
 import type { DbRestaurant } from "@/lib/menu-db";
 
 const CTA_TEXT = "Scannez pour consulter le menu et commander";
@@ -36,17 +40,41 @@ async function copyText(text: string, successMessage: string) {
  * storefront URL (origin + /r/ + slug): no internal id, token, or private
  * data ever goes into it.
  */
-export function QrCodeCard({ restaurant }: { restaurant: DbRestaurant | null }) {
+export function QrCodeCard({ restaurant, restaurantId }: { restaurant: DbRestaurant | null; restaurantId?: string }) {
   const [svgMarkup, setSvgMarkup] = useState("");
   const [busyFormat, setBusyFormat] = useState<"png" | "svg" | null>(null);
 
   // window.location.origin, never a hardcoded IP or a saovia.com placeholder
   // -- this automatically follows wherever the app is actually served from
   // (dev IP today, the eventual production domain later) with no code change.
+  // ?source=qr is read by useVisitorTracking on the storefront (tags the
+  // visitor_sessions row and this tab's order-attribution flag) -- it never
+  // changes which restaurant the link opens.
   const publicUrl = useMemo(() => {
     if (!restaurant?.slug || typeof window === "undefined") return null;
-    return `${window.location.origin}/r/${restaurant.slug}`;
+    return `${window.location.origin}/r/${restaurant.slug}?source=qr`;
   }, [restaurant?.slug]);
+
+  const [qrStats, setQrStats] = useState<TenantQrStats | null>(null);
+  const [qrStatsLoading, setQrStatsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setQrStatsLoading(true);
+    fetchTenantQrStats(restaurantId)
+      .then((stats) => {
+        if (!cancelled) setQrStats(stats);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) toast.error(err instanceof Error ? err.message : "Impossible de charger les statistiques du QR Code.");
+      })
+      .finally(() => {
+        if (!cancelled) setQrStatsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [restaurant?.id, restaurantId]);
 
   useEffect(() => {
     if (!publicUrl) {
@@ -171,6 +199,57 @@ export function QrCodeCard({ restaurant }: { restaurant: DbRestaurant | null }) 
             <Button variant="outline" size="sm" className="h-11" onClick={() => void copyText(publicUrl, "Lien copié")}>
               <Copy className="mr-1.5 h-4 w-4" /> Copier le lien
             </Button>
+          </div>
+
+          <div className="space-y-4 border-t border-border pt-5">
+            <div>
+              <h3 className="font-semibold">Performance du QR Code</h3>
+              <p className="text-xs text-muted-foreground">
+                Scans et commandes attribués à ce QR précisément (lien avec <code>?source=qr</code>) -- distinct du
+                trafic total de la vitrine.
+              </p>
+            </div>
+
+            {qrStatsLoading || !qrStats ? (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-24 w-full rounded-2xl" />
+                ))}
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <StatCard label="Scans aujourd'hui" value={String(qrStats.scans_today)} />
+                  <StatCard label="Cette semaine" value={String(qrStats.scans_week)} />
+                  <StatCard label="Ce mois" value={String(qrStats.scans_month)} />
+                  <StatCard label="Visiteurs uniques" value={String(qrStats.unique_visitors_month)} hint="Estimation sur 30 jours" />
+                  <StatCard label="Commandes QR" value={String(qrStats.qr_orders_count)} />
+                  <StatCard
+                    label="CA généré"
+                    value={formatMoney(qrStats.qr_revenue, qrStats.currency)}
+                    hint="CA produits (restaurant), hors frais de livraison"
+                  />
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  Dernier scan :{" "}
+                  <span className="font-medium text-foreground">
+                    {qrStats.last_scan_at ? new Date(qrStats.last_scan_at).toLocaleString("fr-FR") : "Aucun scan pour le moment"}
+                  </span>
+                </p>
+
+                <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-dashed border-border bg-muted/40 p-4 text-sm">
+                  <span className="font-semibold">{qrStats.scans_month} scans</span>
+                  <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <span className="font-semibold">{qrStats.unique_visitors_month} visites</span>
+                  <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <span className="font-semibold">{qrStats.qr_orders_count} commandes</span>
+                  <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <span className="font-semibold">{formatMoney(qrStats.qr_revenue, qrStats.currency)} générés</span>
+                  <span className="ml-auto text-xs text-muted-foreground">Sur les 30 derniers jours</span>
+                </div>
+              </>
+            )}
           </div>
         </>
       )}
