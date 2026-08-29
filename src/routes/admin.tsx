@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   BarChart3,
@@ -13,6 +13,7 @@ import {
   MapPin,
   Megaphone,
   Menu as MenuIcon,
+  Package,
   PencilLine,
   Plus,
   Search,
@@ -80,6 +81,8 @@ import { DriversPanel } from "@/components/admin/drivers/DriversPanel";
 import { MarketingPanel } from "@/components/admin/marketing/MarketingPanel";
 import { ReviewsPanel } from "@/components/admin/reviews/ReviewsPanel";
 import { OptionGroupsManager } from "@/components/admin/menu/OptionGroupsManager";
+import { ProductStockField } from "@/components/admin/menu/ProductStockField";
+import { StockPanel } from "@/components/admin/stock/StockPanel";
 import { AvailabilityPanel } from "@/components/admin/availability/AvailabilityPanel";
 import { VisitorsPanel } from "@/components/admin/visitors/VisitorsPanel";
 import { CustomersPanel } from "@/components/admin/customers/CustomersPanel";
@@ -98,6 +101,7 @@ import { CurrencyCard } from "@/components/admin/settings/CurrencyCard";
 import { SeoSettingsCard } from "@/components/admin/settings/SeoSettingsCard";
 import { useRestaurantTheme } from "@/hooks/useRestaurantTheme";
 import { DEFAULT_CURRENCY_CODE, currencySymbol, formatMoney } from "@/lib/currency";
+import { fetchInventoryForRestaurant } from "@/lib/inventory";
 
 const TITLE = "Administration du restaurant";
 const DESCRIPTION = "Gestion compacte de la carte, de la vitrine et des coordonnées du restaurant.";
@@ -114,6 +118,7 @@ const ADMIN_NAV_ITEMS = [
   { value: "clients", label: "Clients", icon: Users },
   { value: "livreurs", label: "Livreurs", icon: Bike },
   { value: "menu", label: "Produits / Menu", icon: UtensilsCrossed },
+  { value: "stock", label: "Stock", icon: Package },
   { value: "promotions", label: "Promotions", icon: Tag },
   { value: "marketing", label: "Marketing", icon: Megaphone },
   { value: "statistiques", label: "Statistiques", icon: BarChart3 },
@@ -248,8 +253,22 @@ export default function AdminPage() {
   const { user, loading, canManageMenu, restaurantId } = useAuth();
   const queryClient = useQueryClient();
   const { data } = useAdminMenuData(restaurantId);
+  const { data: inventoryRows, refetch: refetchInventorySummary } = useQuery({
+    queryKey: ["admin-inventory-summary", restaurantId],
+    queryFn: () => fetchInventoryForRestaurant(restaurantId as string),
+    enabled: Boolean(restaurantId),
+  });
+  const trackedProductIds = useMemo(
+    () => new Set((inventoryRows ?? []).filter((row) => row.tracking_enabled).map((row) => row.product_id)),
+    [inventoryRows],
+  );
+  function onStockChanged() {
+    void refetchInventorySummary();
+    void queryClient.invalidateQueries({ queryKey: ["admin-menu-data", restaurantId] });
+  }
   useRestaurantTheme(restaurantId);
   const [tab, setTab] = useState("accueil");
+  const [editingItemTracking, setEditingItemTracking] = useState(false);
   const [availability, setAvailability] = useState<RestaurantAvailability | null>(null);
   const [availabilityBusy, setAvailabilityBusy] = useState(false);
   const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
@@ -512,7 +531,7 @@ export default function AdminPage() {
     }
 
     setBusy(true);
-    const payload = {
+    const payload: Record<string, unknown> = {
       name: itemForm.name.trim(),
       subtitle: itemForm.subtitle.trim() || null,
       description: itemForm.description.trim(),
@@ -520,9 +539,13 @@ export default function AdminPage() {
       prep_time_minutes: prepTime,
       category_id: itemForm.category_id || null,
       sort_order: Number(itemForm.position) || 0,
-      is_available: itemForm.available,
       is_daily_menu: itemForm.daily,
     };
+    // Tracked products: is_available is stock-controlled server-side, so a stale
+    // form value must never overwrite it here (see ProductStockField / StockPanel).
+    if (!(editingItem && editingItemTracking)) {
+      payload["is_available"] = itemForm.available;
+    }
     let productId: string | null = editingItem?.id ?? null;
     if (editingItem) {
       const { error } = await supabase
@@ -571,6 +594,7 @@ export default function AdminPage() {
     setBusy(false);
     toast.success(editingItem ? "Plat mis à jour" : "Plat ajouté");
     setEditingItem(null);
+    setEditingItemTracking(false);
     setItemDialogOpen(false);
     setItemPreview(null);
     setExistingPromotion(null);
@@ -749,6 +773,10 @@ export default function AdminPage() {
   async function toggleItemAvailability(row: DbMenuItem): Promise<void> {
     const rid = restaurantId;
     if (!rid || togglingItemIds.has(row.id)) return;
+    if (trackedProductIds.has(row.id)) {
+      toast.error("Ce plat est contrôlé automatiquement par le stock. Gérez sa disponibilité depuis l'onglet Stock.");
+      return;
+    }
     setTogglingItemIds((current) => new Set(current).add(row.id));
     const nextAvailable = !row.available;
     const { error } = await supabase
@@ -937,12 +965,14 @@ export default function AdminPage() {
                   currency={restaurant?.currency ?? DEFAULT_CURRENCY_CODE}
                   busy={busy}
                   togglingItemIds={togglingItemIds}
+                  trackedProductIds={trackedProductIds}
                   search={search}
                   setSearch={setSearch}
                   categoryFilter={categoryFilter}
                   setCategoryFilter={setCategoryFilter}
                   onAdd={() => {
                     setEditingItem(null);
+                    setEditingItemTracking(false);
                     setItemPreview(null);
                     setExistingPromotion(null);
                     setItemForm(
@@ -955,6 +985,7 @@ export default function AdminPage() {
                   }}
                   onEdit={(row) => {
                     setEditingItem(row);
+                    setEditingItemTracking(trackedProductIds.has(row.id));
                     setExistingPromotion(null);
                     setItemForm({
                       name: row.name,
@@ -978,6 +1009,17 @@ export default function AdminPage() {
                   onToggleAvailability={(row) => void toggleItemAvailability(row)}
                 />
               </Card>
+            </TabsContent>
+            <TabsContent value="stock">
+              {restaurantId && (
+                <StockPanel
+                  restaurantId={restaurantId}
+                  products={data?.rows ?? []}
+                  categories={data?.categories ?? []}
+                  canManage={canManageMenu}
+                  onChanged={onStockChanged}
+                />
+              )}
             </TabsContent>
             <TabsContent value="promotions" className="space-y-6">
               <div className="inline-flex rounded-full border border-border bg-muted p-1">
@@ -1336,6 +1378,7 @@ export default function AdminPage() {
                 setAddSheetOpen(false);
                 setTab("menu");
                 setEditingItem(null);
+                setEditingItemTracking(false);
                 setItemPreview(null);
                 setExistingPromotion(null);
                 setItemForm(
@@ -1551,9 +1594,13 @@ export default function AdminPage() {
               <label className="flex items-center gap-2 text-sm">
                 <Switch
                   checked={itemForm.available}
+                  disabled={editingItemTracking}
                   onCheckedChange={(v) => setItemForm((c) => ({ ...c, available: v }))}
                 />{" "}
                 Disponible
+                {editingItemTracking && (
+                  <span className="text-xs text-muted-foreground">(contrôlé par le stock)</span>
+                )}
               </label>
               <label className="flex items-center gap-2 text-sm">
                 <Switch
@@ -1569,6 +1616,15 @@ export default function AdminPage() {
                 restaurantId={restaurantId}
                 currency={restaurant?.currency ?? DEFAULT_CURRENCY_CODE}
                 productId={editingItem?.id ?? null}
+              />
+            )}
+
+            {restaurantId && (
+              <ProductStockField
+                restaurantId={restaurantId}
+                productId={editingItem?.id ?? null}
+                onTrackingChange={setEditingItemTracking}
+                onChanged={onStockChanged}
               />
             )}
           </div>
@@ -2148,6 +2204,7 @@ function MenuItemsPanel({
   currency,
   busy,
   togglingItemIds,
+  trackedProductIds,
   search,
   setSearch,
   categoryFilter,
@@ -2162,6 +2219,8 @@ function MenuItemsPanel({
   currency: string;
   busy: boolean;
   togglingItemIds: Set<string>;
+  /** Products whose availability is stock-controlled: the manual switch is disabled for these (see StockPanel / ProductStockField). */
+  trackedProductIds: Set<string>;
   search: string;
   setSearch: (v: string) => void;
   categoryFilter: string;
@@ -2215,6 +2274,7 @@ function MenuItemsPanel({
             ? supabase.storage.from(MENU_BUCKET).getPublicUrl(row.image_path).data.publicUrl
             : null;
           const toggling = togglingItemIds.has(row.id);
+          const tracked = trackedProductIds.has(row.id);
           return (
             <div
               key={row.id}
@@ -2249,15 +2309,15 @@ function MenuItemsPanel({
               </div>
               <label
                 className="flex shrink-0 flex-col items-center gap-1 text-[0.65rem] font-medium text-muted-foreground"
-                title={row.available ? "Masquer ce plat" : "Afficher ce plat"}
+                title={tracked ? "Contrôlé automatiquement par le stock" : row.available ? "Masquer ce plat" : "Afficher ce plat"}
               >
                 <Switch
                   checked={row.available}
-                  disabled={busy || toggling}
+                  disabled={busy || toggling || tracked}
                   onCheckedChange={() => onToggleAvailability(row)}
                   aria-label={row.available ? "Masquer ce plat" : "Afficher ce plat"}
                 />
-                {row.available ? "Afficher" : "Masqué"}
+                {tracked ? "Stock" : row.available ? "Afficher" : "Masqué"}
               </label>
               <div className="flex shrink-0 items-center gap-1">
                 <Button
