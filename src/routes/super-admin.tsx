@@ -96,7 +96,7 @@ function SuperAdminLayout() {
               className="block rounded-2xl px-4 py-3 text-slate-300 hover:bg-white/5 hover:text-white"
               activeProps={{ className: "block rounded-2xl bg-white/10 px-4 py-3 text-white" }}
             >
-              Carte des clients
+              Carte géographique
             </Link>
             <Link to="/super-admin" hash="avis" className="block rounded-2xl px-4 py-3 text-slate-300 hover:bg-white/5 hover:text-white">Avis signalés</Link>
             <Link to="/super-admin" hash="subscriptions" className="block rounded-2xl px-4 py-3 text-slate-300 hover:bg-white/5 hover:text-white">Abonnements</Link>

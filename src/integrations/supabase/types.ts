@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -3571,6 +3571,7 @@ export type Database = {
         }
         Returns: Json
       }
+      get_super_admin_tenant_map: { Args: never; Returns: Json }
       get_tenant_offers: {
         Args: { p_slug: string; p_visitor_id?: string }
         Returns: Json
