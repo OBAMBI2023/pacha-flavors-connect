@@ -3562,6 +3562,15 @@ export type Database = {
         Returns: Json
       }
       get_reviews_stats: { Args: never; Returns: Json }
+      get_super_admin_customer_map: {
+        Args: {
+          p_period_days?: number
+          p_restaurant_id?: string
+          p_search?: string
+          p_status?: string
+        }
+        Returns: Json
+      }
       get_tenant_offers: {
         Args: { p_slug: string; p_visitor_id?: string }
         Returns: Json

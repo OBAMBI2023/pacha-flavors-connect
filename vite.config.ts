@@ -12,6 +12,21 @@ export default defineConfig({
   server: {
     host: true,
   },
+  // maplibre-gl spins up its vector-tile parser as a Worker, loaded via a
+  // relative `new URL(..., import.meta.url)` next to its own bundled file.
+  // Vite's dev-mode dependency pre-bundling (esbuild) flattens the package
+  // into node_modules/.vite/deps/maplibre-gl.js without ever emitting that
+  // companion worker chunk, so the Worker constructor 404s -- vector tiles
+  // then never load (map stays blank except any raster fallback layer,
+  // silently: no MapLibre 'error' event, since the failure is a plain
+  // Worker load error the library doesn't surface). This is dev-only --
+  // `vite build`'s Rollup pipeline resolves the same worker import
+  // correctly on its own. Excluding the package from pre-bundling serves
+  // it as real ESM straight from node_modules in dev too, where the
+  // worker's relative import resolves against the actual package files.
+  optimizeDeps: {
+    exclude: ["maplibre-gl"],
+  },
   plugins: [
     tanstackStart(),
     react(),

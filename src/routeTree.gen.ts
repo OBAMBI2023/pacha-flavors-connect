@@ -29,6 +29,7 @@ import { Route as LivreurActivationRouteImport } from './routes/livreur.activati
 import { Route as RSlugRouteImport } from './routes/r.$slug'
 import { Route as RestaurantSlugRouteImport } from './routes/restaurant.$slug'
 import { Route as SuperAdminIndexRouteImport } from './routes/super-admin.index'
+import { Route as SuperAdminCustomerMapRouteImport } from './routes/super-admin.customer-map'
 import { Route as SuperAdminMarketingRouteImport } from './routes/super-admin.marketing'
 import { Route as CommandeOrderIdConfirmationRouteImport } from './routes/commande.$orderId.confirmation'
 import { Route as RestaurantsCategorieCategorySlugRouteImport } from './routes/restaurants.categorie.$categorySlug'
@@ -138,6 +139,11 @@ const SuperAdminIndexRoute = SuperAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => SuperAdminRoute,
 } as any)
+const SuperAdminCustomerMapRoute = SuperAdminCustomerMapRouteImport.update({
+  id: '/customer-map',
+  path: '/customer-map',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
 const SuperAdminMarketingRoute = SuperAdminMarketingRouteImport.update({
   id: '/marketing',
   path: '/marketing',
@@ -205,6 +211,7 @@ export interface FileRoutesByFullPath {
   '/livreur/activation': typeof LivreurActivationRoute
   '/r/$slug': typeof RSlugRoute
   '/restaurant/$slug': typeof RestaurantSlugRoute
+  '/super-admin/customer-map': typeof SuperAdminCustomerMapRoute
   '/super-admin/marketing': typeof SuperAdminMarketingRouteWithChildren
   '/delivery/': typeof DeliveryIndexRoute
   '/super-admin/': typeof SuperAdminIndexRoute
@@ -233,6 +240,7 @@ export interface FileRoutesByTo {
   '/livreur/activation': typeof LivreurActivationRoute
   '/r/$slug': typeof RSlugRoute
   '/restaurant/$slug': typeof RestaurantSlugRoute
+  '/super-admin/customer-map': typeof SuperAdminCustomerMapRoute
   '/delivery': typeof DeliveryIndexRoute
   '/super-admin': typeof SuperAdminIndexRoute
   '/commande/$orderId/confirmation': typeof CommandeOrderIdConfirmationRoute
@@ -263,6 +271,7 @@ export interface FileRoutesById {
   '/livreur/activation': typeof LivreurActivationRoute
   '/r/$slug': typeof RSlugRoute
   '/restaurant/$slug': typeof RestaurantSlugRoute
+  '/super-admin/customer-map': typeof SuperAdminCustomerMapRoute
   '/super-admin/marketing': typeof SuperAdminMarketingRouteWithChildren
   '/delivery/': typeof DeliveryIndexRoute
   '/super-admin/': typeof SuperAdminIndexRoute
@@ -295,6 +304,7 @@ export interface FileRouteTypes {
     | '/livreur/activation'
     | '/r/$slug'
     | '/restaurant/$slug'
+    | '/super-admin/customer-map'
     | '/super-admin/marketing'
     | '/delivery/'
     | '/super-admin/'
@@ -323,6 +333,7 @@ export interface FileRouteTypes {
     | '/livreur/activation'
     | '/r/$slug'
     | '/restaurant/$slug'
+    | '/super-admin/customer-map'
     | '/delivery'
     | '/super-admin'
     | '/commande/$orderId/confirmation'
@@ -352,6 +363,7 @@ export interface FileRouteTypes {
     | '/livreur/activation'
     | '/r/$slug'
     | '/restaurant/$slug'
+    | '/super-admin/customer-map'
     | '/super-admin/marketing'
     | '/delivery/'
     | '/super-admin/'
@@ -522,6 +534,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuperAdminIndexRouteImport
       parentRoute: typeof SuperAdminRoute
     }
+    '/super-admin/customer-map': {
+      id: '/super-admin/customer-map'
+      path: '/customer-map'
+      fullPath: '/super-admin/customer-map'
+      preLoaderRoute: typeof SuperAdminCustomerMapRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
     '/super-admin/marketing': {
       id: '/super-admin/marketing'
       path: '/marketing'
@@ -645,12 +664,14 @@ const SuperAdminMarketingRouteWithChildren =
   SuperAdminMarketingRoute._addFileChildren(SuperAdminMarketingRouteChildren)
 
 interface SuperAdminRouteChildren {
+  SuperAdminCustomerMapRoute: typeof SuperAdminCustomerMapRoute
   SuperAdminMarketingRoute: typeof SuperAdminMarketingRouteWithChildren
   SuperAdminIndexRoute: typeof SuperAdminIndexRoute
   SuperAdminRestaurantsRestaurantIdRoute: typeof SuperAdminRestaurantsRestaurantIdRoute
 }
 
 const SuperAdminRouteChildren: SuperAdminRouteChildren = {
+  SuperAdminCustomerMapRoute: SuperAdminCustomerMapRoute,
   SuperAdminMarketingRoute: SuperAdminMarketingRouteWithChildren,
   SuperAdminIndexRoute: SuperAdminIndexRoute,
   SuperAdminRestaurantsRestaurantIdRoute:
