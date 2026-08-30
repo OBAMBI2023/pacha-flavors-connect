@@ -30,6 +30,7 @@ import { lookupCustomerName } from "@/lib/customers-db";
 import { computeDistanceBasedDelivery } from "@/lib/deliveryPricing";
 import { geocodeAddress } from "@/lib/geolocation";
 import { getOrCreateVisitorId } from "@/lib/visitorTracking";
+import { trackMetaPixelEvent } from "@/lib/metaPixel";
 import { formatMoney } from "@/lib/currency";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Switch } from "@/components/ui/switch";
@@ -313,6 +314,22 @@ export function TenantOrderDrawer({
     void applyPromoCode(appliedPromoCode);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subtotal, form.phone]);
+
+  // InitiateCheckout: fires once per "drawer opens with items in it" --
+  // this drawer doubles as the cart view and the checkout form (there's no
+  // separate step), so opening it with a non-empty cart is this app's
+  // equivalent of "began checkout". Never refires while the drawer stays
+  // open (quantity edits, promo code entry, etc. aren't a new checkout).
+  useEffect(() => {
+    if (isOpen && lines.length > 0) {
+      trackMetaPixelEvent("InitiateCheckout", {
+        value: subtotal,
+        currency: currency ?? undefined,
+        num_items: count,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

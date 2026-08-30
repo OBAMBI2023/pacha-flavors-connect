@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MapPin, Navigation, Phone } from "lucide-react";
 import { fetchMenuData, useMenuData, type MenuData } from "@/lib/menu-db";
 import { formatMoney } from "@/lib/currency";
 import { buildBreadcrumbJsonLd, buildMenuJsonLd, buildRestaurantJsonLd, buildTenantHeadMeta, jsonLdMetaEntry, tenantCanonicalUrl } from "@/lib/seo";
 import { DEFAULT_DELIVERY_FEE_FALLBACK } from "@/lib/deliveryPricing";
-import { CartProvider, useCart } from "@/lib/cart";
+import { CartProvider, optionsExtraTotal, useCart } from "@/lib/cart";
 import { DeliveryLocationProvider } from "@/lib/deliveryLocation";
 import { TenantOrderDrawer } from "@/components/TenantOrderDrawer";
 import { TenantLocationBar } from "@/components/tenant/TenantLocationBar";
@@ -27,6 +27,7 @@ import { TenantNotificationsSheet } from "@/components/tenant/TenantNotification
 import { TenantTrustBar } from "@/components/tenant/TenantTrustBar";
 import { PublicFooter } from "@/components/PublicFooter";
 import { useVisitorTracking } from "@/lib/visitorTracking";
+import { trackMetaPixelEvent, useMetaPixel } from "@/lib/metaPixel";
 import {
   TenantEmptyMenuState,
   TenantErrorState,
@@ -169,6 +170,22 @@ function TenantStorefront({ slug }: { slug: string }) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   useStorefrontTheme(data?.settings?.primary_color);
   useVisitorTracking(slug);
+  useMetaPixel(data?.settings);
+
+  // ViewContent: fires whenever a product's detail modal opens -- never on
+  // a plain card render, matching "consultation d'un produit" rather than
+  // "product visible in a grid".
+  useEffect(() => {
+    if (!openItem) return;
+    trackMetaPixelEvent("ViewContent", {
+      content_ids: [openItem.id],
+      content_name: openItem.name,
+      content_type: "product",
+      value: openItem.price ?? 0,
+      currency: data?.restaurant?.currency ?? "XOF",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openItem]);
 
   function handleSearchChange(value: string) {
     setQuery(value);
@@ -231,6 +248,13 @@ function TenantStorefront({ slug }: { slug: string }) {
         onClose={() => { setOpenItem(null); setPendingOfferClaim(null); }}
         onAdd={(item, qty, options) => {
           add(item, qty, options);
+          trackMetaPixelEvent("AddToCart", {
+            content_ids: [item.id],
+            content_name: item.name,
+            content_type: "product",
+            value: ((item.price ?? 0) + optionsExtraTotal(options)) * qty,
+            currency: restaurant.currency,
+          });
           if (pendingOfferClaim) {
             setActiveOfferId(pendingOfferClaim.id);
             setPendingOfferClaim(null);

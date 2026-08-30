@@ -81,6 +81,8 @@ export type PublicRestaurantSettings = {
   bing_site_verification: string | null;
   /** Architecture placeholder for a future custom-domain feature -- not yet wired to any request routing. When set, the SEO module treats it as the tenant's canonical origin. */
   custom_domain: string | null;
+  /** Only ever present when the tenant has enabled Meta Pixel (get_public_menu omits it entirely otherwise) -- see useMetaPixel. */
+  meta_pixel_id: string | null;
 };
 
 /** Public weekly opening-hours row -- day_of_week follows JS Date.getDay() (0 = Sunday). */

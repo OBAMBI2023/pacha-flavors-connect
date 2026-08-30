@@ -37,6 +37,7 @@ import {
   type OfferInput,
   type OfferStatus,
 } from "@/lib/offers";
+import { MetaPixelPanel } from "@/components/admin/marketing/MetaPixelPanel";
 
 const STATUS_META: Record<OfferStatus, { label: string; className: string }> = {
   draft: { label: "Brouillon", className: "bg-muted text-muted-foreground" },
@@ -222,6 +223,7 @@ export function MarketingPanel({
         <TabsList className="bg-transparent p-0">
           <TabsTrigger value="offres">Offres</TabsTrigger>
           <TabsTrigger value="performances">Performances</TabsTrigger>
+          <TabsTrigger value="meta-pixel">Meta Pixel</TabsTrigger>
         </TabsList>
 
         <TabsContent value="offres" className="space-y-5">
@@ -322,6 +324,10 @@ export function MarketingPanel({
               </table>
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="meta-pixel">
+          <MetaPixelPanel restaurantId={restaurantId} />
         </TabsContent>
       </Tabs>
 

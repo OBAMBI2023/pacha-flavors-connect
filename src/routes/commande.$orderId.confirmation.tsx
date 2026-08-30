@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { fetchCustomerOrder, formatOrderNumber, getDriverStepLabel, type OrderRow, type OrderStatus } from "@/lib/orders";
+import { useMenuData } from "@/lib/menu-db";
+import { useMetaPixel, useMetaPixelPurchase } from "@/lib/metaPixel";
 import { formatMoney } from "@/lib/currency";
 import { CartProvider } from "@/lib/cart";
 import { OrderStatusTimeline } from "@/components/tenant/OrderStatusTimeline";
@@ -44,6 +46,20 @@ function ConfirmationPage() {
 
   const backSlug = order?.restaurant?.slug || fallbackSlug;
   const isCancelled = order?.status === "cancelled";
+
+  // The pixel must be resolved from the order's own confirmed restaurant,
+  // never from `fallbackSlug` (a previous-session localStorage guess) --
+  // that guess could belong to a different tenant than the one this order
+  // actually belongs to. useMenuData no-ops until order.restaurant.slug is
+  // known, and re-fetches nothing new if the storefront visit already
+  // populated this exact query-cache entry (same ["menu-data", slug] key).
+  const menuQuery = useMenuData(order?.restaurant?.slug ?? "");
+  useMetaPixel(menuQuery.data?.settings);
+  // Purchase only for a real, non-cancelled order -- and only once this
+  // confirmed order has actually loaded from the database, never on a bare
+  // visit to the URL. Deduplicated by order id, so a refresh or the 10s
+  // status poll never double-counts the same order.
+  useMetaPixelPurchase(order && !isCancelled ? { id: order.id, total_amount: order.total_amount, currency: order.currency } : null);
 
   return (
     <CartProvider>

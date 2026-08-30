@@ -2513,6 +2513,8 @@ export type Database = {
           google_site_verification: string | null
           manual_override: boolean
           manual_status: string | null
+          meta_pixel_enabled: boolean
+          meta_pixel_id: string | null
           minimum_order: number
           opening_hours: Json
           pickup_enabled: boolean
@@ -2551,6 +2553,8 @@ export type Database = {
           google_site_verification?: string | null
           manual_override?: boolean
           manual_status?: string | null
+          meta_pixel_enabled?: boolean
+          meta_pixel_id?: string | null
           minimum_order?: number
           opening_hours?: Json
           pickup_enabled?: boolean
@@ -2589,6 +2593,8 @@ export type Database = {
           google_site_verification?: string | null
           manual_override?: boolean
           manual_status?: string | null
+          meta_pixel_enabled?: boolean
+          meta_pixel_id?: string | null
           minimum_order?: number
           opening_hours?: Json
           pickup_enabled?: boolean
