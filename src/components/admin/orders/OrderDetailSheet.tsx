@@ -415,7 +415,7 @@ export function OrderDetailSheet({
                     {PAYMENT_STATUS_LABELS[detail.payment_status]}
                   </Badge>
                 </div>
-                {detail.payment_status === "cash_pending" && detail.fulfillment_type !== "delivery" && (
+                {detail.payment_status === "cash_pending" && (
                   <Button
                     className="h-11 w-full border-emerald-600 text-emerald-700 hover:bg-emerald-50"
                     variant="outline"
@@ -424,9 +424,6 @@ export function OrderDetailSheet({
                   >
                     <Banknote className="mr-2 h-4 w-4" /> Marquer comme encaissée
                   </Button>
-                )}
-                {detail.payment_status === "cash_pending" && detail.fulfillment_type === "delivery" && (
-                  <p className="text-center text-xs text-muted-foreground">En attente d'encaissement par le livreur assigné</p>
                 )}
                 {(detail.payment_status === "paid" || detail.payment_status === "partially_refunded") && (
                   <Button className="h-11 w-full" variant="outline" disabled={busy} onClick={() => onRefund(detail)}>

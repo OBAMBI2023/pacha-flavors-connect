@@ -29,7 +29,7 @@ import { useDeliveryLocation } from "@/lib/deliveryLocation";
 import { lookupCustomerName } from "@/lib/customers-db";
 import { computeDistanceBasedDelivery } from "@/lib/deliveryPricing";
 import { geocodeAddress } from "@/lib/geolocation";
-import { getOrCreateVisitorId } from "@/lib/visitorTracking";
+import { getOrCreateVisitorId, hasQrAttribution } from "@/lib/visitorTracking";
 import { trackMetaPixelEvent } from "@/lib/metaPixel";
 import { formatMoney } from "@/lib/currency";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -458,6 +458,7 @@ export function TenantOrderDrawer({
         items: cartLinesToOrderItems(lines),
         offer_id: activeOfferId,
         visitor_id: getOrCreateVisitorId(),
+        order_source: hasQrAttribution(restaurantSlug) ? "qr_code" : "direct",
         cutlery_requested: needsCutlery,
         is_for_someone_else: orderingForSomeone,
         recipient_name: orderingForSomeone ? recipientName.trim() : null,

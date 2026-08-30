@@ -139,9 +139,27 @@ function ConfirmationPage() {
                   </ul>
                 </div>
 
-                <div className="flex items-center justify-between border-t border-border pt-4 text-base font-extrabold text-foreground">
-                  <span>Total</span>
-                  <span>{formatMoney(order.total_amount, order.currency)}</span>
+                <div className="space-y-1.5 border-t border-border pt-4">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Sous-total</span>
+                    <span className="font-medium text-foreground">{formatMoney(order.subtotal_amount, order.currency)}</span>
+                  </div>
+                  {order.discount_amount > 0 && (
+                    <div className="flex items-center justify-between text-sm text-primary">
+                      <span>Réduction</span>
+                      <span>-{formatMoney(order.discount_amount, order.currency)}</span>
+                    </div>
+                  )}
+                  {order.fulfillment_type === "delivery" && order.delivery_fee_amount > 0 && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Frais de livraison</span>
+                      <span className="font-medium text-foreground">{formatMoney(order.delivery_fee_amount, order.currency)}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between border-t border-border pt-2.5 text-base font-extrabold text-foreground">
+                    <span>Total</span>
+                    <span>{formatMoney(order.total_amount, order.currency)}</span>
+                  </div>
                 </div>
               </div>
 

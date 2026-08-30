@@ -1777,6 +1777,7 @@ export type Database = {
         Row: {
           amount: number
           collected_by_driver_id: string | null
+          collector_type: string | null
           created_at: string
           created_by: string | null
           currency: string
@@ -1794,6 +1795,7 @@ export type Database = {
         Insert: {
           amount: number
           collected_by_driver_id?: string | null
+          collector_type?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -1811,6 +1813,7 @@ export type Database = {
         Update: {
           amount?: number
           collected_by_driver_id?: string | null
+          collector_type?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -2498,6 +2501,7 @@ export type Database = {
           background_color: string | null
           bing_site_verification: string | null
           border_radius: string | null
+          cash_collection_mode: string
           commission_rate: number
           created_at: string
           custom_domain: string | null
@@ -2538,6 +2542,7 @@ export type Database = {
           background_color?: string | null
           bing_site_verification?: string | null
           border_radius?: string | null
+          cash_collection_mode?: string
           commission_rate?: number
           created_at?: string
           custom_domain?: string | null
@@ -2578,6 +2583,7 @@ export type Database = {
           background_color?: string | null
           bing_site_verification?: string | null
           border_radius?: string | null
+          cash_collection_mode?: string
           commission_rate?: number
           created_at?: string
           custom_domain?: string | null
