@@ -3,8 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 export type SuperAdminPageViewTenantRow = {
   restaurant_id: string;
   restaurant_name: string;
-  views: number;
-  unique_visitors: number;
+  logo_url: string | null;
+  views_period: number;
+  unique_visitors_period: number;
+  views_today: number;
+  unique_visitors_today: number;
+  active_visitors_now: number;
 };
 
 export type SuperAdminPageViewDayRow = {
@@ -18,7 +22,7 @@ export type SuperAdminPageViewOverview = {
   total_views_today: number;
   unique_visitors_today: number;
   active_visitors_now: number;
-  views_by_tenant: SuperAdminPageViewTenantRow[];
+  tenants: SuperAdminPageViewTenantRow[];
   views_by_day: SuperAdminPageViewDayRow[];
 };
 
@@ -27,7 +31,7 @@ const EMPTY_RESULT: SuperAdminPageViewOverview = {
   total_views_today: 0,
   unique_visitors_today: 0,
   active_visitors_now: 0,
-  views_by_tenant: [],
+  tenants: [],
   views_by_day: [],
 };
 
@@ -36,8 +40,9 @@ const EMPTY_RESULT: SuperAdminPageViewOverview = {
  * is_super_admin() itself. Reuses visitor_sessions exactly as get_visitor_stats /
  * get_visitor_realtime_count already do (page_views for view counts, distinct
  * visitor_id for unique/active visitors) -- no PII, no visitor_id or session id ever
- * returned, only restaurant id/name plus aggregate counts. Data layer only: no /live
- * page consumes this yet.
+ * returned, only restaurant id/name/logo plus aggregate counts. `tenants` starts from
+ * every is_public+active restaurant (LEFT JOIN), so a tenant with zero views still
+ * appears with real zeros -- never dropped, never fabricated.
  */
 export async function fetchSuperAdminPageViewOverview(periodDays = 30): Promise<SuperAdminPageViewOverview> {
   const { data, error } = await supabase.rpc("get_super_admin_pageview_overview", { p_period_days: periodDays });
