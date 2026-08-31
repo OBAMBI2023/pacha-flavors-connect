@@ -3088,6 +3088,7 @@ export type Database = {
         Row: {
           id: string
           last_seen_at: string
+          page_views: number
           restaurant_id: string
           source: string | null
           started_at: string
@@ -3096,6 +3097,7 @@ export type Database = {
         Insert: {
           id?: string
           last_seen_at?: string
+          page_views?: number
           restaurant_id: string
           source?: string | null
           started_at?: string
@@ -3104,6 +3106,7 @@ export type Database = {
         Update: {
           id?: string
           last_seen_at?: string
+          page_views?: number
           restaurant_id?: string
           source?: string | null
           started_at?: string
@@ -3562,6 +3565,10 @@ export type Database = {
         Returns: Json
       }
       get_reviews_stats: { Args: never; Returns: Json }
+      get_super_admin_acquisition_overview: {
+        Args: { p_period_days?: number }
+        Returns: Json
+      }
       get_super_admin_customer_map: {
         Args: {
           p_period_days?: number
@@ -3584,6 +3591,10 @@ export type Database = {
           p_search?: string
           p_status?: Database["public"]["Enums"]["order_status"]
         }
+        Returns: Json
+      }
+      get_super_admin_pageview_overview: {
+        Args: { p_period_days?: number }
         Returns: Json
       }
       get_super_admin_revenue_analytics: {
@@ -3635,6 +3646,10 @@ export type Database = {
       haversine_km: {
         Args: { p_lat1: number; p_lat2: number; p_lng1: number; p_lng2: number }
         Returns: number
+      }
+      heartbeat_visitor_session: {
+        Args: { p_slug: string; p_visitor_id: string }
+        Returns: undefined
       }
       is_super_admin: { Args: never; Returns: boolean }
       list_deliveries_for_dispatch: {

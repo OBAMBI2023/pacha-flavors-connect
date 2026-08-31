@@ -26,8 +26,18 @@ export function getOrCreateVisitorId(): string | null {
 
 function track(slug: string, visitorId: string, source: string | null) {
   // Fire-and-forget: a tracking failure must never surface an error to the
-  // customer or block the storefront from working.
+  // customer or block the storefront from working. This call represents one
+  // PAGE VIEW -- it must only ever be invoked once per mount/refresh, never
+  // on a timer (see heartbeat() below for the presence-only ping).
   void supabase.rpc("track_visitor_session", { p_slug: slug, p_visitor_id: visitorId, p_source: source }).then(({ error }) => {
+    if (error) console.warn("[visitor-tracking]", error.message);
+  });
+}
+
+function heartbeat(slug: string, visitorId: string) {
+  // Presence-only ping: keeps last_seen_at fresh (ACTIVE VISITOR) without
+  // counting as a PAGE VIEW or a new UNIQUE VISITOR.
+  void supabase.rpc("heartbeat_visitor_session", { p_slug: slug, p_visitor_id: visitorId }).then(({ error }) => {
     if (error) console.warn("[visitor-tracking]", error.message);
   });
 }
@@ -63,9 +73,10 @@ export function hasQrAttribution(slug: string): boolean {
 
 /**
  * Call once from the top of a tenant's public storefront page. Tracks the
- * initial visit immediately, then a heartbeat every 60s so a still-open tab
- * keeps counting as "online" (see get_visitor_realtime_count's 5-minute
- * window) -- cleared on unmount so a closed/navigated-away tab stops. The
+ * initial visit (one PAGE VIEW) immediately, then a presence-only heartbeat
+ * every 60s so a still-open tab keeps counting as "online" (see
+ * get_visitor_realtime_count's 5-minute window) without inflating the view
+ * count -- cleared on unmount so a closed/navigated-away tab stops. The
  * `?source=qr` check happens once per mount (the URL doesn't change for the
  * rest of this SPA session) and is recorded both as the session's source tag
  * and as this tab's order-attribution flag.
@@ -81,7 +92,7 @@ export function useVisitorTracking(slug: string | null | undefined) {
     const source = isFromQr ? "qr" : null;
 
     track(slug, visitorId, source);
-    const interval = window.setInterval(() => track(slug, visitorId, source), HEARTBEAT_INTERVAL_MS);
+    const interval = window.setInterval(() => heartbeat(slug, visitorId), HEARTBEAT_INTERVAL_MS);
     return () => window.clearInterval(interval);
   }, [slug]);
 }

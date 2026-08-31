@@ -4,6 +4,7 @@ export type VisitorStats = {
   today: number;
   week: number;
   month: number;
+  views_today: number;
 };
 
 /**
@@ -22,7 +23,7 @@ export async function fetchVisitorRealtimeCount(): Promise<number> {
 export async function fetchVisitorStats(): Promise<VisitorStats> {
   const { data, error } = await supabase.rpc("get_visitor_stats");
   if (error) throw error;
-  return (data as unknown as VisitorStats) ?? { today: 0, week: 0, month: 0 };
+  return (data as unknown as VisitorStats) ?? { today: 0, week: 0, month: 0, views_today: 0 };
 }
 
 export type TenantQrStats = {
