@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -3569,6 +3569,25 @@ export type Database = {
           p_search?: string
           p_status?: string
         }
+        Returns: Json
+      }
+      get_super_admin_driver_locations: {
+        Args: { p_restaurant_id?: string }
+        Returns: Json
+      }
+      get_super_admin_orders: {
+        Args: {
+          p_page?: number
+          p_page_size?: number
+          p_period_days?: number
+          p_restaurant_id?: string
+          p_search?: string
+          p_status?: Database["public"]["Enums"]["order_status"]
+        }
+        Returns: Json
+      }
+      get_super_admin_revenue_analytics: {
+        Args: { p_period_days?: number }
         Returns: Json
       }
       get_super_admin_tenant_map: { Args: never; Returns: Json }
