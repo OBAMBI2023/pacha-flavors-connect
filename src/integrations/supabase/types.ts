@@ -1462,6 +1462,7 @@ export type Database = {
             | null
           driver_note: string | null
           estimated_preparation_minutes: number | null
+          expected_ready_at: string | null
           fulfillment_type: Database["public"]["Enums"]["order_fulfillment_type"]
           id: string
           is_for_someone_else: boolean
@@ -1479,6 +1480,7 @@ export type Database = {
           pickup_code_attempts: number
           pickup_code_verified_at: string | null
           pickup_code_verified_by: string | null
+          preparation_minutes: number | null
           preparing_at: string | null
           promo_code_id: string | null
           promo_code_snapshot: string | null
@@ -1534,6 +1536,7 @@ export type Database = {
             | null
           driver_note?: string | null
           estimated_preparation_minutes?: number | null
+          expected_ready_at?: string | null
           fulfillment_type: Database["public"]["Enums"]["order_fulfillment_type"]
           id?: string
           is_for_someone_else?: boolean
@@ -1551,6 +1554,7 @@ export type Database = {
           pickup_code_attempts?: number
           pickup_code_verified_at?: string | null
           pickup_code_verified_by?: string | null
+          preparation_minutes?: number | null
           preparing_at?: string | null
           promo_code_id?: string | null
           promo_code_snapshot?: string | null
@@ -1606,6 +1610,7 @@ export type Database = {
             | null
           driver_note?: string | null
           estimated_preparation_minutes?: number | null
+          expected_ready_at?: string | null
           fulfillment_type?: Database["public"]["Enums"]["order_fulfillment_type"]
           id?: string
           is_for_someone_else?: boolean
@@ -1623,6 +1628,7 @@ export type Database = {
           pickup_code_attempts?: number
           pickup_code_verified_at?: string | null
           pickup_code_verified_by?: string | null
+          preparation_minutes?: number | null
           preparing_at?: string | null
           promo_code_id?: string | null
           promo_code_snapshot?: string | null
@@ -2328,6 +2334,44 @@ export type Database = {
           },
         ]
       }
+      restaurant_availability_snapshots: {
+        Row: {
+          checked_at: string
+          id: number
+          is_open: boolean
+          reason: string
+          restaurant_id: string
+          scheduled_open: boolean
+          status: string
+        }
+        Insert: {
+          checked_at?: string
+          id?: never
+          is_open: boolean
+          reason: string
+          restaurant_id: string
+          scheduled_open: boolean
+          status: string
+        }
+        Update: {
+          checked_at?: string
+          id?: never
+          is_open?: boolean
+          reason?: string
+          restaurant_id?: string
+          scheduled_open?: boolean
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_availability_snapshots_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurant_categories: {
         Row: {
           created_at: string
@@ -2430,6 +2474,7 @@ export type Database = {
           is_featured: boolean
           name: string
           prep_time_minutes: number | null
+          prep_time_minutes_max: number | null
           price: number | null
           restaurant_id: string
           sku: string | null
@@ -2450,6 +2495,7 @@ export type Database = {
           is_featured?: boolean
           name: string
           prep_time_minutes?: number | null
+          prep_time_minutes_max?: number | null
           price?: number | null
           restaurant_id: string
           sku?: string | null
@@ -2470,6 +2516,7 @@ export type Database = {
           is_featured?: boolean
           name?: string
           prep_time_minutes?: number | null
+          prep_time_minutes_max?: number | null
           price?: number | null
           restaurant_id?: string
           sku?: string | null
@@ -3258,6 +3305,10 @@ export type Database = {
         Args: { p_driver_id: string; p_order_id: string }
         Returns: Json
       }
+      compute_availability_status: {
+        Args: { p_now?: string; p_restaurant_id: string }
+        Returns: Json
+      }
       compute_delivery_pricing: {
         Args: {
           p_destination_lat: number
@@ -3269,6 +3320,15 @@ export type Database = {
           distance_km: number
           fee: number
           method: string
+        }[]
+      }
+      compute_scheduled_spans: {
+        Args: { p_date: string; p_restaurant_id: string }
+        Returns: {
+          first_opens_at: string
+          has_schedule: boolean
+          last_closes_at: string
+          scheduled_minutes: number
         }[]
       }
       consume_inventory_for_order: {
@@ -3549,6 +3609,10 @@ export type Database = {
         Args: { p_limit?: number; p_max_price?: number }
         Returns: Json
       }
+      get_public_live_overview: {
+        Args: { p_period_days?: number }
+        Returns: Json
+      }
       get_public_menu: { Args: { p_slug: string }; Returns: Json }
       get_public_restaurants: { Args: { p_query?: string }; Returns: Json }
       get_public_sitemap_index: { Args: never; Returns: Json }
@@ -3566,6 +3630,10 @@ export type Database = {
       }
       get_reviews_stats: { Args: never; Returns: Json }
       get_super_admin_acquisition_overview: {
+        Args: { p_period_days?: number }
+        Returns: Json
+      }
+      get_super_admin_availability_overview: {
         Args: { p_period_days?: number }
         Returns: Json
       }
@@ -3815,6 +3883,7 @@ export type Database = {
         }
         Returns: Json
       }
+      record_availability_snapshots: { Args: never; Returns: undefined }
       record_inventory_movement: {
         Args: {
           p_movement_type: string
@@ -4164,12 +4233,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4193,11 +4262,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4218,11 +4287,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4243,11 +4312,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4260,11 +4329,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

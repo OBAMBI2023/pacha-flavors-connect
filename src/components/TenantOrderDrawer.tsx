@@ -299,7 +299,9 @@ export function TenantOrderDrawer({
   // ready" estimate than summing every line. null when nothing in the cart
   // has a preparation time set, so nothing is fabricated.
   const estimatedPrepMinutes = useMemo(() => {
-    const values = lines.map((l) => l.item.prepTimeMinutes).filter((v): v is number => typeof v === "number");
+    const values = lines
+      .map((l) => l.item.prepTimeMinutesMax ?? l.item.prepTimeMinutes)
+      .filter((v): v is number => typeof v === "number");
     return values.length > 0 ? Math.max(...values) : null;
   }, [lines]);
 

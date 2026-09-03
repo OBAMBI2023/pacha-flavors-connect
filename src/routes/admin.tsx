@@ -97,6 +97,7 @@ import { NotificationBell } from "@/components/admin/notifications/NotificationB
 import { SubscriptionCard } from "@/components/admin/settings/SubscriptionCard";
 import { SecurityCard } from "@/components/admin/settings/SecurityCard";
 import { FulfillmentSettingsCard } from "@/components/admin/settings/FulfillmentSettingsCard";
+import { PreparationTimeSettingsCard } from "@/components/admin/settings/PreparationTimeSettingsCard";
 import { CurrencyCard } from "@/components/admin/settings/CurrencyCard";
 import { SeoSettingsCard } from "@/components/admin/settings/SeoSettingsCard";
 import { QrCodeCard } from "@/components/admin/settings/QrCodeCard";
@@ -174,6 +175,7 @@ type ItemForm = {
   description: string;
   price: string;
   prep_time_minutes: string;
+  prep_time_minutes_max: string;
   category_id: string;
   position: string;
   available: boolean;
@@ -192,6 +194,7 @@ function emptyItemForm(data?: {
     description: "",
     price: "",
     prep_time_minutes: "",
+    prep_time_minutes_max: "",
     category_id: data?.categoryId ?? "",
     position: data?.position ?? "0",
     available: true,
@@ -526,9 +529,25 @@ export default function AdminPage() {
 
     const prepTime =
       itemForm.prep_time_minutes.trim() === "" ? null : Number(itemForm.prep_time_minutes);
-    if (prepTime !== null && (!Number.isFinite(prepTime) || prepTime < 1 || prepTime > 240)) {
+    if (prepTime === null) {
+      toast.error("Indiquez un temps de préparation.");
+      return;
+    }
+    if (!Number.isFinite(prepTime) || prepTime < 1 || prepTime > 240) {
       toast.error("Le temps de préparation doit être compris entre 1 et 240 minutes.");
       return;
+    }
+    const prepTimeMax =
+      itemForm.prep_time_minutes_max.trim() === "" ? null : Number(itemForm.prep_time_minutes_max);
+    if (prepTimeMax !== null) {
+      if (!Number.isFinite(prepTimeMax) || prepTimeMax < 1 || prepTimeMax > 240) {
+        toast.error("Le temps de préparation maximum doit être compris entre 1 et 240 minutes.");
+        return;
+      }
+      if (prepTimeMax < prepTime) {
+        toast.error("Le temps de préparation maximum doit être supérieur ou égal au minimum.");
+        return;
+      }
     }
 
     setBusy(true);
@@ -538,6 +557,7 @@ export default function AdminPage() {
       description: itemForm.description.trim(),
       price: normalPrice,
       prep_time_minutes: prepTime,
+      prep_time_minutes_max: prepTimeMax,
       category_id: itemForm.category_id || null,
       sort_order: Number(itemForm.position) || 0,
       is_daily_menu: itemForm.daily,
@@ -801,14 +821,14 @@ export default function AdminPage() {
   return (
     <main className="mx-auto max-w-7xl px-4 pb-[calc(76px+env(safe-area-inset-bottom))] pt-6 sm:px-6 lg:py-8 lg:pb-8">
       <Toaster />
-      <div className="lg:grid lg:grid-cols-[260px_minmax(0,1fr)] lg:items-start lg:gap-6">
+      <div>
         <AdminSidebar
           items={ADMIN_NAV_ITEMS}
           activeValue={tab}
           onSelect={setTab}
           pendingCount={ordersAlert.pendingCount}
         />
-        <div className="min-w-0">
+        <div className="min-w-0 lg:ml-[calc(260px+1.5rem)]">
           <div className="mb-4 flex items-center justify-between gap-3 lg:hidden">
             <button
               type="button"
@@ -932,7 +952,7 @@ export default function AdminPage() {
               {restaurantId && <DriversPanel restaurantId={restaurantId} />}
             </TabsContent>
             <TabsContent value="statistiques">
-              <StatisticsPanel currency={restaurant?.currency ?? DEFAULT_CURRENCY_CODE} />
+              <StatisticsPanel currency={restaurant?.currency ?? DEFAULT_CURRENCY_CODE} restaurant={restaurant} />
             </TabsContent>
             <TabsContent value="visiteurs">
               <VisitorsPanel />
@@ -995,6 +1015,8 @@ export default function AdminPage() {
                       price: row.price === null ? "" : String(row.price),
                       prep_time_minutes:
                         row.prep_time_minutes === null ? "" : String(row.prep_time_minutes),
+                      prep_time_minutes_max:
+                        row.prep_time_minutes_max === null ? "" : String(row.prep_time_minutes_max),
                       category_id: row.category_id ?? "",
                       position: String(row.position),
                       available: row.available,
@@ -1105,6 +1127,7 @@ export default function AdminPage() {
                     </p>
                   </Card>
                   <FulfillmentSettingsCard restaurantId={restaurantId} />
+                  <PreparationTimeSettingsCard restaurantId={restaurantId} />
                   <CurrencyCard
                     restaurantId={restaurantId}
                     currentCurrency={restaurant?.currency ?? DEFAULT_CURRENCY_CODE}
@@ -1499,7 +1522,7 @@ export default function AdminPage() {
                   onChange={(e) => setItemForm((c) => ({ ...c, price: e.target.value }))}
                 />
               </Field>
-              <Field label="Temps de préparation">
+              <Field label="Temps de préparation (min)">
                 <Input
                   type="number"
                   min={1}
@@ -1511,10 +1534,26 @@ export default function AdminPage() {
                   }
                 />
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Temps moyen nécessaire pour préparer ce plat (minutes).
+                  Temps moyen nécessaire pour préparer ce plat (minutes). Obligatoire.
                 </p>
               </Field>
             </div>
+
+            <Field label="Temps de préparation max (optionnel)">
+              <Input
+                type="number"
+                min={1}
+                max={240}
+                placeholder="Ex. 30"
+                value={itemForm.prep_time_minutes_max}
+                onChange={(e) =>
+                  setItemForm((c) => ({ ...c, prep_time_minutes_max: e.target.value }))
+                }
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Renseignez-le pour afficher une fourchette (ex. "25–30 min") plutôt qu'une valeur unique.
+              </p>
+            </Field>
 
             <div className="space-y-3 rounded-2xl border border-border p-4">
               <label className="flex items-center justify-between gap-3">
@@ -1783,6 +1822,14 @@ function NavItemsList({
  * render the same ADMIN_NAV_ITEMS array via NavItemsList and drive the same
  * `tab` state, so they never drift apart.
  *
+ * `lg:fixed lg:inset-y-0 lg:left-0` pins this to the viewport itself (not
+ * the scrolling document), so it can never drift with page scroll the way
+ * `position: sticky` could once its grid-item container ran out of height.
+ * Only the nav list gets `min-h-0 flex-1 overflow-y-auto` -- the branding
+ * header and the WhatsApp footer stay put, and the list only ever grows a
+ * scrollbar on a viewport too short to fit it, instead of the whole card
+ * carrying its own always-clipped scroll region.
+ *
  * Dark surface uses `bg-cocoa` -- the same dark, low-chroma shade of the
  * brand hue already defined in styles.css and already used elsewhere (the
  * public footer) -- rather than the tenant's `--primary` itself, so a
@@ -1802,25 +1849,27 @@ function AdminSidebar({
   pendingCount: number;
 }) {
   return (
-    <aside className="hidden lg:sticky lg:top-6 lg:block lg:max-h-[calc(100vh-3rem)] lg:self-start lg:overflow-y-auto">
-      <div className="flex flex-col gap-4 rounded-3xl bg-cocoa p-4 text-cocoa-foreground shadow-sm">
-        <div className="px-2 pt-1">
+    <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:flex lg:w-[260px] lg:flex-col lg:bg-cocoa lg:text-cocoa-foreground lg:shadow-sm">
+      <div className="flex h-full min-h-0 flex-col gap-4 p-4">
+        <div className="shrink-0 px-2 pt-1">
           <p className="font-display text-xl font-bold tracking-tight">SAOVIA</p>
           <p className="text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-primary">
             Food Partner
           </p>
         </div>
-        <NavItemsList
-          items={items}
-          activeValue={activeValue}
-          onSelect={onSelect}
-          pendingCount={pendingCount}
-        />
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <NavItemsList
+            items={items}
+            activeValue={activeValue}
+            onSelect={onSelect}
+            pendingCount={pendingCount}
+          />
+        </div>
         <a
           href={SAOVIA_WHATSAPP_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-2 flex items-start gap-3 rounded-2xl bg-cocoa-foreground/10 p-4 text-sm transition-colors hover:bg-cocoa-foreground/15"
+          className="mt-2 flex shrink-0 items-start gap-3 rounded-2xl bg-cocoa-foreground/10 p-4 text-sm transition-colors hover:bg-cocoa-foreground/15"
         >
           <LifeBuoy className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
           <span>

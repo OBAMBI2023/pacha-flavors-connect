@@ -26,7 +26,7 @@ export function TenantProductCard({
   // nothing to configure. `computeLineKey` with an empty array is exactly
   // the key that line would have, so it's a safe, single-source-of-truth
   // way to find an existing quantity for it.
-  const prepTimeLabel = formatPrepTime(item.prepTimeMinutes);
+  const prepTimeLabel = formatPrepTime(item.prepTimeMinutes, item.prepTimeMinutesMax);
   const hasOptions = (item.optionGroups ?? []).length > 0;
   const lineKey = computeLineKey(item.id, []);
   const qty = !hasOptions ? (lines.find((l) => l.key === lineKey)?.qty ?? 0) : 0;
@@ -88,11 +88,9 @@ export function TenantProductCard({
         </div>
       </div>
       <div className="space-y-1.5 p-4">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="line-clamp-1 font-semibold">{item.name}</h3>
-          {prepTimeLabel && <span className="shrink-0 text-[0.7rem] font-medium text-muted-foreground">{prepTimeLabel}</span>}
-        </div>
+        <h3 className="line-clamp-1 font-semibold">{item.name}</h3>
         <p className="line-clamp-2 text-sm text-muted-foreground">{item.description}</p>
+        {prepTimeLabel && <p className="text-[0.7rem] font-medium text-muted-foreground">{prepTimeLabel}</p>}
         <div className="flex items-center justify-between pt-1">
           {item.available ? (
             hasPriceDiscount ? (

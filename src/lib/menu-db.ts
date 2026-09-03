@@ -23,6 +23,7 @@ export type DbMenuItem = {
   featured?: boolean;
   position: number;
   prep_time_minutes: number | null;
+  prep_time_minutes_max: number | null;
   promotion?: ProductPromotion | null;
   option_groups?: ProductOptionGroup[];
 };
@@ -138,6 +139,7 @@ type PublicMenuRow = {
     sort_order: number | null;
     position?: number | null;
     prep_time_minutes?: number | null;
+    prep_time_minutes_max?: number | null;
     promotion?: ProductPromotion | null;
     option_groups?: ProductOptionGroup[];
   }>;
@@ -164,6 +166,7 @@ export async function fetchMenuData(slug: string): Promise<MenuData> {
     featured: row.is_featured ?? false,
     position: row.position ?? row.sort_order ?? 0,
     prep_time_minutes: row.prep_time_minutes ?? null,
+    prep_time_minutes_max: row.prep_time_minutes_max ?? null,
   })) as DbMenuItem[];
 
   const items: MenuItem[] = list.map((row) => ({
@@ -180,6 +183,7 @@ export async function fetchMenuData(slug: string): Promise<MenuData> {
     promotion: row.promotion ?? null,
     optionGroups: row.option_groups ?? [],
     prepTimeMinutes: row.prep_time_minutes,
+    prepTimeMinutesMax: row.prep_time_minutes_max,
   }));
 
   return {
@@ -240,7 +244,9 @@ export async function fetchAdminMenuData(restaurantId: string): Promise<AdminMen
         .order("sort_order", { ascending: true }),
       supabase
         .from("restaurant_products")
-        .select("id,slug,category_id,name,subtitle,description,price,image_path,is_available,is_daily_menu,sort_order,prep_time_minutes")
+        .select(
+          "id,slug,category_id,name,subtitle,description,price,image_path,is_available,is_daily_menu,sort_order,prep_time_minutes,prep_time_minutes_max",
+        )
         .eq("restaurant_id", restaurantId)
         .order("sort_order", { ascending: true }),
     ]);
@@ -268,6 +274,7 @@ export async function fetchAdminMenuData(restaurantId: string): Promise<AdminMen
     daily: row.is_daily_menu,
     position: row.sort_order ?? 0,
     prep_time_minutes: row.prep_time_minutes,
+    prep_time_minutes_max: row.prep_time_minutes_max,
   }));
 
   return {

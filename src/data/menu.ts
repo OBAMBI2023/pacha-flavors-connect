@@ -60,8 +60,10 @@ export type MenuItem = {
   featured?: boolean | undefined;
   promotion?: ProductPromotion | null | undefined;
   optionGroups?: ProductOptionGroup[] | undefined;
-  /** Tenant-entered estimate, minutes. null/undefined = not set -> show nothing. */
+  /** Tenant-entered estimate, minutes. null/undefined = not set -> show nothing. Doubles as the lower bound of a range when prepTimeMinutesMax is also set. */
   prepTimeMinutes?: number | null | undefined;
+  /** Upper bound of the prep-time range, minutes. Only meaningful alongside prepTimeMinutes; null/undefined = no range, just the single estimate above. */
+  prepTimeMinutesMax?: number | null | undefined;
 };
 
 export const CATEGORIES: { id: Category | "tous"; label: string }[] = [
@@ -218,13 +220,23 @@ export function formatPrice(price: number | null, currency?: string | null) {
   return price === null ? "Prix sur demande" : formatMoney(price, currency);
 }
 
+/** Shown when a product has no prep time set at all -- never a fabricated estimate. */
+export const PREP_TIME_FALLBACK = "Non précisé";
+
 /**
- * Shown exactly as the tenant entered it -- no computed "15-20 min" style
- * range. A range would need to fabricate a variance the restaurant never
- * specified, presenting invented precision as if it were real.
+ * Shown exactly as the tenant entered it. A single value renders "⏱️ 20
+ * min"; when the tenant also set an upper bound (a real range, not a
+ * computed one), and it's strictly greater than the lower bound, renders
+ * "⏱️ 25–30 min" instead.
  */
-export function formatPrepTime(minutes: number | null | undefined): string | null {
+export function formatPrepTime(
+  minutes: number | null | undefined,
+  minutesMax?: number | null | undefined,
+): string | null {
   if (minutes === null || minutes === undefined) return null;
+  if (minutesMax !== null && minutesMax !== undefined && minutesMax > minutes) {
+    return `⏱️ ${minutes}–${minutesMax} min`;
+  }
   return `⏱️ ${minutes} min`;
 }
 

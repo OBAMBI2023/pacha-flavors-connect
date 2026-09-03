@@ -47,7 +47,7 @@ export function TenantProductModal({
     return (selected[group.id]?.length ?? 0) >= Math.max(group.min_select, 1);
   });
   const canAdd = item.available && allRequiredSatisfied;
-  const prepTimeLabel = formatPrepTime(item.prepTimeMinutes);
+  const prepTimeLabel = formatPrepTime(item.prepTimeMinutes, item.prepTimeMinutesMax);
 
   function toggleOption(groupId: string, optionId: string, selectionType: "single" | "multiple", maxSelect: number | null) {
     setSelected((current) => {
@@ -85,6 +85,7 @@ export function TenantProductModal({
               {item.subtitle ? <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary">{item.subtitle}</p> : null}
               <h2 className="mt-1 font-display text-[28px] font-semibold leading-tight text-foreground">{item.name}</h2>
               <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{item.description}</p>
+              {prepTimeLabel && <p className="mt-1.5 text-sm font-medium text-muted-foreground">{prepTimeLabel}</p>}
             </div>
             {!item.available && (
               <span className="inline-block rounded-full bg-muted px-3 py-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">Indisponible pour le moment</span>
@@ -98,7 +99,6 @@ export function TenantProductModal({
               ) : (
                 <span className="text-[21px] font-bold text-primary">{item.price === null ? "À confirmer" : formatMoney(unitPrice, currency)}</span>
               )}
-              {prepTimeLabel && <span className="text-sm font-medium text-muted-foreground">{prepTimeLabel}</span>}
             </div>
 
             {optionGroups.length > 0 && (
