@@ -9,4 +9,4 @@ Disallow: /livreur
 Disallow: /deliver
 Disallow: /delivery
 
-Sitemap: https://pacha-flavors-connect.lovable.app/sitemap.xml
+Sitemap: https://saoviafood.com/sitemap.xml
