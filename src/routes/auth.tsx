@@ -18,9 +18,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 
-const TITLE = "Connexion | SAOVIA Food Partner";
+const TITLE = "Connexion — Saovia Food";
 const DESCRIPTION =
-  "Accedez a votre espace SAOVIA Food Partner pour gerer votre restaurant, vos commandes et votre menu.";
+  "Accedez a votre espace Saovia Food Partner pour gerer votre restaurant, vos commandes et votre menu.";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({

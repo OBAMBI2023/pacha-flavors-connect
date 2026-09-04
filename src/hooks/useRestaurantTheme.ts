@@ -2,6 +2,9 @@ import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { applyRestaurantTheme, type RestaurantTheme } from "@/lib/theme";
 
+/** The platform's own favicon (see __root.tsx's `<link rel="icon">`) -- restored whenever no tenant favicon override is in effect, so the browser tab never keeps showing a tenant's icon outside that tenant's own admin pages (e.g. after logging out to /auth). */
+const PLATFORM_FAVICON_HREF = "/favicon.ico";
+
 /**
  * Loads and applies a restaurant's official theme (colors, font, radius,
  * favicon) as soon as its id is known -- covers "thème disponible
@@ -30,15 +33,20 @@ export function useRestaurantTheme(restaurantId: string | null): void {
       applyRestaurantTheme((settings ?? {}) as Partial<RestaurantTheme>);
 
       const faviconUrl = restaurant?.favicon_url ?? restaurant?.logo_url ?? null;
-      if (faviconUrl) {
-        const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
-        if (link) link.href = faviconUrl;
-      }
+      const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+      if (link) link.href = faviconUrl ?? PLATFORM_FAVICON_HREF;
     }
 
     void load();
     return () => {
       cancelled = true;
+      // Leaving this tenant's admin pages (e.g. logging out to /auth, or a
+      // super admin switching away) -- the tab must go back to showing
+      // Saovia Food's own favicon, never leave the last tenant's icon stuck
+      // in the DOM (this hook set it directly, bypassing the router's own
+      // head diffing, so nothing else would ever revert it).
+      const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+      if (link) link.href = PLATFORM_FAVICON_HREF;
     };
   }, [restaurantId]);
 }
