@@ -33,18 +33,20 @@ const ENGLISH_WEEKDAY: Record<number, string> = {
 
 /**
  * The app's own default origin. Set VITE_SITE_URL in the deployment
- * environment to the real production domain. Deliberately never falls back
- * to window.location.origin: this value feeds a route's `head()`, which
- * TanStack Router runs both during SSR (no window) and again client-side
- * during hydration -- if the two runs disagreed (fallback placeholder vs.
- * whatever host the browser happened to be on, e.g. a preview/dev origin),
- * canonical/OG/JSON-LD would end up with mismatched URLs across the same
- * page. A single hardcoded fallback, identical in both environments, keeps
- * every emitted URL consistent even when VITE_SITE_URL isn't configured.
+ * environment to the real production domain (https://saovia.net). Deliberately
+ * never falls back to window.location.origin: this value feeds a route's
+ * `head()`, which TanStack Router runs both during SSR (no window) and again
+ * client-side during hydration -- if the two runs disagreed (fallback
+ * placeholder vs. whatever host the browser happened to be on, e.g. a
+ * preview/dev origin), canonical/OG/JSON-LD would end up with mismatched
+ * URLs across the same page. A single hardcoded fallback, identical in both
+ * environments, keeps every emitted URL consistent even when VITE_SITE_URL
+ * isn't configured -- it's SAOVIA's own production domain, not a dev host,
+ * so an unconfigured deployment still emits correct, real URLs.
  */
 function siteOrigin(): string {
   const configured = (import.meta.env as Record<string, string | undefined>)["VITE_SITE_URL"];
-  return (configured ?? "https://pacha-flavors-connect.lovable.app").replace(/\/+$/, "");
+  return (configured ?? "https://saovia.net").replace(/\/+$/, "");
 }
 
 /**
