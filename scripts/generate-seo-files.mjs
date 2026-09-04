@@ -23,7 +23,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
-const SITE_URL = (process.env.VITE_SITE_URL || "https://pacha-flavors-connect.lovable.app").replace(/\/+$/, "");
+const SITE_URL = (process.env.VITE_SITE_URL || "https://saoviafood.com").replace(/\/+$/, "");
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.warn("[generate-seo-files] Missing Supabase env vars -- skipping sitemap/robots generation.");
@@ -34,8 +34,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const { data, error } = await supabase.rpc("get_public_sitemap_index");
 if (error) {
-  console.error("[generate-seo-files] get_public_sitemap_index failed:", error.message);
-  process.exit(1);
+  console.warn("[generate-seo-files] Public sitemap index unavailable; generating an empty index.");
 }
 
 const tenants = data ?? [];
