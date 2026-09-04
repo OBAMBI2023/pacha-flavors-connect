@@ -3059,6 +3059,53 @@ export type Database = {
           },
         ]
       }
+      tenant_domains: {
+        Row: {
+          created_at: string
+          domain: string
+          id: string
+          is_active: boolean
+          is_primary: boolean
+          is_verified: boolean
+          tenant_id: string
+          updated_at: string
+          verification_token: string
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          domain: string
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          is_verified?: boolean
+          tenant_id: string
+          updated_at?: string
+          verification_token?: string
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          domain?: string
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          is_verified?: boolean
+          tenant_id?: string
+          updated_at?: string
+          verification_token?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_domains_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vehicles: {
         Row: {
           chassis_number: string | null
@@ -3628,6 +3675,14 @@ export type Database = {
         }
         Returns: Json
       }
+      get_restaurant_report_data: {
+        Args: {
+          p_end_date: string
+          p_restaurant_id?: string
+          p_start_date: string
+        }
+        Returns: Json
+      }
       get_reviews_stats: { Args: never; Returns: Json }
       get_super_admin_acquisition_overview: {
         Args: { p_period_days?: number }
@@ -4069,6 +4124,10 @@ export type Database = {
           slug: string
           status: Database["public"]["Enums"]["restaurant_status"]
         }[]
+      }
+      super_admin_set_primary_domain: {
+        Args: { _domain_id: string }
+        Returns: undefined
       }
       super_admin_set_restaurant_plan: {
         Args: { _plan_id: string; _restaurant_id: string }

@@ -8,11 +8,15 @@ export type SeoSettings = {
   seo_og_image_url: string;
   google_site_verification: string;
   bing_site_verification: string;
-  custom_domain: string;
 };
 
+// custom_domain is intentionally excluded: it's superseded by tenant_domains
+// (Super Admin > Domaines, DNS-verified) -- see src/lib/tenantDomains.ts and
+// src/lib/seo.ts's tenantOrigin(). The column stays in restaurant_settings
+// for historical compatibility but this form no longer reads or writes it,
+// so a tenant can no longer set an unverified "canonical" domain here.
 const SEO_COLUMNS =
-  "tagline,seo_title,seo_description,seo_keywords,seo_og_image_url,google_site_verification,bing_site_verification,custom_domain";
+  "tagline,seo_title,seo_description,seo_keywords,seo_og_image_url,google_site_verification,bing_site_verification";
 
 function toFormValue(v: string | null): string {
   return v ?? "";
@@ -34,7 +38,6 @@ export async function fetchSeoSettings(restaurantId: string): Promise<SeoSetting
     seo_og_image_url: toFormValue(data?.seo_og_image_url ?? null),
     google_site_verification: toFormValue(data?.google_site_verification ?? null),
     bing_site_verification: toFormValue(data?.bing_site_verification ?? null),
-    custom_domain: toFormValue(data?.custom_domain ?? null),
   };
 }
 
@@ -55,7 +58,6 @@ export async function updateSeoSettings(restaurantId: string, values: SeoSetting
       seo_og_image_url: orNull(values.seo_og_image_url),
       google_site_verification: orNull(values.google_site_verification),
       bing_site_verification: orNull(values.bing_site_verification),
-      custom_domain: orNull(values.custom_domain),
     })
     .eq("restaurant_id", restaurantId);
   if (error) throw error;

@@ -18,7 +18,7 @@ const SOCIAL_LOCALE = "fr_FR";
 type SeoRestaurantInput = Pick<PublicRestaurant, "name" | "slug" | "commune" | "city" | "cover_url" | "logo_url">;
 type SeoSettingsInput = Pick<
   PublicRestaurantSettings,
-  "seo_title" | "seo_description" | "seo_keywords" | "seo_og_image_url" | "tagline" | "description" | "custom_domain"
+  "seo_title" | "seo_description" | "seo_keywords" | "seo_og_image_url" | "tagline" | "description"
 >;
 
 const ENGLISH_WEEKDAY: Record<number, string> = {
@@ -50,21 +50,30 @@ function siteOrigin(): string {
 }
 
 /**
- * The tenant's own canonical origin: its custom domain when configured
- * (architecture placeholder -- see restaurant_settings.custom_domain),
- * otherwise the shared app origin. Never guessed from request headers, so
- * it can never leak one tenant's resolved host into another's canonical.
+ * The tenant's own canonical origin: its verified, active, primary custom
+ * domain (resolved from `tenant_domains` -- see src/lib/tenantDomains.ts --
+ * by the caller and passed in here) when it has one, otherwise the shared
+ * app origin. Deliberately never reads `restaurant_settings.custom_domain`:
+ * that free-text field has no ownership verification and would let any
+ * tenant claim an arbitrary domain in canonical/OG tags -- `tenant_domains`,
+ * gated by Super Admin + real DNS TXT verification, is the single source of
+ * truth for this. Never guessed from request headers either, so it can
+ * never leak one tenant's resolved host into another's canonical.
  */
-function tenantOrigin(settings: SeoSettingsInput | null): string {
-  const custom = settings?.custom_domain?.trim();
+function tenantOrigin(activeCustomDomain?: string | null): string {
+  const custom = activeCustomDomain?.trim();
   if (custom) return `https://${custom.replace(/^https?:\/\//, "").replace(/\/+$/, "")}`;
   return siteOrigin();
 }
 
-/** The tenant's own canonical page URL -- root path on a custom domain, `/r/<slug>` on the shared domain. */
-export function tenantCanonicalUrl(restaurant: SeoRestaurantInput, settings: SeoSettingsInput | null): string {
-  const origin = tenantOrigin(settings);
-  const custom = settings?.custom_domain?.trim();
+/** The tenant's own canonical page URL -- root path on its verified custom domain, `/r/<slug>` on the shared domain. */
+export function tenantCanonicalUrl(
+  restaurant: SeoRestaurantInput,
+  settings: SeoSettingsInput | null,
+  activeCustomDomain?: string | null,
+): string {
+  const origin = tenantOrigin(activeCustomDomain);
+  const custom = activeCustomDomain?.trim();
   return custom ? `${origin}/` : `${origin}/r/${restaurant.slug}`;
 }
 
@@ -128,15 +137,17 @@ export function jsonLdMetaEntry(data: Record<string, unknown>): MetaTag {
 export function buildTenantHeadMeta({
   restaurant,
   settings,
+  activeCustomDomain,
 }: {
   restaurant: PublicRestaurant;
   settings: PublicRestaurantSettings | null;
+  activeCustomDomain?: string | null;
 }): { meta: MetaTag[]; links: MetaTag[] } {
   const title = resolveSeoTitle(restaurant, settings);
   const description = resolveSeoDescription(restaurant, settings);
   const keywords = resolveSeoKeywords(restaurant, settings);
   const ogImage = resolveOgImage(restaurant, settings);
-  const canonicalUrl = tenantCanonicalUrl(restaurant, settings);
+  const canonicalUrl = tenantCanonicalUrl(restaurant, settings, activeCustomDomain);
 
   const meta: MetaTag[] = [
     { title },

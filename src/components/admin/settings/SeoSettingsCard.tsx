@@ -85,7 +85,6 @@ export function SeoSettingsCard({ restaurantId, restaurant }: { restaurantId: st
         seo_description: values.seo_description || null,
         seo_keywords: values.seo_keywords || null,
         seo_og_image_url: values.seo_og_image_url || null,
-        custom_domain: values.custom_domain || null,
       }
     : null;
   const previewTitle = previewRestaurant && previewSettings ? resolveSeoTitle(previewRestaurant, previewSettings) : null;
@@ -193,18 +192,6 @@ export function SeoSettingsCard({ restaurantId, restaurant }: { restaurantId: st
               />
             </Field>
           </div>
-
-          <Field
-            label="Domaine personnalisé (bientôt disponible)"
-            hint="Réservé pour une future fonctionnalité de domaine dédié. Sans effet tant qu'aucun domaine n'est routé vers SAOVIA."
-          >
-            <Input
-              value={values.custom_domain}
-              onChange={(e) => setValues((c) => (c ? { ...c, custom_domain: e.target.value } : c))}
-              placeholder="exemple.com"
-              autoComplete="off"
-            />
-          </Field>
 
           <Button onClick={() => void save()} disabled={busy}>
             {busy ? "Enregistrement..." : "Enregistrer la configuration SEO"}

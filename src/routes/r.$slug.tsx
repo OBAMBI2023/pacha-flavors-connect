@@ -114,8 +114,8 @@ export const Route = createFileRoute("/r/$slug")({
       // Unknown/private slug -- never fabricate tenant data, never index.
       return { meta: [{ name: "robots", content: "noindex" }] };
     }
-    const canonicalUrl = tenantCanonicalUrl(restaurant, data.settings);
-    const { meta, links } = buildTenantHeadMeta({ restaurant, settings: data.settings });
+    const canonicalUrl = tenantCanonicalUrl(restaurant, data.settings, data.activeCustomDomain);
+    const { meta, links } = buildTenantHeadMeta({ restaurant, settings: data.settings, activeCustomDomain: data.activeCustomDomain });
     const restaurantJsonLd = buildRestaurantJsonLd({
       restaurant,
       settings: data.settings,
@@ -129,7 +129,7 @@ export const Route = createFileRoute("/r/$slug")({
       canonicalUrl,
     });
     const breadcrumbJsonLd = buildBreadcrumbJsonLd([
-      { name: "Accueil", url: tenantCanonicalUrl(restaurant, data.settings) },
+      { name: "Accueil", url: tenantCanonicalUrl(restaurant, data.settings, data.activeCustomDomain) },
       { name: restaurant.name, url: canonicalUrl },
     ]);
     return {

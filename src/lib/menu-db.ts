@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { FALLBACK_IMAGES, type MenuItem, type ProductOptionGroup, type ProductPromotion } from "@/data/menu";
 import type { RestaurantAvailability } from "@/lib/businessHours";
+import { fetchActiveTenantDomain } from "@/lib/tenantDomains";
 
 export type DbCategory = {
   id: string;
@@ -80,7 +81,7 @@ export type PublicRestaurantSettings = {
   seo_og_image_url: string | null;
   google_site_verification: string | null;
   bing_site_verification: string | null;
-  /** Architecture placeholder for a future custom-domain feature -- not yet wired to any request routing. When set, the SEO module treats it as the tenant's canonical origin. */
+  /** Superseded by tenant_domains (Super Admin > Domaines, DNS-verified) -- see @/lib/tenantDomains and @/lib/seo's tenantOrigin(). Kept in the DB/type for historical compatibility only: no longer read by SEO, QR, or routing, and no longer editable from Admin > Paramètres SEO. */
   custom_domain: string | null;
   /** Only ever present when the tenant has enabled Meta Pixel (get_public_menu omits it entirely otherwise) -- see useMetaPixel. */
   meta_pixel_id: string | null;
@@ -102,6 +103,8 @@ export type MenuData = {
   categories: DbCategory[];
   rows: DbMenuItem[];
   items: MenuItem[];
+  /** This tenant's verified+active+primary custom domain (see @/lib/tenantDomains), null when none is configured -- the SEO module (@/lib/seo) falls back to the shared SAOVIA origin when null. */
+  activeCustomDomain: string | null;
 };
 
 export const MENU_BUCKET = "menu-images";
@@ -186,6 +189,8 @@ export async function fetchMenuData(slug: string): Promise<MenuData> {
     prepTimeMinutesMax: row.prep_time_minutes_max,
   }));
 
+  const activeCustomDomain = payload?.restaurant?.id ? await fetchActiveTenantDomain(payload.restaurant.id) : null;
+
   return {
     restaurant: payload?.restaurant ?? null,
     settings: payload?.settings ?? null,
@@ -194,6 +199,7 @@ export async function fetchMenuData(slug: string): Promise<MenuData> {
     categories: cats,
     rows: list,
     items,
+    activeCustomDomain,
   };
 }
 

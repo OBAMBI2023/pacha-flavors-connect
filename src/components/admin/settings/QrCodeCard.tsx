@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StatCard } from "@/components/admin/stats/StatCard";
 import { formatMoney } from "@/lib/currency";
 import { fetchTenantQrStats, type TenantQrStats } from "@/lib/visitors-db";
+import { fetchActiveTenantDomain } from "@/lib/tenantDomains";
 import type { DbRestaurant } from "@/lib/menu-db";
 
 const CTA_TEXT = "Scannez pour consulter le menu et commander";
@@ -37,23 +38,48 @@ async function copyText(text: string, successMessage: string) {
  * come from useAuth's membership lookup upstream, never from a URL param or
  * frontend-supplied id) -- there is no server call here and nothing to gate
  * server-side beyond that existing scoping. The QR encodes only the public
- * storefront URL (origin + /r/ + slug): no internal id, token, or private
- * data ever goes into it.
+ * storefront URL: the tenant's verified custom domain (tenant_domains) when
+ * one is primary+verified+active, otherwise origin + /r/ + slug -- no
+ * internal id, token, or private data ever goes into it.
  */
 export function QrCodeCard({ restaurant, restaurantId }: { restaurant: DbRestaurant | null; restaurantId?: string }) {
   const [svgMarkup, setSvgMarkup] = useState("");
   const [busyFormat, setBusyFormat] = useState<"png" | "svg" | null>(null);
 
-  // window.location.origin, never a hardcoded IP or a saovia.com placeholder
-  // -- this automatically follows wherever the app is actually served from
-  // (dev IP today, the eventual production domain later) with no code change.
+  // Verified custom domain (tenant_domains, is_primary+is_verified+is_active)
+  // takes priority when the tenant has one; otherwise window.location.origin
+  // -- never a hardcoded IP or a saovia.com placeholder -- which automatically
+  // follows wherever the app is actually served from (dev IP today, the
+  // production domain later) with no code change.
+  const [activeDomain, setActiveDomain] = useState<string | null>(null);
+
+  useEffect(() => {
+    const tenantId = restaurant?.id ?? restaurantId;
+    if (!tenantId) {
+      setActiveDomain(null);
+      return;
+    }
+    let cancelled = false;
+    fetchActiveTenantDomain(tenantId)
+      .then((domain) => {
+        if (!cancelled) setActiveDomain(domain);
+      })
+      .catch(() => {
+        if (!cancelled) setActiveDomain(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [restaurant?.id, restaurantId]);
+
   // ?source=qr is read by useVisitorTracking on the storefront (tags the
   // visitor_sessions row and this tab's order-attribution flag) -- it never
   // changes which restaurant the link opens.
   const publicUrl = useMemo(() => {
     if (!restaurant?.slug || typeof window === "undefined") return null;
+    if (activeDomain) return `https://${activeDomain}?source=qr`;
     return `${window.location.origin}/r/${restaurant.slug}?source=qr`;
-  }, [restaurant?.slug]);
+  }, [restaurant?.slug, activeDomain]);
 
   const [qrStats, setQrStats] = useState<TenantQrStats | null>(null);
   const [qrStatsLoading, setQrStatsLoading] = useState(true);
