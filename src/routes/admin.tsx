@@ -98,6 +98,7 @@ import { SubscriptionCard } from "@/components/admin/settings/SubscriptionCard";
 import { SecurityCard } from "@/components/admin/settings/SecurityCard";
 import { FulfillmentSettingsCard } from "@/components/admin/settings/FulfillmentSettingsCard";
 import { PreparationTimeSettingsCard } from "@/components/admin/settings/PreparationTimeSettingsCard";
+import { MapsDeliverySettingsCard } from "@/components/admin/settings/MapsDeliverySettingsCard";
 import { CurrencyCard } from "@/components/admin/settings/CurrencyCard";
 import { SeoSettingsCard } from "@/components/admin/settings/SeoSettingsCard";
 import { QrCodeCard } from "@/components/admin/settings/QrCodeCard";
@@ -1128,6 +1129,7 @@ export default function AdminPage() {
                   </Card>
                   <FulfillmentSettingsCard restaurantId={restaurantId} />
                   <PreparationTimeSettingsCard restaurantId={restaurantId} />
+                  <MapsDeliverySettingsCard restaurantId={restaurantId} restaurant={restaurant} />
                   <CurrencyCard
                     restaurantId={restaurantId}
                     currentCurrency={restaurant?.currency ?? DEFAULT_CURRENCY_CODE}

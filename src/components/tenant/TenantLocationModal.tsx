@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AlertCircle, Check, LocateFixed, Loader2, MapPin, Search, X } from "lucide-react";
 import { useDeliveryLocation, type DeliveryLocation } from "@/lib/deliveryLocation";
-import { getCurrentPosition, reverseGeocode, searchAddresses, GeoError, type AddressSuggestion, type GeoErrorKind } from "@/lib/geolocation";
+import { getCurrentPosition, reverseGeocode, searchAddresses, GeoError, type AddressSuggestion, type GeoErrorKind, type GeoFeatureConfig } from "@/lib/geolocation";
+import { resolveMapsConfig, type ResolvedMapsConfig } from "@/lib/mapsConfig";
 import { AddressMapPicker } from "@/components/tenant/AddressMapPicker";
 
 type Step = "idle" | "locating" | "found" | "error";
@@ -44,6 +45,12 @@ const ERROR_CONTENT: Record<GeoErrorKind, { title: string; message: string; seco
     secondary: "Vous pouvez saisir votre adresse manuellement.",
     canRetry: false,
   },
+  insecure: {
+    title: "Connexion non sécurisée",
+    message: "La géolocalisation nécessite une connexion HTTPS.",
+    secondary: "Vous pouvez saisir votre adresse manuellement.",
+    canRetry: false,
+  },
 };
 
 const GEOCODE_FAILURE_MESSAGE = "Position détectée, mais l'adresse n'a pas pu être déterminée. Vous pouvez saisir votre adresse manuellement ou ajuster le repère sur la carte.";
@@ -51,11 +58,39 @@ const GEOCODE_FAILURE_MESSAGE = "Position détectée, mais l'adresse n'a pas pu 
 export function TenantLocationModal({
   restaurantLat = null,
   restaurantLng = null,
+  restaurantCountryCode = null,
 }: {
   restaurantLat?: number | null;
   restaurantLng?: number | null;
+  /** This tenant's own restaurants.country_code -- never a hardcoded literal. Resolves which country's Maps feature toggles/locale apply (see @/lib/mapsConfig); null just means "no Super Admin-configured gating yet", not "disabled". */
+  restaurantCountryCode?: string | null;
 }) {
   const { location, isModalOpen, closeModal, setLocation, initialManualMode } = useDeliveryLocation();
+  // Defaults mirror geolocation.ts's own no-config fallback (enabled, "fr")
+  // so behavior is unchanged until the resolved config actually loads.
+  const [mapsConfig, setMapsConfig] = useState<ResolvedMapsConfig | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    resolveMapsConfig(restaurantCountryCode)
+      .then((config) => {
+        if (!cancelled) setMapsConfig(config);
+      })
+      .catch(() => {
+        // Config lookup failing must never block address entry -- geocoding
+        // calls below just keep their own built-in "enabled, fr" default.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [restaurantCountryCode]);
+
+  const reverseGeocodeConfig: GeoFeatureConfig | undefined = mapsConfig
+    ? { enabled: mapsConfig.reverseGeocodingEnabled, locale: mapsConfig.locale }
+    : undefined;
+  const autocompleteConfig: GeoFeatureConfig | undefined = mapsConfig
+    ? { enabled: mapsConfig.autocompleteEnabled, locale: mapsConfig.locale }
+    : undefined;
   const [step, setStep] = useState<Step>("idle");
   const [errorKind, setErrorKind] = useState<GeoErrorKind | null>(null);
   const [draft, setDraft] = useState<Omit<DeliveryLocation, "confirmed" | "updated_at"> | null>(
@@ -99,7 +134,7 @@ export function TenantLocationModal({
     let cancelled = false;
     setSuggestionsLoading(true);
     const timer = setTimeout(() => {
-      searchAddresses(query)
+      searchAddresses(query, autocompleteConfig)
         .then((results) => {
           if (cancelled) return;
           setSuggestions(results);
@@ -118,7 +153,7 @@ export function TenantLocationModal({
   if (!isModalOpen) return null;
 
   function fillFromCoordinates(latitude: number, longitude: number) {
-    reverseGeocode(latitude, longitude)
+    reverseGeocode(latitude, longitude, reverseGeocodeConfig)
       .then((geo) => {
         skipNextSearchRef.current = true;
         setDraft({ latitude, longitude, address: geo.address, neighborhood: geo.neighborhood, commune: geo.commune, city: geo.city, country: geo.country, landmark: manualLandmark.trim() || null });
@@ -143,7 +178,7 @@ export function TenantLocationModal({
     try {
       const { latitude, longitude } = await getCurrentPosition();
       try {
-        const geo = await reverseGeocode(latitude, longitude);
+        const geo = await reverseGeocode(latitude, longitude, reverseGeocodeConfig);
         skipNextSearchRef.current = true;
         setDraft({ latitude, longitude, address: geo.address, neighborhood: geo.neighborhood, commune: geo.commune, city: geo.city, country: geo.country, landmark: manualLandmark.trim() || null });
         setManualAddress(geo.address);

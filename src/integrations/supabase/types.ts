@@ -162,6 +162,66 @@ export type Database = {
           },
         ]
       }
+      country_settings: {
+        Row: {
+          autocomplete_enabled: boolean
+          country_code: string
+          country_name: string
+          created_at: string
+          currency_code: string
+          dial_code: string
+          distance_matrix_enabled: boolean
+          geocoding_enabled: boolean
+          is_active: boolean
+          locale: string
+          map_display_enabled: boolean
+          maps_provider: string
+          maps_provider_enabled: boolean
+          maps_public_client_key: string | null
+          reverse_geocoding_enabled: boolean
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          autocomplete_enabled?: boolean
+          country_code: string
+          country_name: string
+          created_at?: string
+          currency_code: string
+          dial_code: string
+          distance_matrix_enabled?: boolean
+          geocoding_enabled?: boolean
+          is_active?: boolean
+          locale: string
+          map_display_enabled?: boolean
+          maps_provider?: string
+          maps_provider_enabled?: boolean
+          maps_public_client_key?: string | null
+          reverse_geocoding_enabled?: boolean
+          timezone: string
+          updated_at?: string
+        }
+        Update: {
+          autocomplete_enabled?: boolean
+          country_code?: string
+          country_name?: string
+          created_at?: string
+          currency_code?: string
+          dial_code?: string
+          distance_matrix_enabled?: boolean
+          geocoding_enabled?: boolean
+          is_active?: boolean
+          locale?: string
+          map_display_enabled?: boolean
+          maps_provider?: string
+          maps_provider_enabled?: boolean
+          maps_public_client_key?: string | null
+          reverse_geocoding_enabled?: boolean
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           address: string | null
@@ -1944,6 +2004,30 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_settings: {
+        Row: {
+          created_at: string
+          default_maps_provider: string
+          id: boolean
+          maps_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_maps_provider?: string
+          id?: boolean
+          maps_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_maps_provider?: string
+          id?: boolean
+          maps_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       product_option_groups: {
         Row: {
           created_at: string
@@ -2556,6 +2640,7 @@ export type Database = {
           delivery_enabled: boolean
           delivery_fee: number
           delivery_fee_fallback: number
+          delivery_radius_km: number | null
           description: string | null
           dine_in_enabled: boolean
           driver_location_freshness_minutes: number
@@ -2597,6 +2682,7 @@ export type Database = {
           delivery_enabled?: boolean
           delivery_fee?: number
           delivery_fee_fallback?: number
+          delivery_radius_km?: number | null
           description?: string | null
           dine_in_enabled?: boolean
           driver_location_freshness_minutes?: number
@@ -2638,6 +2724,7 @@ export type Database = {
           delivery_enabled?: boolean
           delivery_fee?: number
           delivery_fee_fallback?: number
+          delivery_radius_km?: number | null
           description?: string | null
           dine_in_enabled?: boolean
           driver_location_freshness_minutes?: number

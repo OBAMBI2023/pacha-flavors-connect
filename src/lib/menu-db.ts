@@ -221,6 +221,9 @@ export type DbRestaurant = {
   address: string | null;
   commune: string | null;
   city: string | null;
+  country_code: string;
+  lat: number | null;
+  lng: number | null;
   phone: string | null;
   whatsapp_phone: string | null;
   email: string | null;
@@ -240,7 +243,7 @@ export async function fetchAdminMenuData(restaurantId: string): Promise<AdminMen
     await Promise.all([
       supabase
         .from("restaurants")
-        .select("id,name,slug,logo_url,cover_url,address,commune,city,phone,whatsapp_phone,email,is_public,timezone,currency")
+        .select("id,name,slug,logo_url,cover_url,address,commune,city,country_code,lat,lng,phone,whatsapp_phone,email,is_public,timezone,currency")
         .eq("id", restaurantId)
         .maybeSingle(),
       supabase

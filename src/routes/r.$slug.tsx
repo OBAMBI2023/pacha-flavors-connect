@@ -265,7 +265,7 @@ function TenantStorefront({ slug }: { slug: string }) {
       <TenantCartBar count={count} subtotalLabel={subtotalLabel} onOpenCart={openCart} />
       <TenantBottomNav restaurantSlug={restaurant.slug} restaurantName={restaurant.name} onOpenOffers={openOffers} />
       <TenantOrderDrawer restaurantSlug={restaurant.slug} restaurantName={restaurant.name} currency={restaurant.currency} availability={data.availability} timezone={restaurant.timezone ?? "Africa/Abidjan"} deliveryFeeFallback={settings?.delivery_fee_fallback ?? DEFAULT_DELIVERY_FEE_FALLBACK} restaurantLat={restaurant.lat} restaurantLng={restaurant.lng} deliveryEnabled={settings?.delivery_enabled ?? true} pickupEnabled={settings?.pickup_enabled ?? true} />
-      <TenantLocationModal restaurantLat={restaurant.lat} restaurantLng={restaurant.lng} />
+      <TenantLocationModal restaurantLat={restaurant.lat} restaurantLng={restaurant.lng} restaurantCountryCode={restaurant.country_code} />
       <CategoriesSheet slug={slug} open={categoriesOpen} onOpenChange={setCategoriesOpen} onSelectCategory={setActive} />
       <TenantOffersSheet
         slug={restaurant.slug}

@@ -24,6 +24,47 @@ export async function updateFulfillmentModes(restaurantId: string, modes: Fulfil
   if (error) throw error;
 }
 
+/** Mirrors fetchFulfillmentModes -- same table, same targeted-column pattern. */
+export async function fetchPreparationTimeMinutes(restaurantId: string): Promise<number | null> {
+  const { data, error } = await supabase
+    .from("restaurant_settings")
+    .select("default_prep_time_minutes")
+    .eq("restaurant_id", restaurantId)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.default_prep_time_minutes ?? null;
+}
+
+/**
+ * Only affects new orders going forward -- `update_order_status` snapshots
+ * this value onto `orders.preparation_minutes` at the moment an order is
+ * accepted, and never re-reads it afterwards, so changing it here never
+ * touches an order already accepted.
+ */
+export async function updatePreparationTimeMinutes(restaurantId: string, minutes: number): Promise<void> {
+  const { error } = await supabase
+    .from("restaurant_settings")
+    .update({ default_prep_time_minutes: minutes })
+    .eq("restaurant_id", restaurantId);
+  if (error) throw error;
+}
+
+/** Mirrors fetchPreparationTimeMinutes -- same table, same targeted-column pattern. Null means no radius configured (delivery fee then relies only on the distance-based/flat-fee logic already in place -- see @/lib/deliveryPricing). */
+export async function fetchDeliveryRadiusKm(restaurantId: string): Promise<number | null> {
+  const { data, error } = await supabase
+    .from("restaurant_settings")
+    .select("delivery_radius_km")
+    .eq("restaurant_id", restaurantId)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.delivery_radius_km ?? null;
+}
+
+export async function updateDeliveryRadiusKm(restaurantId: string, radiusKm: number | null): Promise<void> {
+  const { error } = await supabase.from("restaurant_settings").update({ delivery_radius_km: radiusKm }).eq("restaurant_id", restaurantId);
+  if (error) throw error;
+}
+
 /** Active (non-terminal) order count for a given fulfillment type -- surfaced in the disable-confirmation dialog so the tenant knows if the mode is currently in use. */
 export async function countActiveOrdersByFulfillmentType(restaurantId: string, fulfillmentType: "delivery" | "pickup"): Promise<number> {
   const { count, error } = await supabase

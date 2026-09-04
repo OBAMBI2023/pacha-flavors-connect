@@ -1,4 +1,4 @@
-export type GeoErrorKind = "denied" | "unavailable" | "timeout" | "unsupported";
+export type GeoErrorKind = "denied" | "unavailable" | "timeout" | "unsupported" | "insecure";
 
 export class GeoError extends Error {
   kind: GeoErrorKind;
@@ -19,6 +19,23 @@ export function getCurrentPosition(): Promise<{ latitude: number; longitude: num
   return new Promise((resolve, reject) => {
     if (typeof navigator === "undefined" || !("geolocation" in navigator)) {
       reject(new GeoError("unsupported", "La géolocalisation n'est pas disponible sur cet appareil."));
+      return;
+    }
+
+    // Chrome/Firefox/Safari all restrict the Geolocation API to secure
+    // contexts (HTTPS, or HTTP on localhost/127.0.0.1). On a plain-HTTP LAN
+    // origin (e.g. testing on a phone via http://192.168.x.x:5173),
+    // getCurrentPosition fails immediately with PERMISSION_DENIED *without
+    // ever showing the browser's permission prompt* -- from the user's side
+    // that's indistinguishable from "nothing happened when I tapped
+    // allow". Catching it here first gives the real, actionable reason.
+    if (typeof window !== "undefined" && window.isSecureContext === false) {
+      reject(
+        new GeoError(
+          "insecure",
+          "La géolocalisation nécessite une connexion sécurisée (HTTPS) ou l'adresse localhost. Ouvrez cette page en HTTPS pour activer le GPS.",
+        ),
+      );
       return;
     }
 
@@ -87,13 +104,31 @@ export type ReverseGeocodeResult = {
 };
 
 /**
+ * Country-scoped gating for the three Nominatim calls below -- see
+ * @/lib/mapsConfig's resolveMapsConfig(). Optional and defaults to "enabled,
+ * French" everywhere: no caller is required to pass one, so nothing that
+ * already calls these functions without a country in hand changes behavior.
+ * Callers that *do* know the tenant's/customer's country (TenantLocationModal)
+ * should pass the resolved config through so a country where Super Admin has
+ * disabled a Maps feature is actually honored, and so the language hint
+ * follows the country's own locale instead of always being French.
+ */
+export type GeoFeatureConfig = { enabled: boolean; locale?: string };
+
+function acceptLanguage(config?: GeoFeatureConfig): string {
+  const locale = config?.locale?.trim();
+  return locale ? (locale.split("-")[0] ?? "fr") : "fr";
+}
+
+/**
  * OpenStreetMap Nominatim -- the only reverse-geocoding service reachable
  * with no API key/provider already configured in this project. Its public
  * endpoint allows direct browser calls (CORS-enabled); a failure here just
  * falls back to raw coordinates rather than blocking location capture.
  */
-export async function reverseGeocode(latitude: number, longitude: number): Promise<ReverseGeocodeResult> {
-  const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&addressdetails=1&accept-language=fr`;
+export async function reverseGeocode(latitude: number, longitude: number, config?: GeoFeatureConfig): Promise<ReverseGeocodeResult> {
+  if (config?.enabled === false) throw new Error("reverse_geocode_disabled");
+  const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&addressdetails=1&accept-language=${acceptLanguage(config)}`;
   const response = await fetch(url, { headers: { Accept: "application/json" } });
   if (!response.ok) throw new Error("reverse_geocode_failed");
   const data = (await response.json()) as {
@@ -130,9 +165,9 @@ export async function reverseGeocode(latitude: number, longitude: number): Promi
  * block checkout, it just means the order falls back to the tenant's flat
  * delivery fee instead of a distance-based one (see create_order).
  */
-export async function geocodeAddress(query: string): Promise<{ latitude: number; longitude: number } | null> {
+export async function geocodeAddress(query: string, config?: GeoFeatureConfig): Promise<{ latitude: number; longitude: number } | null> {
   const trimmed = query.trim();
-  if (!trimmed) return null;
+  if (!trimmed || config?.enabled === false) return null;
   try {
     const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(trimmed)}&limit=1`;
     const response = await fetch(url, { headers: { Accept: "application/json" } });
@@ -159,11 +194,11 @@ export type AddressSuggestion = { label: string; latitude: number; longitude: nu
  * well within Nominatim's usage policy; a query under 3 characters is
  * rejected locally without hitting the network at all.
  */
-export async function searchAddresses(query: string): Promise<AddressSuggestion[]> {
+export async function searchAddresses(query: string, config?: GeoFeatureConfig): Promise<AddressSuggestion[]> {
   const trimmed = query.trim();
-  if (trimmed.length < 3) return [];
+  if (trimmed.length < 3 || config?.enabled === false) return [];
   try {
-    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(trimmed)}&limit=5&accept-language=fr`;
+    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(trimmed)}&limit=5&accept-language=${acceptLanguage(config)}`;
     const response = await fetch(url, { headers: { Accept: "application/json" } });
     if (!response.ok) return [];
     const results = (await response.json()) as Array<{ lat?: string; lon?: string; display_name?: string }>;

@@ -4,6 +4,7 @@ import {
   Compass,
   CreditCard,
   Globe,
+  Globe2,
   LayoutGrid,
   Lock,
   Map,
@@ -80,6 +81,7 @@ export const SUPER_ADMIN_NAV: SuperAdminNavGroup[] = [
     items: [
       { label: "Avis & signalements", icon: Star, to: "/super-admin", hash: "avis" },
       { label: "Domaines", icon: Globe, to: "/super-admin/domains" },
+      { label: "Maps", icon: Globe2, to: "/super-admin/maps" },
       { label: "Paramètres", icon: Settings, to: "/super-admin", hash: "platform-settings" },
       { label: "Sécurité", icon: ShieldCheck, to: "/super-admin", hash: "securite" },
       { label: "Permissions", icon: Lock },

@@ -42,6 +42,7 @@ type Restaurant = {
   address: string | null;
   commune: string | null;
   city: string | null;
+  country_code: string;
   lat: number | null;
   lng: number | null;
   currency: string;
@@ -118,7 +119,7 @@ function RestaurantDetailPage() {
       const [{ data: restaurantData }] = await Promise.all([
         supabase
           .from("restaurants")
-          .select("id,name,slug,logo_url,cover_url,phone,whatsapp_phone,email,address,commune,city,lat,lng,currency,timezone,status,trial_ends_at,is_public,created_at")
+          .select("id,name,slug,logo_url,cover_url,phone,whatsapp_phone,email,address,commune,city,country_code,lat,lng,currency,timezone,status,trial_ends_at,is_public,created_at")
           .eq("id", restaurantId)
           .maybeSingle(),
         loadMembers(),
