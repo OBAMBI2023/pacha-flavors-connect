@@ -42,16 +42,23 @@ export default defineConfig({
       // smoke-tested against `vite dev` too, not just the production build.
       devOptions: { enabled: true },
       manifest: {
-        name: "LE PACHA RESTAURANT",
-        short_name: "LE PACHA",
-        description: "Application de commande du restaurant LE PACHA",
+        name: "Saovia Food",
+        short_name: "Saovia Food",
+        description: "SaaS de gestion et de digitalisation pour restaurants et établissements de restauration",
         lang: "fr",
         display: "standalone",
         orientation: "portrait",
         start_url: "/",
         scope: "/",
-        theme_color: "#32190c",
-        background_color: "#faf6ee",
+        // Sampled directly from src/assets/saovia-food-logo.jpg (the orange
+        // cloche accent and its white background) -- these are the app-wide
+        // PWA install/splash-screen colors only (OS status bar tint,
+        // cold-start splash background); they don't touch the live app's own
+        // CSS theme system (styles.css / src/lib/theme.ts), which is
+        // per-tenant and unrelated. Previously the LE PACHA storefront's own
+        // cocoa/cream colors, left over from before the multi-tenant split.
+        theme_color: "#FE7805",
+        background_color: "#FEFEFE",
         icons: [
           { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
           { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },

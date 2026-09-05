@@ -14,7 +14,7 @@ self.addEventListener("push", (event) => {
     return;
   }
 
-  const title = typeof payload.title === "string" ? payload.title : "Le Pacha Restaurant";
+  const title = typeof payload.title === "string" ? payload.title : "SAOVIA";
   const options = {
     body: typeof payload.body === "string" ? payload.body : "",
     icon: "/icons/icon-192.png",
