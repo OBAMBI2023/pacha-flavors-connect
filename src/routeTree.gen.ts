@@ -15,6 +15,9 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CommandesRouteImport } from './routes/commandes'
 import { Route as DeliverRouteImport } from './routes/deliver'
 import { Route as DeliveryRouteImport } from './routes/delivery'
+import { Route as ErpRouteImport } from './routes/erp'
+import { Route as FoodRouteImport } from './routes/food'
+import { Route as HotelRouteImport } from './routes/hotel'
 import { Route as LivreurRouteImport } from './routes/livreur'
 import { Route as RechercherRouteImport } from './routes/rechercher'
 import { Route as RestaurantsRouteImport } from './routes/restaurants'
@@ -30,9 +33,10 @@ import { Route as RSlugRouteImport } from './routes/r.$slug'
 import { Route as RestaurantSlugRouteImport } from './routes/restaurant.$slug'
 import { Route as SuperAdminIndexRouteImport } from './routes/super-admin.index'
 import { Route as SuperAdminAnalyticsRouteImport } from './routes/super-admin.analytics'
-import { Route as SuperAdminCarteOperationnelleRouteImport } from './routes/super-admin.carte-operationnelle'
-import { Route as SuperAdminCommandesRouteImport } from './routes/super-admin.commandes'
 import { Route as SuperAdminCustomerMapRouteImport } from './routes/super-admin.customer-map'
+import { Route as SuperAdminDomainsRouteImport } from './routes/super-admin.domains'
+import { Route as SuperAdminLiveRouteImport } from './routes/super-admin.live'
+import { Route as SuperAdminMapsRouteImport } from './routes/super-admin.maps'
 import { Route as SuperAdminMarketingRouteImport } from './routes/super-admin.marketing'
 import { Route as SuperAdminRevenusRouteImport } from './routes/super-admin.revenus'
 import { Route as SuperAdminZonesOpportunitesRouteImport } from './routes/super-admin.zones-opportunites'
@@ -72,6 +76,21 @@ const DeliverRoute = DeliverRouteImport.update({
 const DeliveryRoute = DeliveryRouteImport.update({
   id: '/delivery',
   path: '/delivery',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ErpRoute = ErpRouteImport.update({
+  id: '/erp',
+  path: '/erp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FoodRoute = FoodRouteImport.update({
+  id: '/food',
+  path: '/food',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HotelRoute = HotelRouteImport.update({
+  id: '/hotel',
+  path: '/hotel',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LivreurRoute = LivreurRouteImport.update({
@@ -149,20 +168,24 @@ const SuperAdminAnalyticsRoute = SuperAdminAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => SuperAdminRoute,
 } as any)
-const SuperAdminCarteOperationnelleRoute =
-  SuperAdminCarteOperationnelleRouteImport.update({
-    id: '/carte-operationnelle',
-    path: '/carte-operationnelle',
-    getParentRoute: () => SuperAdminRoute,
-  } as any)
-const SuperAdminCommandesRoute = SuperAdminCommandesRouteImport.update({
-  id: '/commandes',
-  path: '/commandes',
-  getParentRoute: () => SuperAdminRoute,
-} as any)
 const SuperAdminCustomerMapRoute = SuperAdminCustomerMapRouteImport.update({
   id: '/customer-map',
   path: '/customer-map',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminDomainsRoute = SuperAdminDomainsRouteImport.update({
+  id: '/domains',
+  path: '/domains',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminLiveRoute = SuperAdminLiveRouteImport.update({
+  id: '/live',
+  path: '/live',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminMapsRoute = SuperAdminMapsRouteImport.update({
+  id: '/maps',
+  path: '/maps',
   getParentRoute: () => SuperAdminRoute,
 } as any)
 const SuperAdminMarketingRoute = SuperAdminMarketingRouteImport.update({
@@ -231,6 +254,9 @@ export interface FileRoutesByFullPath {
   '/commandes': typeof CommandesRoute
   '/deliver': typeof DeliverRoute
   '/delivery': typeof DeliveryRouteWithChildren
+  '/erp': typeof ErpRoute
+  '/food': typeof FoodRoute
+  '/hotel': typeof HotelRoute
   '/livreur': typeof LivreurRouteWithChildren
   '/rechercher': typeof RechercherRoute
   '/restaurants': typeof RestaurantsRouteWithChildren
@@ -244,9 +270,10 @@ export interface FileRoutesByFullPath {
   '/r/$slug': typeof RSlugRoute
   '/restaurant/$slug': typeof RestaurantSlugRoute
   '/super-admin/analytics': typeof SuperAdminAnalyticsRoute
-  '/super-admin/carte-operationnelle': typeof SuperAdminCarteOperationnelleRoute
-  '/super-admin/commandes': typeof SuperAdminCommandesRoute
   '/super-admin/customer-map': typeof SuperAdminCustomerMapRoute
+  '/super-admin/domains': typeof SuperAdminDomainsRoute
+  '/super-admin/live': typeof SuperAdminLiveRoute
+  '/super-admin/maps': typeof SuperAdminMapsRoute
   '/super-admin/marketing': typeof SuperAdminMarketingRouteWithChildren
   '/super-admin/revenus': typeof SuperAdminRevenusRoute
   '/super-admin/zones-opportunites': typeof SuperAdminZonesOpportunitesRoute
@@ -266,6 +293,9 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/commandes': typeof CommandesRoute
   '/deliver': typeof DeliverRoute
+  '/erp': typeof ErpRoute
+  '/food': typeof FoodRoute
+  '/hotel': typeof HotelRoute
   '/livreur': typeof LivreurRouteWithChildren
   '/rechercher': typeof RechercherRoute
   '/restaurants': typeof RestaurantsRouteWithChildren
@@ -278,9 +308,10 @@ export interface FileRoutesByTo {
   '/r/$slug': typeof RSlugRoute
   '/restaurant/$slug': typeof RestaurantSlugRoute
   '/super-admin/analytics': typeof SuperAdminAnalyticsRoute
-  '/super-admin/carte-operationnelle': typeof SuperAdminCarteOperationnelleRoute
-  '/super-admin/commandes': typeof SuperAdminCommandesRoute
   '/super-admin/customer-map': typeof SuperAdminCustomerMapRoute
+  '/super-admin/domains': typeof SuperAdminDomainsRoute
+  '/super-admin/live': typeof SuperAdminLiveRoute
+  '/super-admin/maps': typeof SuperAdminMapsRoute
   '/super-admin/revenus': typeof SuperAdminRevenusRoute
   '/super-admin/zones-opportunites': typeof SuperAdminZonesOpportunitesRoute
   '/delivery': typeof DeliveryIndexRoute
@@ -301,6 +332,9 @@ export interface FileRoutesById {
   '/commandes': typeof CommandesRoute
   '/deliver': typeof DeliverRoute
   '/delivery': typeof DeliveryRouteWithChildren
+  '/erp': typeof ErpRoute
+  '/food': typeof FoodRoute
+  '/hotel': typeof HotelRoute
   '/livreur': typeof LivreurRouteWithChildren
   '/rechercher': typeof RechercherRoute
   '/restaurants': typeof RestaurantsRouteWithChildren
@@ -314,9 +348,10 @@ export interface FileRoutesById {
   '/r/$slug': typeof RSlugRoute
   '/restaurant/$slug': typeof RestaurantSlugRoute
   '/super-admin/analytics': typeof SuperAdminAnalyticsRoute
-  '/super-admin/carte-operationnelle': typeof SuperAdminCarteOperationnelleRoute
-  '/super-admin/commandes': typeof SuperAdminCommandesRoute
   '/super-admin/customer-map': typeof SuperAdminCustomerMapRoute
+  '/super-admin/domains': typeof SuperAdminDomainsRoute
+  '/super-admin/live': typeof SuperAdminLiveRoute
+  '/super-admin/maps': typeof SuperAdminMapsRoute
   '/super-admin/marketing': typeof SuperAdminMarketingRouteWithChildren
   '/super-admin/revenus': typeof SuperAdminRevenusRoute
   '/super-admin/zones-opportunites': typeof SuperAdminZonesOpportunitesRoute
@@ -339,6 +374,9 @@ export interface FileRouteTypes {
     | '/commandes'
     | '/deliver'
     | '/delivery'
+    | '/erp'
+    | '/food'
+    | '/hotel'
     | '/livreur'
     | '/rechercher'
     | '/restaurants'
@@ -352,9 +390,10 @@ export interface FileRouteTypes {
     | '/r/$slug'
     | '/restaurant/$slug'
     | '/super-admin/analytics'
-    | '/super-admin/carte-operationnelle'
-    | '/super-admin/commandes'
     | '/super-admin/customer-map'
+    | '/super-admin/domains'
+    | '/super-admin/live'
+    | '/super-admin/maps'
     | '/super-admin/marketing'
     | '/super-admin/revenus'
     | '/super-admin/zones-opportunites'
@@ -374,6 +413,9 @@ export interface FileRouteTypes {
     | '/auth'
     | '/commandes'
     | '/deliver'
+    | '/erp'
+    | '/food'
+    | '/hotel'
     | '/livreur'
     | '/rechercher'
     | '/restaurants'
@@ -386,9 +428,10 @@ export interface FileRouteTypes {
     | '/r/$slug'
     | '/restaurant/$slug'
     | '/super-admin/analytics'
-    | '/super-admin/carte-operationnelle'
-    | '/super-admin/commandes'
     | '/super-admin/customer-map'
+    | '/super-admin/domains'
+    | '/super-admin/live'
+    | '/super-admin/maps'
     | '/super-admin/revenus'
     | '/super-admin/zones-opportunites'
     | '/delivery'
@@ -408,6 +451,9 @@ export interface FileRouteTypes {
     | '/commandes'
     | '/deliver'
     | '/delivery'
+    | '/erp'
+    | '/food'
+    | '/hotel'
     | '/livreur'
     | '/rechercher'
     | '/restaurants'
@@ -421,9 +467,10 @@ export interface FileRouteTypes {
     | '/r/$slug'
     | '/restaurant/$slug'
     | '/super-admin/analytics'
-    | '/super-admin/carte-operationnelle'
-    | '/super-admin/commandes'
     | '/super-admin/customer-map'
+    | '/super-admin/domains'
+    | '/super-admin/live'
+    | '/super-admin/maps'
     | '/super-admin/marketing'
     | '/super-admin/revenus'
     | '/super-admin/zones-opportunites'
@@ -445,6 +492,9 @@ export interface RootRouteChildren {
   CommandesRoute: typeof CommandesRoute
   DeliverRoute: typeof DeliverRoute
   DeliveryRoute: typeof DeliveryRouteWithChildren
+  ErpRoute: typeof ErpRoute
+  FoodRoute: typeof FoodRoute
+  HotelRoute: typeof HotelRoute
   LivreurRoute: typeof LivreurRouteWithChildren
   RechercherRoute: typeof RechercherRoute
   RestaurantsRoute: typeof RestaurantsRouteWithChildren
@@ -496,6 +546,27 @@ declare module '@tanstack/react-router' {
       path: '/delivery'
       fullPath: '/delivery'
       preLoaderRoute: typeof DeliveryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/erp': {
+      id: '/erp'
+      path: '/erp'
+      fullPath: '/erp'
+      preLoaderRoute: typeof ErpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/food': {
+      id: '/food'
+      path: '/food'
+      fullPath: '/food'
+      preLoaderRoute: typeof FoodRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hotel': {
+      id: '/hotel'
+      path: '/hotel'
+      fullPath: '/hotel'
+      preLoaderRoute: typeof HotelRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/livreur': {
@@ -603,25 +674,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuperAdminAnalyticsRouteImport
       parentRoute: typeof SuperAdminRoute
     }
-    '/super-admin/carte-operationnelle': {
-      id: '/super-admin/carte-operationnelle'
-      path: '/carte-operationnelle'
-      fullPath: '/super-admin/carte-operationnelle'
-      preLoaderRoute: typeof SuperAdminCarteOperationnelleRouteImport
-      parentRoute: typeof SuperAdminRoute
-    }
-    '/super-admin/commandes': {
-      id: '/super-admin/commandes'
-      path: '/commandes'
-      fullPath: '/super-admin/commandes'
-      preLoaderRoute: typeof SuperAdminCommandesRouteImport
-      parentRoute: typeof SuperAdminRoute
-    }
     '/super-admin/customer-map': {
       id: '/super-admin/customer-map'
       path: '/customer-map'
       fullPath: '/super-admin/customer-map'
       preLoaderRoute: typeof SuperAdminCustomerMapRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/domains': {
+      id: '/super-admin/domains'
+      path: '/domains'
+      fullPath: '/super-admin/domains'
+      preLoaderRoute: typeof SuperAdminDomainsRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/live': {
+      id: '/super-admin/live'
+      path: '/live'
+      fullPath: '/super-admin/live'
+      preLoaderRoute: typeof SuperAdminLiveRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/maps': {
+      id: '/super-admin/maps'
+      path: '/maps'
+      fullPath: '/super-admin/maps'
+      preLoaderRoute: typeof SuperAdminMapsRouteImport
       parentRoute: typeof SuperAdminRoute
     }
     '/super-admin/marketing': {
@@ -762,9 +840,10 @@ const SuperAdminMarketingRouteWithChildren =
 
 interface SuperAdminRouteChildren {
   SuperAdminAnalyticsRoute: typeof SuperAdminAnalyticsRoute
-  SuperAdminCarteOperationnelleRoute: typeof SuperAdminCarteOperationnelleRoute
-  SuperAdminCommandesRoute: typeof SuperAdminCommandesRoute
   SuperAdminCustomerMapRoute: typeof SuperAdminCustomerMapRoute
+  SuperAdminDomainsRoute: typeof SuperAdminDomainsRoute
+  SuperAdminLiveRoute: typeof SuperAdminLiveRoute
+  SuperAdminMapsRoute: typeof SuperAdminMapsRoute
   SuperAdminMarketingRoute: typeof SuperAdminMarketingRouteWithChildren
   SuperAdminRevenusRoute: typeof SuperAdminRevenusRoute
   SuperAdminZonesOpportunitesRoute: typeof SuperAdminZonesOpportunitesRoute
@@ -774,9 +853,10 @@ interface SuperAdminRouteChildren {
 
 const SuperAdminRouteChildren: SuperAdminRouteChildren = {
   SuperAdminAnalyticsRoute: SuperAdminAnalyticsRoute,
-  SuperAdminCarteOperationnelleRoute: SuperAdminCarteOperationnelleRoute,
-  SuperAdminCommandesRoute: SuperAdminCommandesRoute,
   SuperAdminCustomerMapRoute: SuperAdminCustomerMapRoute,
+  SuperAdminDomainsRoute: SuperAdminDomainsRoute,
+  SuperAdminLiveRoute: SuperAdminLiveRoute,
+  SuperAdminMapsRoute: SuperAdminMapsRoute,
   SuperAdminMarketingRoute: SuperAdminMarketingRouteWithChildren,
   SuperAdminRevenusRoute: SuperAdminRevenusRoute,
   SuperAdminZonesOpportunitesRoute: SuperAdminZonesOpportunitesRoute,
@@ -796,6 +876,9 @@ const rootRouteChildren: RootRouteChildren = {
   CommandesRoute: CommandesRoute,
   DeliverRoute: DeliverRoute,
   DeliveryRoute: DeliveryRouteWithChildren,
+  ErpRoute: ErpRoute,
+  FoodRoute: FoodRoute,
+  HotelRoute: HotelRoute,
   LivreurRoute: LivreurRouteWithChildren,
   RechercherRoute: RechercherRoute,
   RestaurantsRoute: RestaurantsRouteWithChildren,

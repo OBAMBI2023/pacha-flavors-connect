@@ -23,7 +23,11 @@ import { mkdir, writeFile } from "node:fs/promises";
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
-const SITE_URL = (process.env.VITE_SITE_URL || "https://pacha-flavors-connect.lovable.app").replace(/\/+$/, "");
+// Same fallback as siteOrigin() in src/lib/seo.ts -- SAOVIA's own production
+// domain, never the old Lovable preview placeholder, so a deploy that
+// forgets to set VITE_SITE_URL still emits correct, real sitemap URLs
+// instead of silently pointing at a stale/foreign host.
+const SITE_URL = (process.env.VITE_SITE_URL || "https://saovia.net").replace(/\/+$/, "");
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.warn("[generate-seo-files] Missing Supabase env vars -- skipping sitemap/robots generation.");
@@ -121,10 +125,21 @@ function sitemapIndexEntry(tenant) {
     .join("\n");
 }
 
+// --- static (non-tenant) public pages -------------------------------------
+// Only genuinely indexable, existing product pages -- /erp and /hotel are
+// intentionally absent: both are noindex,nofollow placeholders (no real
+// product exists behind them yet), and a sitemap entry would contradict
+// that by asking search engines to index them anyway.
+const STATIC_PAGES = ["/food"];
+
 await mkdir("dist/client/sitemaps", { recursive: true });
 await writeFile("dist/client/robots.txt", robotsLines.join("\n"), "utf8");
 
-const indexXml = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${tenants
+const staticUrlEntries = STATIC_PAGES.map((path) => `  <url>\n    <loc>${xmlEscape(`${SITE_URL}${path}`)}</loc>\n  </url>`).join("\n");
+const staticPagesXml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${staticUrlEntries}\n</urlset>\n`;
+await writeFile("dist/client/sitemaps/static-pages.xml", staticPagesXml, "utf8");
+
+const indexXml = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <sitemap>\n    <loc>${xmlEscape(`${SITE_URL}/sitemaps/static-pages.xml`)}</loc>\n  </sitemap>\n${tenants
   .map(sitemapIndexEntry)
   .join("\n")}\n</sitemapindex>\n`;
 await writeFile("dist/client/sitemap.xml", indexXml, "utf8");
@@ -132,5 +147,5 @@ await writeFile("dist/client/sitemap.xml", indexXml, "utf8");
 await Promise.all(tenants.map(writeTenantSitemap));
 
 console.log(
-  `[generate-seo-files] wrote dist/client/robots.txt, dist/client/sitemap.xml, and ${tenants.length} tenant sitemap(s).`,
+  `[generate-seo-files] wrote dist/client/robots.txt, dist/client/sitemap.xml, static-pages.xml (${STATIC_PAGES.length} page(s)), and ${tenants.length} tenant sitemap(s).`,
 );
