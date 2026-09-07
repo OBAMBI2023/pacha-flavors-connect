@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { HelpCircle, LogOut, Shield, ShieldCheck } from "lucide-react";
@@ -89,7 +89,24 @@ export const Route = createFileRoute("/livreur")({
 });
 
 function DriverPage() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { session, loading: authLoading, driver } = useDriverAuth();
+
+  // /livreur/activation is a real child route (see livreur.activation.tsx)
+  // with its own full-screen UI and its own session/token handling. Because
+  // TanStack Router nests any "livreur.*" file under this "/livreur" route
+  // by path proximity (there is no filename escape for that in file-based
+  // routing), the child's component only ever mounts inside this route's
+  // <Outlet />. Without this explicit check first, the branches below would
+  // otherwise render this page's own login/dashboard UI instead -- a fresh
+  // Supabase session already exists the instant the invitation/recovery
+  // link is opened (before a password is ever set), so "session exists" is
+  // never a valid signal that activation is done. This check must run
+  // before any of that logic, and must never depend on session/driver
+  // state or on driver_profiles.account_status.
+  if (pathname.startsWith("/livreur/activation")) {
+    return <Outlet />;
+  }
 
   if (authLoading) {
     return (
