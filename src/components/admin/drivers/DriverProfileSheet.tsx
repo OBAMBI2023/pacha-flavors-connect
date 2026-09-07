@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Check, Copy, PencilLine, ShieldAlert } from "lucide-react";
+import { PencilLine, ShieldAlert } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -73,8 +73,6 @@ export function DriverProfileSheet({
   const [busy, setBusy] = useState(false);
   const [vehicleDialogOpen, setVehicleDialogOpen] = useState(false);
   const [documentDialogKind, setDocumentDialogKind] = useState<"identity" | "license" | null>(null);
-  const [activationLink, setActivationLink] = useState<string | null>(null);
-  const [linkCopied, setLinkCopied] = useState(false);
   const [resending, setResending] = useState(false);
 
   async function refresh() {
@@ -105,8 +103,6 @@ export function DriverProfileSheet({
   }
 
   useEffect(() => {
-    setActivationLink(null);
-    setLinkCopied(false);
     if (!driverId) {
       setDriver(null);
       return;
@@ -186,11 +182,9 @@ export function DriverProfileSheet({
   async function handleResendInvite() {
     if (!driver) return;
     setResending(true);
-    setActivationLink(null);
-    setLinkCopied(false);
     try {
-      const { activation_link } = await resendDriverInvite(driver.id);
-      setActivationLink(activation_link);
+      await resendDriverInvite(driver.id);
+      toast.success("Invitation envoyée par e-mail.");
       await refresh();
       onChanged();
     } catch (err) {
@@ -198,14 +192,6 @@ export function DriverProfileSheet({
     } finally {
       setResending(false);
     }
-  }
-
-  function copyActivationLink() {
-    if (!activationLink) return;
-    void navigator.clipboard.writeText(activationLink).then(() => {
-      setLinkCopied(true);
-      window.setTimeout(() => setLinkCopied(false), 2000);
-    });
   }
 
   async function handleActiveToggle() {
@@ -270,15 +256,6 @@ export function DriverProfileSheet({
                     </Button>
                   )}
                 </div>
-                {activationLink && (
-                  <div className="mt-2 flex items-center justify-between gap-2 rounded-2xl border border-border bg-card p-3">
-                    <p className="truncate font-mono text-xs">{activationLink}</p>
-                    <Button variant="outline" size="sm" onClick={copyActivationLink}>
-                      {linkCopied ? <Check className="mr-1.5 h-3.5 w-3.5" /> : <Copy className="mr-1.5 h-3.5 w-3.5" />}
-                      {linkCopied ? "Copié" : "Copier"}
-                    </Button>
-                  </div>
-                )}
               </SheetHeader>
 
               <div className="mt-5 space-y-6 text-sm">

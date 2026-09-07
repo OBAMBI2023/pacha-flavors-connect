@@ -147,11 +147,9 @@ export async function createDriver(input: CreateDriverInput): Promise<CreateDriv
   return data as CreateDriverResult;
 }
 
-/** "Renvoyer l'invitation" -- regenerates a fresh activation link for a driver still stuck in pending_invitation (or reissues one for an active driver who lost access, same mechanism as a password reset). */
-export async function resendDriverInvite(driverId: string): Promise<{ activation_link: string }> {
+/** "Renvoyer l'invitation" -- regenerates a fresh activation link for a driver still stuck in pending_invitation (or reissues one for an active driver who lost access, same mechanism as a password reset), and emails it to them via Resend. */
+export async function resendDriverInvite(driverId: string): Promise<{ success: true }> {
   const activationRedirectTo = `${window.location.origin}${DRIVER_ACTIVATION_PATH}`;
-  // TEMP DEBUG -- remove once the redirect_to loss is confirmed fixed.
-  console.debug("[activation-debug] frontend activation_redirect_to (resend):", activationRedirectTo);
   const { data, error } = await supabase.functions.invoke("admin-resend-driver-invite", {
     body: { driver_id: driverId, activation_redirect_to: activationRedirectTo },
   });
@@ -159,7 +157,7 @@ export async function resendDriverInvite(driverId: string): Promise<{ activation
     const message = (data as { error?: string } | null)?.error ?? error.message;
     throw new Error(message);
   }
-  return data as { activation_link: string };
+  return data as { success: true };
 }
 
 export async function updateDriver(
