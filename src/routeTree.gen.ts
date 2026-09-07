@@ -15,6 +15,8 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CommandesRouteImport } from './routes/commandes'
 import { Route as DeliverRouteImport } from './routes/deliver'
 import { Route as DeliveryRouteImport } from './routes/delivery'
+import { Route as FoodRouteImport } from './routes/food'
+import { Route as FoodSignupRouteImport } from './routes/food-signup'
 import { Route as LivreurRouteImport } from './routes/livreur'
 import { Route as RechercherRouteImport } from './routes/rechercher'
 import { Route as RestaurantsRouteImport } from './routes/restaurants'
@@ -66,6 +68,16 @@ const DeliverRoute = DeliverRouteImport.update({
 const DeliveryRoute = DeliveryRouteImport.update({
   id: '/delivery',
   path: '/delivery',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FoodRoute = FoodRouteImport.update({
+  id: '/food',
+  path: '/food',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FoodSignupRoute = FoodSignupRouteImport.update({
+  id: '/food-signup',
+  path: '/food-signup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LivreurRoute = LivreurRouteImport.update({
@@ -193,6 +205,8 @@ export interface FileRoutesByFullPath {
   '/commandes': typeof CommandesRoute
   '/deliver': typeof DeliverRoute
   '/delivery': typeof DeliveryRouteWithChildren
+  '/food': typeof FoodRoute
+  '/food-signup': typeof FoodSignupRoute
   '/livreur': typeof LivreurRouteWithChildren
   '/rechercher': typeof RechercherRoute
   '/restaurants': typeof RestaurantsRouteWithChildren
@@ -222,6 +236,8 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/commandes': typeof CommandesRoute
   '/deliver': typeof DeliverRoute
+  '/food': typeof FoodRoute
+  '/food-signup': typeof FoodSignupRoute
   '/livreur': typeof LivreurRouteWithChildren
   '/rechercher': typeof RechercherRoute
   '/restaurants': typeof RestaurantsRouteWithChildren
@@ -251,6 +267,8 @@ export interface FileRoutesById {
   '/commandes': typeof CommandesRoute
   '/deliver': typeof DeliverRoute
   '/delivery': typeof DeliveryRouteWithChildren
+  '/food': typeof FoodRoute
+  '/food-signup': typeof FoodSignupRoute
   '/livreur': typeof LivreurRouteWithChildren
   '/rechercher': typeof RechercherRoute
   '/restaurants': typeof RestaurantsRouteWithChildren
@@ -283,6 +301,8 @@ export interface FileRouteTypes {
     | '/commandes'
     | '/deliver'
     | '/delivery'
+    | '/food'
+    | '/food-signup'
     | '/livreur'
     | '/rechercher'
     | '/restaurants'
@@ -312,6 +332,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/commandes'
     | '/deliver'
+    | '/food'
+    | '/food-signup'
     | '/livreur'
     | '/rechercher'
     | '/restaurants'
@@ -340,6 +362,8 @@ export interface FileRouteTypes {
     | '/commandes'
     | '/deliver'
     | '/delivery'
+    | '/food'
+    | '/food-signup'
     | '/livreur'
     | '/rechercher'
     | '/restaurants'
@@ -371,6 +395,8 @@ export interface RootRouteChildren {
   CommandesRoute: typeof CommandesRoute
   DeliverRoute: typeof DeliverRoute
   DeliveryRoute: typeof DeliveryRouteWithChildren
+  FoodRoute: typeof FoodRoute
+  FoodSignupRoute: typeof FoodSignupRoute
   LivreurRoute: typeof LivreurRouteWithChildren
   RechercherRoute: typeof RechercherRoute
   RestaurantsRoute: typeof RestaurantsRouteWithChildren
@@ -422,6 +448,20 @@ declare module '@tanstack/react-router' {
       path: '/delivery'
       fullPath: '/delivery'
       preLoaderRoute: typeof DeliveryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/food': {
+      id: '/food'
+      path: '/food'
+      fullPath: '/food'
+      preLoaderRoute: typeof FoodRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/food-signup': {
+      id: '/food-signup'
+      path: '/food-signup'
+      fullPath: '/food-signup'
+      preLoaderRoute: typeof FoodSignupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/livreur': {
@@ -668,6 +708,8 @@ const rootRouteChildren: RootRouteChildren = {
   CommandesRoute: CommandesRoute,
   DeliverRoute: DeliverRoute,
   DeliveryRoute: DeliveryRouteWithChildren,
+  FoodRoute: FoodRoute,
+  FoodSignupRoute: FoodSignupRoute,
   LivreurRoute: LivreurRouteWithChildren,
   RechercherRoute: RechercherRoute,
   RestaurantsRoute: RestaurantsRouteWithChildren,

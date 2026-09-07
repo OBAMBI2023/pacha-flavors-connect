@@ -3640,6 +3640,14 @@ export type Database = {
         Args: { p_name: string; p_slug: string }
         Returns: Json
       }
+      // Hand-added ahead of codegen: supabase/migrations/20260905120000_signup_restaurant.sql
+      // defines this function (already applied to the live project). Replace
+      // this entry (and remove this comment) the next time types.ts is
+      // regenerated for real.
+      signup_restaurant: {
+        Args: { p_name: string; p_full_name: string; p_phone: string; p_email: string }
+        Returns: Json
+      }
       submit_review: {
         Args: {
           p_comment?: string
