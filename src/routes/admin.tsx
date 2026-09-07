@@ -772,14 +772,14 @@ export default function AdminPage() {
   return (
     <main className="mx-auto max-w-7xl px-4 pb-[calc(76px+env(safe-area-inset-bottom))] pt-6 sm:px-6 lg:py-8 lg:pb-8">
       <Toaster />
-      <div className="lg:grid lg:grid-cols-[260px_minmax(0,1fr)] lg:items-start lg:gap-6">
+      <div>
         <AdminSidebar
           items={ADMIN_NAV_ITEMS}
           activeValue={tab}
           onSelect={setTab}
           pendingCount={ordersAlert.pendingCount}
         />
-        <div className="min-w-0">
+        <div className="min-w-0 lg:ml-[calc(260px+1.5rem)]">
           <div className="mb-4 flex items-center justify-between gap-3 lg:hidden">
             <button
               type="button"
@@ -1725,6 +1725,14 @@ function NavItemsList({
  * render the same ADMIN_NAV_ITEMS array via NavItemsList and drive the same
  * `tab` state, so they never drift apart.
  *
+ * `lg:fixed lg:inset-y-0 lg:left-0` pins this to the viewport itself (not
+ * the scrolling document), so it can never drift with page scroll the way
+ * `position: sticky` could once its grid-item container ran out of height.
+ * Only the nav list gets `min-h-0 flex-1 overflow-y-auto` -- the branding
+ * header and the WhatsApp footer stay put, and the list only ever grows a
+ * scrollbar on a viewport too short to fit it, instead of the whole card
+ * carrying its own always-clipped scroll region.
+ *
  * Dark surface uses `bg-cocoa` -- the same dark, low-chroma shade of the
  * brand hue already defined in styles.css and already used elsewhere (the
  * public footer) -- rather than the tenant's `--primary` itself, so a
@@ -1744,25 +1752,27 @@ function AdminSidebar({
   pendingCount: number;
 }) {
   return (
-    <aside className="hidden lg:sticky lg:top-6 lg:block lg:max-h-[calc(100vh-3rem)] lg:self-start lg:overflow-y-auto">
-      <div className="flex flex-col gap-4 rounded-3xl bg-cocoa p-4 text-cocoa-foreground shadow-sm">
-        <div className="px-2 pt-1">
+    <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:flex lg:w-[260px] lg:flex-col lg:bg-cocoa lg:text-cocoa-foreground lg:shadow-sm">
+      <div className="flex h-full min-h-0 flex-col gap-4 p-4">
+        <div className="shrink-0 px-2 pt-1">
           <p className="font-display text-xl font-bold tracking-tight">SAOVIA</p>
           <p className="text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-primary">
             Food Partner
           </p>
         </div>
-        <NavItemsList
-          items={items}
-          activeValue={activeValue}
-          onSelect={onSelect}
-          pendingCount={pendingCount}
-        />
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <NavItemsList
+            items={items}
+            activeValue={activeValue}
+            onSelect={onSelect}
+            pendingCount={pendingCount}
+          />
+        </div>
         <a
           href={SAOVIA_WHATSAPP_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-2 flex items-start gap-3 rounded-2xl bg-cocoa-foreground/10 p-4 text-sm transition-colors hover:bg-cocoa-foreground/15"
+          className="mt-2 flex shrink-0 items-start gap-3 rounded-2xl bg-cocoa-foreground/10 p-4 text-sm transition-colors hover:bg-cocoa-foreground/15"
         >
           <LifeBuoy className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
           <span>

@@ -1,22 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import {
-  ArrowRight,
-  Bell,
-  ChefHat,
-  Eye,
-  EyeOff,
-  Lock,
-  Mail,
-  Store,
-  TrendingUp,
-  UtensilsCrossed,
-} from "lucide-react";
+import { ArrowRight, BarChart3, Clock3, Eye, EyeOff, Heart, Lock, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import chefPortraitImage from "@/assets/saovia-food-signup-chef.png";
+import logoMark from "@/assets/saovia-food-favicon-mark.png";
 
 const TITLE = "Connexion | SAOVIA Food Partner";
 const DESCRIPTION =
@@ -38,31 +29,18 @@ export const Route = createFileRoute("/auth")({
 });
 
 const SAOVIA_WHATSAPP_NUMBER = "2250758483726";
-const PARTNER_WHATSAPP_URL = `https://wa.me/${SAOVIA_WHATSAPP_NUMBER}?text=${encodeURIComponent(
-  "Bonjour Saovia Technologies, je souhaite devenir partenaire Food Partner (restaurant).",
-)}`;
 const ASSISTANCE_WHATSAPP_URL = `https://wa.me/${SAOVIA_WHATSAPP_NUMBER}?text=${encodeURIComponent(
   "Bonjour Saovia Technologies, j'ai besoin d'assistance sur mon espace Food Partner.",
 )}`;
 
 const REMEMBERED_EMAIL_KEY = "saovia_food_partner_remembered_email";
 
-const FEATURES = [
-  {
-    icon: Store,
-    title: "Gestion simplifiée",
-    description: "Gérez votre menu, vos prix et vos disponibilités facilement.",
-  },
-  {
-    icon: Bell,
-    title: "Commandes en temps réel",
-    description: "Recevez et suivez vos commandes depuis votre espace partenaire.",
-  },
-  {
-    icon: TrendingUp,
-    title: "Développez votre activité",
-    description: "Touchez davantage de clients grâce à SAOVIA.",
-  },
+/** Real, shipped capabilities only (commandes, menu/produits, clients CRM --
+ * see src/routes/admin.tsx) -- never aspirational copy. */
+const BENEFITS = [
+  { icon: BarChart3, title: "Plus de ventes", description: "Attirez plus de clients" },
+  { icon: Clock3, title: "Gain de temps", description: "Tout au même endroit" },
+  { icon: Heart, title: "Une équipe à vos côtés", description: "Pour votre réussite" },
 ] as const;
 
 /**
@@ -108,6 +86,7 @@ function AuthPage() {
 
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [googleBusy, setGoogleBusy] = useState(false);
   const [existingSessionEmail, setExistingSessionEmail] = useState<string | null>(null);
   const [existingSessionUserId, setExistingSessionUserId] = useState<string | null>(null);
 
@@ -159,6 +138,28 @@ function AuthPage() {
     if (result.data.session) navigate({ to: destination });
   }
 
+  /** Real Supabase OAuth -- no custom provider, no hardcoded origin: whatever
+   * host this page is currently served from is what Supabase redirects back
+   * to. If the Google provider isn't enabled on the project yet, Supabase
+   * returns an error here rather than the browser leaving the page, so this
+   * surfaces through the same error-message UI as a bad password instead of
+   * failing silently. */
+  async function onGoogleSignIn() {
+    if (busy || googleBusy) return;
+    setGoogleBusy(true);
+    setMessage(null);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth` },
+    });
+    if (error) {
+      setGoogleBusy(false);
+      setMessage("Impossible de continuer avec Google. Réessayez.");
+    }
+    // On success the browser navigates away to Google immediately -- no
+    // further local state update happens (this component unmounts).
+  }
+
   async function onForgotSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (busy || !email) return;
@@ -200,103 +201,53 @@ function AuthPage() {
   }
 
   return (
-    <main className="food-partner-theme flex min-h-screen flex-col bg-background lg:flex-row">
-      {/* Left panel: brand + value props. Hidden below lg to keep the mobile flow single-column. */}
-      <aside className="hidden lg:flex lg:w-[45%] lg:flex-col lg:justify-between lg:px-14 lg:py-14 xl:px-20">
-        <div>
-          <p className="font-display text-2xl font-bold tracking-tight text-foreground">
-            SAOVIA
-            <span className="ml-2 align-middle text-xs font-semibold uppercase tracking-[0.35em] text-primary">
-              Food Partner
-            </span>
-          </p>
+    <main className="food-partner-theme flex min-h-screen flex-col bg-background md:flex-row">
+      <AuthBrandPanel />
 
-          <h1 className="mt-10 max-w-md text-balance-title font-display text-4xl font-semibold leading-tight text-foreground xl:text-[2.75rem]">
-            Bienvenue dans votre <span className="text-primary">espace partenaire</span>
-          </h1>
-          <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
-            Gérez votre restaurant, vos commandes, votre menu et votre activité SAOVIA depuis un
-            seul espace.
-          </p>
+      {/* Right panel: authentication */}
+      <div className="relative flex flex-1 flex-col px-5 py-8 sm:items-center sm:justify-center sm:px-8 sm:py-16">
+        <p
+          aria-hidden="true"
+          className="pointer-events-none absolute right-8 top-8 hidden -rotate-2 text-right font-display text-base italic leading-snug text-foreground/60 lg:block xl:right-12 xl:top-10"
+        >
+          Plus qu'un logiciel,
+          <br />
+          un partenaire de croissance !
+        </p>
 
-          <ul className="mt-10 space-y-6">
-            {FEATURES.map((feature) => (
-              <li key={feature.title} className="flex items-start gap-4">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-accent text-primary">
-                  <feature.icon className="h-5 w-5" aria-hidden="true" />
-                </span>
-                <div>
-                  <p className="font-semibold text-foreground">{feature.title}</p>
-                  <p className="mt-0.5 text-sm text-muted-foreground">{feature.description}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <div className="w-full sm:max-w-[440px] lg:max-w-[480px]">
+          <AuthLogo className="mb-8 justify-center sm:justify-start" />
 
-        {/* Decorative food-forward composition -- no stock photo asset in the
-            repo to draw on, so this is a brand-toned illustration rather than
-            a real photograph. */}
-        <div className="relative mt-12 h-56 overflow-hidden rounded-3xl bg-gradient-to-br from-primary/15 via-secondary to-accent xl:h-64">
-          <div className="absolute -left-8 -top-8 h-32 w-32 rounded-full bg-primary/20 blur-2xl" />
-          <div className="absolute -bottom-10 -right-6 h-40 w-40 rounded-full bg-primary/25 blur-3xl" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <UtensilsCrossed
-              className="h-16 w-16 text-primary/40"
-              aria-hidden="true"
-              strokeWidth={1.25}
-            />
-          </div>
-        </div>
-      </aside>
-
-      {/* Right panel: auth card */}
-      <div className="flex flex-1 flex-col px-5 py-8 sm:items-center sm:justify-center sm:px-8 sm:py-16">
-        {/* Mobile-only brand mark, since the left panel is hidden here */}
-        <div className="mb-6 flex items-center gap-2 sm:hidden">
-          <span className="font-display text-lg font-bold tracking-tight text-foreground">
-            SAOVIA
-          </span>
-          <span className="text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-primary">
-            Food Partner
-          </span>
-        </div>
-
-        <div className="w-full rounded-3xl border border-border bg-card p-6 shadow-sm sm:max-w-[440px] sm:p-8 lg:max-w-[480px] xl:max-w-[620px] xl:p-12">
-          <div className="flex flex-col items-center text-center">
-            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-accent text-primary">
-              <ChefHat className="h-7 w-7" aria-hidden="true" />
-            </span>
-
+          <div className="text-center sm:text-left">
             {view === "login" && (
               <>
-                <h2 className="mt-4 font-display text-2xl font-semibold text-foreground">
-                  Connexion
-                </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Accédez à votre espace Food Partner
+                <h1 className="font-display text-3xl font-extrabold leading-tight text-foreground xl:text-[2.625rem]">
+                  Bienvenue chez <span className="text-primary">SAOVIA Food</span>
+                </h1>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Connectez-vous à votre espace restaurant.
                 </p>
               </>
             )}
             {(view === "forgot" || view === "forgot-sent") && (
               <>
-                <h2 className="mt-4 font-display text-2xl font-semibold text-foreground">
+                <h1 className="font-display text-3xl font-extrabold leading-tight text-foreground">
                   Mot de passe oublié
-                </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
+                </h1>
+                <p className="mt-2 text-sm text-muted-foreground">
                   {view === "forgot"
-                    ? "Recevez un lien pour réinitialiser votre mot de passe"
-                    : "Vérifiez votre boîte mail"}
+                    ? "Recevez un lien pour réinitialiser votre mot de passe."
+                    : "Vérifiez votre boîte mail."}
                 </p>
               </>
             )}
             {view === "recovery" && (
               <>
-                <h2 className="mt-4 font-display text-2xl font-semibold text-foreground">
+                <h1 className="font-display text-3xl font-extrabold leading-tight text-foreground">
                   Nouveau mot de passe
-                </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Choisissez un nouveau mot de passe
+                </h1>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Choisissez un nouveau mot de passe.
                 </p>
               </>
             )}
@@ -309,7 +260,7 @@ function AuthPage() {
                 <span className="font-medium text-foreground">{existingSessionEmail}</span>.
               </p>
               <Button
-                className="mt-3 h-11 w-full"
+                className="mt-3 h-11 w-full rounded-full"
                 onClick={async () => {
                   const destination = existingSessionUserId
                     ? await resolvePostLoginPath(existingSessionUserId)
@@ -323,58 +274,41 @@ function AuthPage() {
           )}
 
           {view === "login" && (
-            <form onSubmit={onSubmit} className="mt-7 space-y-5">
+            <form onSubmit={onSubmit} className="mt-7 space-y-5" noValidate>
               <div className="space-y-2">
                 <Label htmlFor="email">E-mail professionnel</Label>
                 <div className="relative">
                   <Mail
-                    className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                    className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
                     aria-hidden="true"
                   />
                   <Input
                     id="email"
                     type="email"
                     autoComplete="email"
-                    placeholder="nom@restaurant.com"
+                    placeholder="votre@email.com"
                     required
+                    aria-invalid={Boolean(message) || undefined}
+                    aria-describedby={message ? "auth-error" : undefined}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="h-12 pl-10"
+                    className="h-[52px] rounded-xl pl-11"
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Mot de passe</Label>
-                <div className="relative">
-                  <Lock
-                    className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-                    aria-hidden="true"
-                  />
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    autoComplete="current-password"
-                    placeholder="••••••••"
-                    required
-                    minLength={6}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="h-12 pl-10 pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    aria-label={
-                      showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"
-                    }
-                    aria-pressed={showPassword}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </div>
+              <PasswordField
+                id="password"
+                label="Mot de passe"
+                placeholder="Votre mot de passe"
+                autoComplete="current-password"
+                minLength={6}
+                value={password}
+                onChange={setPassword}
+                visible={showPassword}
+                onToggleVisible={() => setShowPassword((v) => !v)}
+                hasError={Boolean(message)}
+              />
 
               <div className="flex items-center justify-between">
                 <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
@@ -397,11 +331,21 @@ function AuthPage() {
                 </button>
               </div>
 
-              {message && <p className="text-sm text-destructive">{message}</p>}
+              {message && (
+                <p id="auth-error" role="alert" className="text-sm text-destructive">
+                  {message}
+                </p>
+              )}
 
-              <Button type="submit" className="h-12 w-full text-base" disabled={busy}>
+              <Button
+                type="submit"
+                className="h-14 w-full rounded-full text-base font-bold"
+                disabled={busy || googleBusy}
+              >
                 {busy ? (
-                  "Connexion..."
+                  <>
+                    <Spinner /> Connexion...
+                  </>
                 ) : (
                   <>
                     Se connecter
@@ -410,46 +354,64 @@ function AuthPage() {
                 )}
               </Button>
 
+              <AuthDivider />
+
+              <GoogleAuthButton busy={googleBusy} disabled={busy} onClick={() => void onGoogleSignIn()} />
+
               <p className="pt-2 text-center text-sm text-muted-foreground">
-                Vous êtes un nouveau partenaire ?{" "}
-                <a
-                  href={PARTNER_WHATSAPP_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                Vous êtes un nouveau restaurant ?{" "}
+                <Link
+                  to="/food-signup"
                   className="font-medium text-primary hover:underline underline-offset-4"
                 >
-                  Créer un compte partenaire
-                </a>
+                  Créer votre compte
+                </Link>
               </p>
             </form>
           )}
 
           {view === "forgot" && (
-            <form onSubmit={onForgotSubmit} className="mt-7 space-y-5">
+            <form onSubmit={onForgotSubmit} className="mt-7 space-y-5" noValidate>
               <div className="space-y-2">
                 <Label htmlFor="forgot-email">E-mail professionnel</Label>
                 <div className="relative">
                   <Mail
-                    className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                    className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
                     aria-hidden="true"
                   />
                   <Input
                     id="forgot-email"
                     type="email"
                     autoComplete="email"
-                    placeholder="nom@restaurant.com"
+                    placeholder="votre@email.com"
                     required
+                    aria-invalid={Boolean(message) || undefined}
+                    aria-describedby={message ? "auth-error" : undefined}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="h-12 pl-10"
+                    className="h-[52px] rounded-xl pl-11"
                   />
                 </div>
               </div>
 
-              {message && <p className="text-sm text-destructive">{message}</p>}
+              {message && (
+                <p id="auth-error" role="alert" className="text-sm text-destructive">
+                  {message}
+                </p>
+              )}
 
-              <Button type="submit" className="h-12 w-full text-base" disabled={busy}>
-                {busy ? "Envoi..." : "Envoyer le lien de réinitialisation"}
+              <Button
+                type="submit"
+                className="h-14 w-full rounded-full text-base font-bold"
+                disabled={busy}
+              >
+                {busy ? (
+                  <>
+                    <Spinner /> Envoi...
+                  </>
+                ) : (
+                  "Envoyer le lien de réinitialisation"
+                )}
               </Button>
 
               <button
@@ -463,7 +425,7 @@ function AuthPage() {
           )}
 
           {view === "forgot-sent" && (
-            <div className="mt-7 space-y-5 text-center">
+            <div className="mt-7 space-y-5 text-center sm:text-left">
               <p className="text-sm text-muted-foreground">
                 Si un compte existe pour{" "}
                 <span className="font-medium text-foreground">{email}</span>, un e-mail contenant un
@@ -471,7 +433,7 @@ function AuthPage() {
               </p>
               <Button
                 variant="outline"
-                className="h-12 w-full text-base"
+                className="h-14 w-full rounded-full text-base"
                 onClick={() => setView("login")}
               >
                 ← Retour à la connexion
@@ -480,38 +442,19 @@ function AuthPage() {
           )}
 
           {view === "recovery" && (
-            <form onSubmit={onRecoverySubmit} className="mt-7 space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="new-password">Nouveau mot de passe</Label>
-                <div className="relative">
-                  <Lock
-                    className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-                    aria-hidden="true"
-                  />
-                  <Input
-                    id="new-password"
-                    type={showNewPassword ? "text" : "password"}
-                    autoComplete="new-password"
-                    placeholder="••••••••"
-                    required
-                    minLength={8}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="h-12 pl-10 pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPassword((v) => !v)}
-                    aria-label={
-                      showNewPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"
-                    }
-                    aria-pressed={showNewPassword}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  >
-                    {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </div>
+            <form onSubmit={onRecoverySubmit} className="mt-7 space-y-5" noValidate>
+              <PasswordField
+                id="new-password"
+                label="Nouveau mot de passe"
+                placeholder="••••••••"
+                autoComplete="new-password"
+                minLength={8}
+                value={newPassword}
+                onChange={setNewPassword}
+                visible={showNewPassword}
+                onToggleVisible={() => setShowNewPassword((v) => !v)}
+                hasError={Boolean(message)}
+              />
 
               <div className="space-y-2">
                 <Label htmlFor="confirm-new-password">Confirmer le mot de passe</Label>
@@ -522,22 +465,38 @@ function AuthPage() {
                   placeholder="••••••••"
                   required
                   minLength={8}
+                  aria-invalid={Boolean(message) || undefined}
+                  aria-describedby={message ? "auth-error" : undefined}
                   value={confirmNewPassword}
                   onChange={(e) => setConfirmNewPassword(e.target.value)}
-                  className="h-12"
+                  className="h-[52px] rounded-xl"
                 />
               </div>
 
-              {message && <p className="text-sm text-destructive">{message}</p>}
+              {message && (
+                <p id="auth-error" role="alert" className="text-sm text-destructive">
+                  {message}
+                </p>
+              )}
 
-              <Button type="submit" className="h-12 w-full text-base" disabled={busy}>
-                {busy ? "Mise à jour..." : "Mettre à jour le mot de passe"}
+              <Button
+                type="submit"
+                className="h-14 w-full rounded-full text-base font-bold"
+                disabled={busy}
+              >
+                {busy ? (
+                  <>
+                    <Spinner /> Mise à jour...
+                  </>
+                ) : (
+                  "Mettre à jour le mot de passe"
+                )}
               </Button>
             </form>
           )}
         </div>
 
-        <div className="mt-8 flex w-full flex-col items-center gap-3 text-center sm:max-w-[440px] lg:max-w-[480px] xl:max-w-[620px]">
+        <div className="mt-8 flex w-full flex-col items-center gap-3 text-center sm:max-w-[440px] lg:max-w-[480px]">
           <Link
             to="/"
             className="text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -545,7 +504,7 @@ function AuthPage() {
             ← Retour à SAOVIA
           </Link>
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground/70">
-            <span>© {new Date().getFullYear()} SAOVIA — Tous droits réservés</span>
+            <span>© {new Date().getFullYear()} SAOVIA Food — Tous droits réservés</span>
             <span aria-hidden="true">·</span>
             <span>Conditions d&apos;utilisation</span>
             <span aria-hidden="true">·</span>
@@ -563,5 +522,212 @@ function AuthPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+/** Small circular icon mark + wordmark -- the one logo asset already used
+ * site-wide on /food, /food-signup and this project's other public pages
+ * (src/assets/saovia-food-favicon-mark.png), never a newly generated one. */
+function AuthLogo({ className = "" }: { className?: string }) {
+  return (
+    <div className={`flex items-center gap-2 ${className}`}>
+      <img src={logoMark} alt="" className="h-9 w-9 rounded-full object-cover" />
+      <span className="font-display text-xl font-bold tracking-tight text-foreground">
+        SAOVIA <span className="text-primary">Food</span>
+      </span>
+    </div>
+  );
+}
+
+/** Desktop/tablet-only immersive marketing panel -- hidden below md so the
+ * mobile flow stays single-column (auth form only), per the brief. Reuses
+ * the real chef photo already shipped for /food-signup
+ * (saovia-food-signup-chef.png) rather than a new asset. */
+function AuthBrandPanel() {
+  return (
+    <aside className="relative hidden overflow-hidden bg-[#1B140F] md:flex md:w-[42%] md:flex-col lg:w-1/2">
+      <img
+        src={chefPortraitImage}
+        alt=""
+        aria-hidden="true"
+        className="absolute inset-0 h-full w-full object-cover object-[75%_15%]"
+      />
+      <div
+        className="pointer-events-none absolute inset-0 bg-gradient-to-br from-black/85 via-black/55 to-black/25"
+        aria-hidden="true"
+      />
+      <div
+        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/10"
+        aria-hidden="true"
+      />
+
+      <div className="relative z-10 flex h-full flex-col justify-between px-10 py-12 xl:px-16 xl:py-16">
+        <div>
+          <div className="flex items-center gap-2">
+            <img src={logoMark} alt="" className="h-9 w-9 rounded-full object-cover" />
+            <span className="font-display text-xl font-bold tracking-tight text-white">
+              SAOVIA <span className="text-primary">Food</span>
+            </span>
+          </div>
+          <p className="mt-2 text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-white/70">
+            La solution digitale des restaurants
+          </p>
+
+          <h1 className="mt-10 max-w-md text-balance font-display text-[clamp(2.25rem,4vw,3.5rem)] font-extrabold leading-[1.05] text-white">
+            Votre restaurant mérite <span className="text-primary">mieux.</span>
+          </h1>
+          <p className="mt-4 max-w-sm text-sm leading-relaxed text-white/75">
+            Gérez votre activité, vos commandes et vos clients depuis un seul espace.
+          </p>
+
+          <ul className="mt-10 space-y-5">
+            {BENEFITS.map((benefit) => (
+              <li key={benefit.title} className="flex items-start gap-4">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-primary backdrop-blur">
+                  <benefit.icon className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <div>
+                  <p className="font-semibold text-white">{benefit.title}</p>
+                  <p className="mt-0.5 text-sm text-white/70">{benefit.description}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <p
+          aria-hidden="true"
+          className="-rotate-2 font-display text-lg italic leading-snug text-white/85"
+        >
+          Une ville,
+          <br />
+          mille saveurs !
+        </p>
+      </div>
+    </aside>
+  );
+}
+
+function PasswordField({
+  id,
+  label,
+  placeholder,
+  autoComplete,
+  minLength,
+  value,
+  onChange,
+  visible,
+  onToggleVisible,
+  hasError,
+}: {
+  id: string;
+  label: string;
+  placeholder: string;
+  autoComplete: string;
+  minLength: number;
+  value: string;
+  onChange: (value: string) => void;
+  visible: boolean;
+  onToggleVisible: () => void;
+  hasError: boolean;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id}>{label}</Label>
+      <div className="relative">
+        <Lock
+          className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+          aria-hidden="true"
+        />
+        <Input
+          id={id}
+          type={visible ? "text" : "password"}
+          autoComplete={autoComplete}
+          placeholder={placeholder}
+          required
+          minLength={minLength}
+          aria-invalid={hasError || undefined}
+          aria-describedby={hasError ? "auth-error" : undefined}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-[52px] rounded-xl pl-11 pr-11"
+        />
+        <button
+          type="button"
+          onClick={onToggleVisible}
+          aria-label={visible ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+          aria-pressed={visible}
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        >
+          {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AuthDivider() {
+  return (
+    <div className="flex items-center gap-3" role="separator">
+      <span className="h-px flex-1 bg-border" />
+      <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">ou</span>
+      <span className="h-px flex-1 bg-border" />
+    </div>
+  );
+}
+
+/** Real Supabase OAuth trigger (see onGoogleSignIn) -- this button only ever
+ * fires supabase.auth.signInWithOAuth, never a custom auth flow. */
+function GoogleAuthButton({
+  busy,
+  disabled,
+  onClick,
+}: {
+  busy: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={busy || disabled}
+      className="flex h-14 w-full items-center justify-center gap-3 rounded-full border border-border bg-transparent text-base font-semibold text-foreground transition-colors hover:bg-secondary/60 disabled:pointer-events-none disabled:opacity-60"
+    >
+      {busy ? <Spinner /> : <GoogleGlyph className="h-5 w-5" />}
+      {busy ? "Connexion..." : "Continuer avec Google"}
+    </button>
+  );
+}
+
+function GoogleGlyph({ className = "" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="#4285F4"
+        d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.47a5.54 5.54 0 0 1-2.4 3.63v3h3.87c2.27-2.09 3.58-5.17 3.58-8.82Z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 24c3.24 0 5.96-1.07 7.94-2.91l-3.87-3c-1.07.72-2.45 1.15-4.07 1.15-3.13 0-5.78-2.11-6.73-4.96H1.28v3.11A12 12 0 0 0 12 24Z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.27 14.28A7.2 7.2 0 0 1 4.89 12c0-.79.14-1.56.38-2.28V6.61H1.28A12 12 0 0 0 0 12c0 1.94.46 3.77 1.28 5.39l3.99-3.11Z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 4.77c1.77 0 3.35.61 4.6 1.8l3.44-3.44C17.95 1.19 15.24 0 12 0A12 12 0 0 0 1.28 6.61l3.99 3.11C6.22 6.88 8.87 4.77 12 4.77Z"
+      />
+    </svg>
+  );
+}
+
+function Spinner() {
+  return (
+    <span
+      aria-hidden="true"
+      className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent opacity-70"
+    />
   );
 }
