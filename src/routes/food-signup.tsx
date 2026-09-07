@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowRight, Eye, EyeOff, Lock, Mail, Phone, Store, TrendingUp, User } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Lock, Mail, Phone, Store, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { signupRestaurant } from "@/lib/restaurantSignup";
 import {
@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import logoMark from "@/assets/saovia-food-favicon-mark.png";
-import chefImage from "@/assets/saovia-food-signup-chef.png";
+import signupHeroImage from "@/assets/saovia-food-signup-hero.png";
 
 const TITLE = "Créer votre compte — SAOVIA Food";
 const DESCRIPTION =
@@ -33,21 +33,6 @@ export const Route = createFileRoute("/food-signup")({
   }),
   component: FoodSignupPage,
 });
-
-/**
- * Marketing column value props. Deliberately qualitative, not numeric -- a
- * prior version of this same request also asked for a "500+ restaurants /
- * 1M+ commandes / +60% croissance" stat bar, which this page does not
- * render: there is no real data anywhere in this project backing those
- * numbers (six restaurants, ~115 orders total), and inventing one would
- * misrepresent SAOVIA Food to a prospective partner. See FEATURES in
- * src/routes/food.tsx for the same real-capabilities-only rule.
- */
-const MARKETING_FEATURES = [
-  { icon: Store, title: "Gestion simplifiée", description: "Menu, commandes, clients" },
-  { icon: Eye, title: "Plus de visibilité", description: "Attirez de nouveaux clients" },
-  { icon: TrendingUp, title: "Augmentez vos ventes", description: "En ligne et sur place" },
-] as const;
 
 function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
@@ -223,10 +208,9 @@ function FoodSignupPage() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#1B120C]">
-      {/* Single continuous ambient background (warm restaurant glow, not a
-          photo) -- deliberately not a second panel/photo, so there is no
-          seam anywhere behind the marketing text, the chef cutout, or the
-          glass form card: all three sit on the exact same backdrop. */}
+      {/* Ambient page background (warm restaurant glow) behind both panels
+          and the header -- the hero photo itself lives only inside the
+          image panel's own container below, never blended into this. */}
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
         <div className="absolute inset-0 bg-gradient-to-br from-[#2A1810] via-[#1B120C] to-black" />
         <div className="absolute -left-32 -top-32 h-[520px] w-[520px] rounded-full bg-primary/20 blur-[140px]" />
@@ -236,7 +220,7 @@ function FoodSignupPage() {
 
       <div className="relative z-10 flex min-h-screen flex-col">
         {/* --------------------------------------------------------- Top nav */}
-        <div className="flex items-center justify-between px-5 py-5 sm:px-8 lg:px-12 lg:py-7">
+        <div className="flex items-center justify-between px-5 py-5 sm:px-8 lg:px-12 lg:py-5">
           <Link to="/food" className="inline-flex items-center gap-2.5">
             <img
               src={logoMark}
@@ -250,8 +234,8 @@ function FoodSignupPage() {
               </span>
             </span>
           </Link>
-          <p className="text-sm text-white/80">
-            Déjà un compte ?{" "}
+          <p className="shrink-0 text-sm text-white/80">
+            <span className="hidden sm:inline">Déjà un compte ?{" "}</span>
             <Link
               to="/auth"
               className="font-semibold text-primary hover:underline underline-offset-4"
@@ -261,55 +245,43 @@ function FoodSignupPage() {
           </p>
         </div>
 
-        {/* ---------------------------------------------------- Unified scene */}
-        <div className="relative flex flex-1 flex-col px-5 pb-10 sm:px-8 lg:flex-row lg:items-center lg:px-12 lg:pb-0 xl:px-16">
-          {/* Marketing column */}
-          <div className="max-w-xl lg:w-[58%] lg:pr-4 xl:pr-8">
-            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-primary">
-              Plus qu'une plateforme
-            </p>
-            <h1 className="mt-3 text-balance font-display text-4xl font-bold leading-[1.05] text-white sm:text-5xl lg:text-[3.25rem]">
-              Un partenaire pour la croissance de{" "}
-              <span className="text-primary">votre restaurant</span>.
-            </h1>
-            <p className="mt-4 max-w-md text-base leading-relaxed text-white/75">
-              Gérez, développez et faites grandir votre restaurant avec SAOVIA Food.
-            </p>
-
-            <div className="mt-8 space-y-5">
-              {MARKETING_FEATURES.map((feature) => (
-                <div key={feature.title} className="flex items-start gap-3.5">
-                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/20 text-primary">
-                    <feature.icon className="h-5 w-5" aria-hidden="true" />
-                  </span>
-                  <div>
-                    <p className="font-semibold text-white">{feature.title}</p>
-                    <p className="text-sm text-white/65">{feature.description}</p>
-                  </div>
-                </div>
-              ))}
+        {/* -------------------------------------------- Two independent panels
+            Image panel and form panel are two separate grid tracks (not an
+            absolutely-positioned image bridging into the form's space) so
+            neither can visually overlap or crop the other, at any
+            breakpoint. The image panel is desktop-only (hidden below lg);
+            on mobile only the header and the form render. */}
+        <div className="relative mx-auto flex w-full max-w-7xl flex-1 flex-col px-5 pb-10 pt-2 sm:px-8 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(420px,1fr)] lg:items-stretch lg:gap-10 lg:px-12 lg:py-6 xl:px-16">
+          {/* Image / marketing panel -- desktop only. The photo is never
+              written on (no overlaid text/logo/graphics): it renders alone
+              in its own rounded container, object-cover, so it can be used
+              as-is as the panel's visual. The short marketing headline sits
+              above it as plain HTML/CSS, on the page background, not on the
+              photo. */}
+          <section className="hidden lg:flex lg:flex-col lg:gap-6">
+            <div className="max-w-xl">
+              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-primary">
+                Plus qu'une plateforme
+              </p>
+              <h1 className="mt-3 text-balance font-display text-3xl font-bold leading-[1.1] text-white lg:text-[2.75rem]">
+                Un partenaire pour la croissance de{" "}
+                <span className="text-primary">votre restaurant</span>.
+              </h1>
             </div>
-          </div>
 
-          {/* Chef -- the bridging element between marketing and form. Real
-              <img>, vignette-feathered (soft alpha fade on three edges, hard
-              on the bottom so he reads as grounded), never boxed in a card,
-              never stretched (object-contain, natural proportions
-              preserved). At lg+ it leaves normal flow and is centered on the
-              boundary between the two columns so it visually overlaps the
-              form card's left edge, exactly as asked -- everywhere below lg
-              it just sits in-flow between the marketing text and the form,
-              per the required mobile order. */}
-          <img
-            src={chefImage}
-            alt="Chef partenaire SAOVIA Food, bras croisés, souriant dans son restaurant"
-            className="pointer-events-none relative z-20 mx-auto -mt-2 h-[42vh] w-auto max-w-full object-contain drop-shadow-[0_30px_40px_rgba(0,0,0,0.55)] sm:h-[50vh] lg:absolute lg:inset-y-0 lg:left-[58%] lg:mx-0 lg:my-auto lg:h-[88%] lg:max-h-[46rem] lg:-translate-x-[42%]"
-          />
+            <div className="relative flex-1 overflow-hidden rounded-[28px] lg:rounded-[32px]">
+              <img
+                src={signupHeroImage}
+                alt="Restauratrice partenaire SAOVIA Food présentant son tableau de bord sur ordinateur portable et mobile"
+                className="h-full w-full object-cover object-[80%_50%]"
+              />
+            </div>
+          </section>
 
-          {/* Form column -- glass card floating on the same background, no
-              opaque/white page split. */}
-          <div className="relative z-30 mx-auto mt-4 w-full max-w-[480px] lg:mx-0 lg:ml-auto lg:mt-0 lg:w-[42%]">
-            <div className="rounded-[28px] border border-white/[0.65] bg-white/[0.88] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.20)] backdrop-blur-[16px] sm:p-8">
+          {/* Form panel -- its own layout zone, entirely independent of the
+              image panel's column. */}
+          <section className="flex flex-col justify-center py-8 lg:justify-start lg:py-4">
+            <div className="mx-auto w-full max-w-[640px] rounded-[28px] border border-black/5 bg-white p-6 shadow-[0_20px_60px_-15px_rgba(20,10,5,0.35)] sm:p-8">
               <div>
                 <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-primary">
                   Rejoignez la famille SAOVIA
@@ -470,7 +442,7 @@ function FoodSignupPage() {
               En créant votre compte, vous acceptez les Conditions d'utilisation et la Politique de
               confidentialité de SAOVIA Food.
             </p>
-          </div>
+          </section>
         </div>
       </div>
     </main>

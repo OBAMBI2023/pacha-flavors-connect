@@ -1,12 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowRight, BarChart3, Clock3, Eye, EyeOff, Heart, Lock, Mail } from "lucide-react";
+import { ArrowRight, Bell, Eye, EyeOff, Lock, Mail, Store, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import chefPortraitImage from "@/assets/saovia-food-signup-chef.png";
+import authHeroImage from "@/assets/saovia-food-auth-hero.png";
 import logoMark from "@/assets/saovia-food-favicon-mark.png";
 
 const TITLE = "Connexion | SAOVIA Food Partner";
@@ -38,9 +38,21 @@ const REMEMBERED_EMAIL_KEY = "saovia_food_partner_remembered_email";
 /** Real, shipped capabilities only (commandes, menu/produits, clients CRM --
  * see src/routes/admin.tsx) -- never aspirational copy. */
 const BENEFITS = [
-  { icon: BarChart3, title: "Plus de ventes", description: "Attirez plus de clients" },
-  { icon: Clock3, title: "Gain de temps", description: "Tout au même endroit" },
-  { icon: Heart, title: "Une équipe à vos côtés", description: "Pour votre réussite" },
+  {
+    icon: Store,
+    title: "Gestion simplifiée",
+    description: "Gérez votre menu, vos prix et vos disponibilités facilement.",
+  },
+  {
+    icon: Bell,
+    title: "Commandes en temps réel",
+    description: "Recevez et suivez vos commandes depuis votre espace partenaire.",
+  },
+  {
+    icon: TrendingUp,
+    title: "Développez votre activité",
+    description: "Touchez davantage de clients grâce à SAOVIA.",
+  },
 ] as const;
 
 /**
@@ -201,31 +213,27 @@ function AuthPage() {
   }
 
   return (
-    <main className="food-partner-theme flex min-h-screen flex-col bg-background md:flex-row">
-      <AuthBrandPanel />
+    <main className="food-partner-theme min-h-screen bg-background lg:flex lg:items-center lg:justify-center lg:p-8 xl:p-12">
+      {/* Grand conteneur centré : coins arrondis + ombre uniquement à partir
+          de lg, où les deux panneaux sont côte à côte. En dessous de lg il
+          n'y a que le panneau formulaire (le panneau image est masqué), donc
+          il occupe tout l'écran sans marge ni arrondi décoratif. */}
+      <div className="mx-auto flex w-full max-w-[1400px] flex-col overflow-hidden bg-card lg:min-h-[720px] lg:flex-row lg:rounded-[32px] lg:shadow-[0_30px_80px_-30px_rgba(20,15,10,0.25)]">
+        <AuthBrandPanel />
 
-      {/* Right panel: authentication */}
-      <div className="relative flex flex-1 flex-col px-5 py-8 sm:items-center sm:justify-center sm:px-8 sm:py-16">
-        <p
-          aria-hidden="true"
-          className="pointer-events-none absolute right-8 top-8 hidden -rotate-2 text-right font-display text-base italic leading-snug text-foreground/60 lg:block xl:right-12 xl:top-10"
-        >
-          Plus qu'un logiciel,
-          <br />
-          un partenaire de croissance !
-        </p>
-
-        <div className="w-full sm:max-w-[440px] lg:max-w-[480px]">
+        {/* Right panel: authentication */}
+        <div className="relative flex flex-1 flex-col px-5 py-8 sm:items-center sm:justify-center sm:px-8 sm:py-16">
+          <div className="w-full sm:max-w-[440px] lg:max-w-[480px]">
           <AuthLogo className="mb-8 justify-center sm:justify-start" />
 
           <div className="text-center sm:text-left">
             {view === "login" && (
               <>
                 <h1 className="font-display text-3xl font-extrabold leading-tight text-foreground xl:text-[2.625rem]">
-                  Bienvenue chez <span className="text-primary">SAOVIA Food</span>
+                  Bienvenue sur <span className="text-primary">SAOVIA</span>
                 </h1>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Connectez-vous à votre espace restaurant.
+                  Connectez-vous à votre espace partenaire.
                 </p>
               </>
             )}
@@ -359,12 +367,12 @@ function AuthPage() {
               <GoogleAuthButton busy={googleBusy} disabled={busy} onClick={() => void onGoogleSignIn()} />
 
               <p className="pt-2 text-center text-sm text-muted-foreground">
-                Vous êtes un nouveau restaurant ?{" "}
+                Vous êtes un nouveau partenaire ?{" "}
                 <Link
                   to="/food-signup"
                   className="font-medium text-primary hover:underline underline-offset-4"
                 >
-                  Créer votre compte
+                  Créer un compte partenaire
                 </Link>
               </p>
             </form>
@@ -498,10 +506,10 @@ function AuthPage() {
 
         <div className="mt-8 flex w-full flex-col items-center gap-3 text-center sm:max-w-[440px] lg:max-w-[480px]">
           <Link
-            to="/"
+            to="/food"
             className="text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           >
-            ← Retour à SAOVIA
+            ← Retour à SAOVIA Food
           </Link>
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground/70">
             <span>© {new Date().getFullYear()} SAOVIA Food — Tous droits réservés</span>
@@ -521,6 +529,7 @@ function AuthPage() {
           </div>
         </div>
       </div>
+    </div>
     </main>
   );
 }
@@ -539,70 +548,58 @@ function AuthLogo({ className = "" }: { className?: string }) {
   );
 }
 
-/** Desktop/tablet-only immersive marketing panel -- hidden below md so the
- * mobile flow stays single-column (auth form only), per the brief. Reuses
- * the real chef photo already shipped for /food-signup
- * (saovia-food-signup-chef.png) rather than a new asset. */
+/** Desktop-only visual panel -- hidden below lg so the mobile flow stays
+ * single-column (auth form only), per the brief. The photo (real dish,
+ * unedited) fills the panel via object-cover; unlike the previous dark
+ * chef-portrait treatment, this reference photo is bright/airy, so the
+ * marketing copy sits on a light scrim over its own negative space
+ * (top-left) rather than a heavy dark gradient -- closer to the reference's
+ * actual mood than reusing the old dark-panel styling would have been. */
 function AuthBrandPanel() {
   return (
-    <aside className="relative hidden overflow-hidden bg-[#1B140F] md:flex md:w-[42%] md:flex-col lg:w-1/2">
+    <aside className="relative hidden overflow-hidden bg-secondary lg:flex lg:w-[58%] lg:flex-col">
       <img
-        src={chefPortraitImage}
+        src={authHeroImage}
         alt=""
         aria-hidden="true"
-        className="absolute inset-0 h-full w-full object-cover object-[75%_15%]"
+        className="absolute inset-0 h-full w-full object-cover object-center"
       />
       <div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-br from-black/85 via-black/55 to-black/25"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/95 via-white/60 to-transparent"
         aria-hidden="true"
       />
       <div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/10"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-white/40 via-transparent to-transparent"
         aria-hidden="true"
       />
 
-      <div className="relative z-10 flex h-full flex-col justify-between px-10 py-12 xl:px-16 xl:py-16">
-        <div>
+      <div className="relative z-10 flex h-full flex-col px-10 py-12 xl:px-14 xl:py-14">
+        <div className="max-w-sm">
           <div className="flex items-center gap-2">
             <img src={logoMark} alt="" className="h-9 w-9 rounded-full object-cover" />
-            <span className="font-display text-xl font-bold tracking-tight text-white">
+            <span className="font-display text-xl font-bold tracking-tight text-foreground">
               SAOVIA <span className="text-primary">Food</span>
             </span>
           </div>
-          <p className="mt-2 text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-white/70">
-            La solution digitale des restaurants
-          </p>
 
-          <h1 className="mt-10 max-w-md text-balance font-display text-[clamp(2.25rem,4vw,3.5rem)] font-extrabold leading-[1.05] text-white">
-            Votre restaurant mérite <span className="text-primary">mieux.</span>
+          <h1 className="mt-8 text-balance font-display text-[clamp(2rem,3.2vw,2.75rem)] font-extrabold leading-[1.1] text-foreground">
+            Simplifiez la gestion de <span className="text-primary">votre restaurant</span>
           </h1>
-          <p className="mt-4 max-w-sm text-sm leading-relaxed text-white/75">
-            Gérez votre activité, vos commandes et vos clients depuis un seul espace.
-          </p>
 
-          <ul className="mt-10 space-y-5">
+          <ul className="mt-8 space-y-5">
             {BENEFITS.map((benefit) => (
               <li key={benefit.title} className="flex items-start gap-4">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-primary backdrop-blur">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                   <benefit.icon className="h-5 w-5" aria-hidden="true" />
                 </span>
                 <div>
-                  <p className="font-semibold text-white">{benefit.title}</p>
-                  <p className="mt-0.5 text-sm text-white/70">{benefit.description}</p>
+                  <p className="font-semibold text-foreground">{benefit.title}</p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">{benefit.description}</p>
                 </div>
               </li>
             ))}
           </ul>
         </div>
-
-        <p
-          aria-hidden="true"
-          className="-rotate-2 font-display text-lg italic leading-snug text-white/85"
-        >
-          Une ville,
-          <br />
-          mille saveurs !
-        </p>
       </div>
     </aside>
   );
