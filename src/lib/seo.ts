@@ -306,4 +306,27 @@ export function buildBreadcrumbJsonLd(trail: { name: string; url: string }[]): R
   };
 }
 
+/** SAOVIA Organization structured data -- same entity food.tsx's own inline
+ * organizationJsonLd describes, factored out here so other SAOVIA Food
+ * pages (e.g. /food/conseils and its articles) can reuse the exact same
+ * data instead of re-declaring it. */
+export function buildOrganizationJsonLd(): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "SAOVIA",
+    url: siteOrigin(),
+  };
+}
+
+/** WebSite structured data for the SAOVIA Food marketing site (siteOrigin()/food and its subpages). */
+export function buildWebSiteJsonLd(): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "SAOVIA Food",
+    url: `${siteOrigin()}/food`,
+  };
+}
+
 export { siteOrigin, tenantOrigin };

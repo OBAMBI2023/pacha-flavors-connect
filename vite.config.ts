@@ -27,16 +27,16 @@ export default defineConfig({
       // smoke-tested against `vite dev` too, not just the production build.
       devOptions: { enabled: true },
       manifest: {
-        name: "LE PACHA RESTAURANT",
-        short_name: "LE PACHA",
-        description: "Application de commande du restaurant LE PACHA",
+        name: "SAOVIA Food",
+        short_name: "SAOVIA Food",
+        description: "SAOVIA Food : menu digital, commande en ligne et livraison pour restaurants.",
         lang: "fr",
         display: "standalone",
         orientation: "portrait",
         start_url: "/",
         scope: "/",
         theme_color: "#32190c",
-        background_color: "#faf6ee",
+        background_color: "#ffffff",
         icons: [
           { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
           { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },

@@ -1,30 +1,30 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
 import {
   ArrowRight,
   BarChart3,
   Bike,
   CheckCircle2,
   ChefHat,
+  FlaskConical,
   Heart,
   Megaphone,
-  Menu,
   Percent,
   QrCode,
+  Quote,
+  Rocket,
   Search,
   Settings,
   Share2,
   ShieldCheck,
   ShoppingBag,
+  Smartphone,
   Sparkles,
   Store,
   Target,
   Users,
   UtensilsCrossed,
-  X,
   Zap,
 } from "lucide-react";
-import { PublicFooter } from "@/components/PublicFooter";
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
@@ -32,14 +32,18 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { FoodHeader } from "@/components/FoodHeader";
+import { FoodFooter } from "@/components/FoodFooter";
 import { jsonLdMetaEntry, siteOrigin } from "@/lib/seo";
 import { buildWhatsAppUrl, SAOVIA_SUPPORT_WHATSAPP_NUMBER } from "@/lib/whatsapp";
-import logoMark from "@/assets/saovia-food-favicon-mark.png";
-import qrPosterImage from "@/assets/saovia-food-qr-poster.png";
+import logoMark from "@/assets/saovia-food-logo.png";
+import menuDigitalShowcaseImage from "@/assets/saovia-food-menu-digital-showcase.png";
 import heroVisualImage from "@/assets/saovia-food-hero-visual.jpg";
-import chefPortraitImage from "@/assets/saovia-food-signup-chef.png";
 import heroImmersiveImage from "@/assets/saovia-food-hero-immersive.jpg";
 import featuresCornerImage from "@/assets/saovia-food-features-corner.png";
+import faqPlateImage from "@/assets/saovia-food-auth-hero.png";
+import testimonialFatouPortrait from "@/assets/saovia-food-testimonial-fatou-portrait.jpg";
+import testimonialLeGoutDabidjanLogo from "@/assets/saovia-food-testimonial-legout-dabidjan-logo.jpg";
 
 const TITLE = "SAOVIA Food | Logiciel restaurant sans commission";
 const DESCRIPTION =
@@ -47,11 +51,8 @@ const DESCRIPTION =
 
 // The primary "Créer mon restaurant" CTA routes to the real /food-signup
 // account-creation form (see src/routes/food-signup.tsx) -- WhatsApp below
-// is only ever the secondary, advisor/demo/sales path now.
-const ADVISOR_WHATSAPP_URL = buildWhatsAppUrl(
-  SAOVIA_SUPPORT_WHATSAPP_NUMBER,
-  "Bonjour Saovia Technologies, je souhaite parler à un conseiller au sujet de SAOVIA Food.",
-);
+// is only ever the secondary sales path now (the advisor link moved into
+// the shared FoodFooter component).
 const SALES_WHATSAPP_URL = buildWhatsAppUrl(
   SAOVIA_SUPPORT_WHATSAPP_NUMBER,
   "Bonjour Saovia Technologies, je souhaite en savoir plus sur les offres SAOVIA Food pour mon restaurant.",
@@ -139,6 +140,7 @@ const FEATURES: {
 /** Real, visible eyebrow/title copy for the hero -- the visual itself is the full-bleed photo further down (heroImmersiveImage); heroVisualImage is kept only as the page's og:image. */
 const HERO_EYEBROW = "La solution digitale des restaurants";
 
+
 /**
  * Meta Pixel and the public-page SEO stack (canonical, Open Graph, JSON-LD)
  * are real, shipped mechanisms (src/lib/metaPixel.ts, src/lib/seo.ts) -- a
@@ -197,84 +199,126 @@ const HOW_IT_WORKS = [
   },
 ] as const;
 
+/** Real customer testimonial (Fatou S., propriétaire du restaurant "Le
+ * Goût d'Abidjan", Abidjan) -- name, photo, restaurant and figures
+ * confirmed by the SAOVIA Food team, not illustrative/placeholder copy. */
+const TESTIMONIAL_BENEFITS = [
+  { icon: Megaphone, label: "Promotion de vos plats" },
+  { icon: BarChart3, label: "Meilleur référencement" },
+  { icon: Users, label: "Une équipe à vos côtés" },
+  { icon: Rocket, label: "Plus de visibilité" },
+] as const;
+
+/** Real, current SAOVIA Food pricing (FCFA/month) -- Pro stays "Sur devis"
+ * since it's a custom/negotiated offer, never a fabricated number. */
 const PRICING_PLANS = [
   {
+    icon: Zap,
     name: "Starter",
     description: "Pour démarrer votre présence digitale.",
-    features: ["Menu digital", "QR Code automatique", "Commandes", "Support"],
-    price: "Sur devis",
-    cta: "Essayer gratuitement",
+    price: "10 000",
+    period: "FCFA / mois",
+    badge: null,
+    features: ["Menu digital", "QR Code automatique", "Commandes en ligne", "Support par email"],
+    cta: "Commencer maintenant",
     href: "/food-signup",
     external: false,
     featured: false,
+    tagline: "Idéal pour lancer votre restaurant en ligne rapidement.",
   },
   {
+    icon: BarChart3,
     name: "Business",
     description: "Pour piloter votre activité au quotidien.",
-    features: ["Tout Starter", "Livraison", "Clients", "Promotions", "Statistiques"],
-    price: "Sur devis",
-    cta: "Essayer gratuitement",
+    price: "20 000",
+    period: "FCFA / mois",
+    badge: "LE PLUS CHOISI",
+    features: [
+      "Tout le Starter",
+      "Gestion des livraisons",
+      "Gestion des clients",
+      "Promotions et réductions",
+      "Statistiques avancées",
+      "Support prioritaire",
+    ],
+    cta: "Commencer maintenant",
     href: "/food-signup",
     external: false,
     featured: true,
+    tagline: "Le choix des restaurateurs qui veulent tout piloter.",
   },
   {
+    icon: Target,
     name: "Pro",
-    description: "Pour votre visibilité et votre croissance.",
-    features: ["Tout Business", "Meta Pixel", "Accompagnement Meta Ads", "Accompagnement dédié"],
+    description: "Une solution sur mesure pour vos ambitions.",
     price: "Sur devis",
+    period: null,
+    badge: null,
+    features: [
+      "Tout le Business",
+      "Meta Pixel et suivi des conversions",
+      "Accompagnement Meta Ads",
+      "Intégrations personnalisées",
+      "Support dédié",
+      "Formation et conseil",
+    ],
     cta: "Nous contacter",
     href: SALES_WHATSAPP_URL,
     external: true,
     featured: false,
+    tagline: "Pour les enseignes ambitieuses avec des besoins sur mesure.",
   },
+] as const;
+
+const PRICING_BENEFITS = [
+  { icon: ShieldCheck, title: "Aucun engagement", description: "Annulez quand vous voulez." },
+  { icon: Percent, title: "Aucune commission", description: "0 % sur vos ventes." },
+  { icon: Heart, title: "Support local", description: "Une équipe à vos côtés." },
+  { icon: Sparkles, title: "Une solution qui grandit", description: "Avec votre restaurant." },
 ] as const;
 
 const FAQ = [
   {
+    icon: Store,
     question: "Comment créer mon restaurant ?",
     answer:
-      "Créez votre compte en quelques minutes depuis la page d'inscription : nom du restaurant, vos coordonnées et un mot de passe suffisent pour démarrer.",
+      "Créez votre compte, renseignez les informations de votre établissement et commencez à ajouter vos plats.",
   },
   {
+    icon: Percent,
     question: "SAOVIA Food prélève-t-il une commission sur mes ventes ?",
-    answer:
-      "Non. SAOVIA Food ne prélève aucune commission sur vos ventes -- vous payez uniquement votre abonnement.",
+    answer: "Non. SAOVIA Food ne prélève aucune commission sur vos ventes. Vous gardez 100 % de vos revenus.",
   },
   {
+    icon: FlaskConical,
     question: "Puis-je tester la solution avant de payer ?",
-    answer:
-      "Oui. Une période d'essai permet de découvrir la plateforme avant de choisir un abonnement.",
+    answer: "Oui. Testez gratuitement la plateforme avant de choisir votre abonnement.",
   },
   {
+    icon: QrCode,
     question: "Puis-je créer un QR Code pour mon restaurant ?",
-    answer:
-      "Oui. Un QR Code propre à votre restaurant est généré automatiquement et permet à vos clients d'accéder directement à votre menu digital.",
+    answer: "Oui. Un QR Code unique est généré automatiquement pour votre restaurant.",
   },
   {
+    icon: Megaphone,
     question: "Puis-je suivre mes campagnes Meta ?",
-    answer:
-      "Oui. Vous pouvez activer votre Meta Pixel depuis votre espace SAOVIA Food afin de faciliter la mesure de vos campagnes Facebook et Instagram.",
+    answer: "Oui. Suivez vos campagnes Facebook et Instagram avec des statistiques claires.",
   },
   {
+    icon: BarChart3,
     question: "SAOVIA Food aide-t-il pour le référencement ?",
     answer:
-      "Votre page publique est structurée pour les principaux moteurs de recherche : SEO technique, métadonnées, sitemap et données de partage adaptées.",
+      "Oui. Votre vitrine, votre menu en ligne et vos outils marketing sont optimisés pour améliorer votre visibilité.",
   },
   {
-    question: "Puis-je être accompagné pour mes campagnes publicitaires ?",
-    answer:
-      "Oui. Un accompagnement Meta Ads personnalisé peut être proposé selon l'offre commerciale retenue.",
-  },
-  {
+    icon: Smartphone,
     question: "SAOVIA Food fonctionne-t-il sur mobile ?",
-    answer:
-      "Oui. SAOVIA Food est une application web installable (PWA) : votre menu digital, votre vitrine et votre espace de gestion s'utilisent aussi bien sur téléphone, tablette qu'ordinateur.",
+    answer: "Oui. La plateforme est responsive et accessible depuis ordinateur, tablette et smartphone.",
   },
   {
+    icon: Settings,
     question: "Comment fonctionne le support ?",
-    answer:
-      "Une équipe est joignable directement par WhatsApp pour vous accompagner au quotidien : configuration, prise en main et conseils personnalisés.",
+    answer: "Notre équipe est disponible par chat, email et téléphone.",
   },
 ] as const;
 
@@ -419,117 +463,11 @@ function FeatureVisual({ kind }: { kind: FeatureVisualKind }) {
   );
 }
 
-const NAV_LINKS = [
-  { label: "Accueil", to: "/food" as const },
-  { label: "Fonctionnalités", href: "#fonctionnalites" },
-  { label: "Tarifs", href: "#tarifs" },
-  { label: "Témoignages", href: "#temoignages" },
-  { label: "FAQ", href: "#faq" },
-];
 
 function FoodLandingPage() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
   return (
     <div className="food-partner-theme min-h-screen bg-background pb-20 text-foreground lg:pb-0">
-      {/* ------------------------------------------------------------ Header */}
-      <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <Link to="/food" className="flex items-center gap-2">
-            <img src={logoMark} alt="" className="h-8 w-8 rounded-full object-cover" />
-            <span className="font-display text-lg font-bold tracking-tight text-foreground">
-              SAOVIA
-              <span className="ml-1.5 align-middle text-[0.65rem] font-semibold uppercase tracking-[0.25em] text-primary">
-                Food
-              </span>
-            </span>
-          </Link>
-
-          <nav className="hidden items-center gap-7 text-sm font-medium text-muted-foreground md:flex">
-            {NAV_LINKS.map((link) =>
-              link.to ? (
-                <Link key={link.label} to={link.to} className="hover:text-foreground">
-                  {link.label}
-                </Link>
-              ) : (
-                <a key={link.label} href={link.href} className="hover:text-foreground">
-                  {link.label}
-                </a>
-              ),
-            )}
-          </nav>
-
-          <div className="flex items-center gap-2">
-            <Link
-              to="/auth"
-              className="hidden items-center justify-center rounded-full border border-border px-4 py-2 text-sm font-semibold hover:bg-accent sm:inline-flex"
-            >
-              Se connecter
-            </Link>
-            <Button
-              asChild
-              size="sm"
-              className="hidden h-10 rounded-full px-4 sm:h-9 md:inline-flex"
-            >
-              <Link to="/food-signup">
-                Créer mon restaurant <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-              </Link>
-            </Button>
-            <button
-              type="button"
-              onClick={() => setMobileMenuOpen((v) => !v)}
-              aria-label={mobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
-              aria-expanded={mobileMenuOpen}
-              className="grid h-9 w-9 place-items-center rounded-full border border-border text-foreground md:hidden"
-            >
-              {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-            </button>
-          </div>
-        </div>
-
-        {/* Real mobile menu -- collapsible, not just a shrunk desktop nav. */}
-        {mobileMenuOpen && (
-          <div className="border-t border-border bg-background px-4 py-4 sm:px-6 md:hidden">
-            <nav className="flex flex-col gap-1 text-sm font-medium text-foreground">
-              {NAV_LINKS.map((link) =>
-                link.to ? (
-                  <Link
-                    key={link.label}
-                    to={link.to}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="rounded-lg px-2 py-2.5 hover:bg-accent"
-                  >
-                    {link.label}
-                  </Link>
-                ) : (
-                  <a
-                    key={link.label}
-                    href={link.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="rounded-lg px-2 py-2.5 hover:bg-accent"
-                  >
-                    {link.label}
-                  </a>
-                ),
-              )}
-            </nav>
-            <div className="mt-3 flex flex-col gap-2 border-t border-border pt-3">
-              <Link
-                to="/auth"
-                onClick={() => setMobileMenuOpen(false)}
-                className="inline-flex h-11 items-center justify-center rounded-full border border-border text-sm font-semibold hover:bg-accent"
-              >
-                Se connecter
-              </Link>
-              <Button asChild className="h-11 rounded-full">
-                <Link to="/food-signup" onClick={() => setMobileMenuOpen(false)}>
-                  Créer mon restaurant <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-                </Link>
-              </Button>
-            </div>
-          </div>
-        )}
-      </header>
+      <FoodHeader activePath="/food" />
 
       <main>
         {/* -------------------------------------------------------------- Hero
@@ -547,8 +485,17 @@ function FoodLandingPage() {
               contain the photo (min-h, never cropped by anything after
               it). The transition curve below is a normal-flow sibling, not
               an absolutely-positioned overlay, so it can never hide part of
-              the photo -- it only adds its own space after the Hero ends. */}
-          <div className="relative min-h-[600px] lg:aspect-[3/2] lg:h-auto lg:min-h-[680px]">
+              the photo -- it only adds its own space after the Hero ends.
+              Below lg, this box is a flex column with the content pinned to
+              its bottom edge (justify-end): the chef's face sits in the
+              image's upper ~40%, so anchoring text to the lower, darker,
+              already-gradiented zone (food/laptop/apron) keeps it off the
+              face without any absolute/translate/negative-margin trick --
+              min-h floors this box's height, which makes justify-end a
+              genuine, spec-correct bottom alignment. At lg the desktop
+              layout (absolute + translate, vertically centered) is
+              untouched via lg:block undoing the flex. */}
+          <div className="relative flex min-h-[640px] flex-col justify-end lg:block lg:aspect-[3/2] lg:h-auto lg:min-h-[680px]">
             <img
               src={heroImmersiveImage}
               alt="Chef partenaire SAOVIA Food, bras croisés et souriant, avec un ordinateur portable et un smartphone affichant l'interface SAOVIA Food, dans son restaurant"
@@ -562,29 +509,29 @@ function FoodLandingPage() {
               aria-hidden="true"
             />
             <div
-              className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/10"
+              className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-black/15"
               aria-hidden="true"
             />
 
-            <div className="relative z-10 mx-auto flex h-full max-w-7xl items-center px-4 py-16 sm:px-6 lg:mx-0 lg:max-w-none lg:px-0 lg:py-0">
+            <div className="relative z-10 mx-auto flex h-full max-w-7xl items-center px-4 py-14 sm:px-6 sm:py-16 lg:mx-0 lg:max-w-none lg:px-0 lg:py-0">
               <div className="max-w-xs sm:max-w-sm lg:absolute lg:left-[5%] lg:top-1/2 lg:max-w-[560px] lg:-translate-y-1/2">
                 <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-accent backdrop-blur">
                   <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
                   {HERO_EYEBROW}
                 </span>
 
-                <h1 className="mt-4 text-balance font-sans text-4xl font-extrabold leading-[1.05] text-white sm:text-5xl lg:text-[2.9rem] xl:text-[3.25rem]">
+                <h1 className="mt-5 text-balance font-sans text-4xl font-extrabold leading-[1.05] text-white sm:text-5xl lg:text-[2.9rem] xl:text-[3.25rem]">
                   Gérez mieux.
                   <br />
                   <span className="text-primary">Vendez plus.</span>
                 </h1>
 
-                <p className="mt-4 max-w-sm text-base leading-relaxed text-white/80">
+                <p className="mt-3.5 max-w-sm text-base leading-relaxed text-white/80">
                   Menus, commandes, livraisons et clients : tout au même endroit avec{" "}
                   <span className="font-semibold text-white">SAOVIA Food</span>.
                 </p>
 
-                <div className="mt-8">
+                <div className="mt-7 sm:mt-8">
                   <Button
                     asChild
                     size="lg"
@@ -603,7 +550,7 @@ function FoodLandingPage() {
               flow, placed after the photo box ends, so it never overlaps
               the photo. */}
           <svg
-            className="block h-10 w-full text-[#FBF3E7] lg:h-14"
+            className="block h-12 w-full text-[#FBF3E7] lg:h-14"
             viewBox="0 0 1440 100"
             preserveAspectRatio="none"
             aria-hidden="true"
@@ -793,44 +740,124 @@ function FoodLandingPage() {
           </div>
         </section>
 
-        {/* ---------------------------------------------------- Zéro commission */}
-        <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:py-16">
-          <div className="grid items-center gap-10 rounded-[2rem] border border-border bg-card p-8 sm:p-10 lg:grid-cols-2 lg:p-14">
-            <div>
-              <SectionBadge>Modèle commercial</SectionBadge>
-              <h2 className="mt-3 font-display text-3xl font-semibold sm:text-4xl">
-                Vos ventes restent vos ventes.
-              </h2>
-              <p className="mt-3 text-base text-muted-foreground">
-                Avec SAOVIA Food, aucune commission n'est prélevée sur chaque commande.
-              </p>
-              <div className="mt-7">
-                <Button asChild size="lg" className="h-12 rounded-full px-7 text-base">
-                  <Link to="/food-signup">
-                    Commencer mon essai <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                  </Link>
-                </Button>
+        {/* --------------------------------------------------------- Témoignage */}
+        <section id="temoignages" className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:py-20">
+          <div className="mx-auto max-w-2xl text-center">
+            <SectionBadge>Témoignage client</SectionBadge>
+            <h2 className="mt-3 font-display text-3xl font-semibold sm:text-4xl">
+              Ils ont fait le choix de SAOVIA Food
+            </h2>
+          </div>
+
+          <div className="mx-auto mt-10 overflow-hidden rounded-[2rem] border border-border bg-card shadow-sm">
+            <div className="grid lg:grid-cols-[0.8fr_1.2fr]">
+              {/* Restaurateur: photo + logo + identity, pinned to the
+                  bottom of the panel like the Hero/FAQ photo cards
+                  elsewhere on this page. */}
+              <div className="relative flex min-h-[420px] flex-col justify-end overflow-hidden bg-cocoa p-6 sm:p-8 lg:min-h-[560px] lg:p-10">
+                <img
+                  src={testimonialFatouPortrait}
+                  alt="Fatou S., propriétaire du restaurant Le Goût d'Abidjan, à Abidjan"
+                  loading="lazy"
+                  className="absolute inset-0 h-full w-full object-cover object-top"
+                />
+                <div
+                  className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10"
+                  aria-hidden="true"
+                />
+                <img
+                  src={testimonialLeGoutDabidjanLogo}
+                  alt="Logo du restaurant Le Goût d'Abidjan"
+                  loading="lazy"
+                  className="relative z-10 h-16 w-16 rounded-full object-cover ring-2 ring-white/70 shadow-lg sm:h-20 sm:w-20"
+                />
+                <div className="relative z-10 mt-4">
+                  <p className="font-display text-lg font-semibold text-white">Fatou S.</p>
+                  <p className="text-sm text-white/75">Propriétaire, Le Goût d'Abidjan</p>
+                  <p className="mt-1 text-xs text-white/60">Abidjan, Côte d'Ivoire</p>
+                </div>
+              </div>
+
+              {/* Quote, before/after proof and CTA */}
+              <div className="p-6 sm:p-8 lg:p-10">
+                <Quote className="h-8 w-8 text-primary/30" aria-hidden="true" />
+                <blockquote className="mt-2 space-y-3 text-base leading-relaxed text-foreground">
+                  <p>
+                    Avant, je travaillais avec des partenaires internationaux qui me
+                    prélevaient <span className="font-semibold text-destructive">35 % de commission</span> sur
+                    chaque commande. C'était énorme !
+                  </p>
+                  <p>
+                    Aujourd'hui, avec SAOVIA Food, je garde mes revenus sur mes commandes :{" "}
+                    <span className="font-semibold text-primary">aucune commission</span>,
+                    simplement un abonnement pouvant aller jusqu'à{" "}
+                    <span className="font-semibold text-primary">20 000 F par mois</span>.
+                  </p>
+                  <p>
+                    Mon chiffre d'affaires atteint{" "}
+                    <span className="font-semibold text-primary">3 000 000 F</span> et je garde
+                    100 % de mes revenus.
+                  </p>
+                </blockquote>
+
+                <p className="mt-4 rounded-xl border-l-4 border-primary bg-primary/5 p-4 text-sm font-medium italic text-foreground">
+                  « J'invite tous les restaurants à tester le logiciel ! »
+                </p>
+
+                <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-center">
+                    <p className="text-xs font-medium text-muted-foreground">Avant</p>
+                    <p className="mt-1 font-display text-xl font-bold text-destructive">35 %</p>
+                    <p className="text-[0.7rem] text-muted-foreground">de commission</p>
+                  </div>
+                  <div className="rounded-xl border border-emerald-600/20 bg-emerald-600/5 p-3 text-center">
+                    <p className="text-xs font-medium text-muted-foreground">Aujourd'hui</p>
+                    <p className="mt-1 font-display text-xl font-bold text-emerald-600">0 %</p>
+                    <p className="text-[0.7rem] text-muted-foreground">de commission</p>
+                  </div>
+                  <div className="rounded-xl border border-border bg-background p-3 text-center">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Chiffre d'affaires
+                    </p>
+                    <p className="mt-1 font-display text-xl font-bold text-foreground">
+                      3 000 000 F
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-border bg-background p-3 text-center">
+                    <p className="text-xs font-medium text-muted-foreground">Abonnement</p>
+                    <p className="mt-1 font-display text-xl font-bold text-foreground">
+                      20 000 F<span className="text-xs font-normal">/mois</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+                  {TESTIMONIAL_BENEFITS.map((item) => (
+                    <div key={item.label} className="flex flex-col items-center gap-1.5 text-center">
+                      <span className="grid h-9 w-9 place-items-center rounded-full bg-primary/10 text-primary">
+                        <item.icon className="h-4 w-4" aria-hidden="true" />
+                      </span>
+                      <span className="text-xs font-medium text-muted-foreground">
+                        {item.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-7">
+                  <Button
+                    asChild
+                    size="lg"
+                    className="h-12 w-full rounded-full px-7 text-base sm:w-auto"
+                  >
+                    <Link to="/food-signup">
+                      Testez SAOVIA Food maintenant{" "}
+                      <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                    </Link>
+                  </Button>
+                </div>
               </div>
             </div>
-            <ul className="space-y-3.5">
-              {[
-                "0 % de commission sur vos ventes",
-                "Un abonnement simple après la période d'essai",
-                "Pas de prélèvement proportionnel sur votre chiffre d'affaires",
-                "Vous gardez le contrôle de votre activité",
-              ].map((point) => (
-                <li
-                  key={point}
-                  className="flex items-start gap-3 rounded-2xl border border-border bg-background p-4"
-                >
-                  <CheckCircle2
-                    className="mt-0.5 h-5 w-5 shrink-0 text-primary"
-                    aria-hidden="true"
-                  />
-                  <span className="text-sm font-medium">{point}</span>
-                </li>
-              ))}
-            </ul>
           </div>
         </section>
 
@@ -857,10 +884,10 @@ function FoodLandingPage() {
                 className="absolute inset-0 -z-10 m-auto h-[85%] w-[85%] max-w-[480px] rounded-full bg-primary/15 blur-3xl"
               />
               <img
-                src={qrPosterImage}
-                alt="Affiche QR Code SAOVIA Food permettant d'accéder au menu digital d'un restaurant"
+                src={menuDigitalShowcaseImage}
+                alt="Présentation du menu digital SAOVIA Food : support de table avec QR Code à scanner, smartphone affichant le menu et options sur place, livraison, promotions et avis clients"
                 loading="lazy"
-                className="w-full max-w-[560px] rounded-3xl object-contain shadow-2xl"
+                className="w-full max-w-[620px] rounded-3xl object-contain object-center shadow-[0_25px_60px_-25px_rgba(26,18,15,0.4)]"
               />
             </div>
 
@@ -912,59 +939,6 @@ function FoodLandingPage() {
           </div>
         </section>
 
-        {/* ------------------------------------------------------- Restaurateurs
-            Substitutes for a "témoignages" section with named quotes/star
-            ratings -- there is no real customer-testimonial data for SAOVIA
-            Food anywhere in this project (only per-restaurant customer
-            reviews of tenants, a different, private dataset), and inventing
-            one ("Chef Mariam", 5-star ratings, etc.) would misrepresent the
-            product. This covers the same "why restaurateurs trust us" slot
-            with real, verifiable benefits instead. */}
-        <section id="temoignages" className="border-y border-border bg-secondary/40">
-          <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 py-14 sm:px-6 lg:grid-cols-2 lg:py-20">
-            <div className="order-2 flex justify-center lg:order-1">
-              <img
-                src={chefPortraitImage}
-                alt="Chef partenaire SAOVIA Food, bras croisés, souriant dans son restaurant"
-                loading="lazy"
-                decoding="async"
-                className="h-auto w-full max-w-sm object-contain drop-shadow-2xl"
-              />
-            </div>
-            <div className="order-1 lg:order-2">
-              <SectionBadge>Pensé pour les restaurateurs</SectionBadge>
-              <h2 className="mt-3 font-display text-3xl font-semibold sm:text-4xl">
-                Vous cuisinez. SAOVIA Food s'occupe du reste.
-              </h2>
-              <p className="mt-3 text-base text-muted-foreground">
-                Concentrez-vous sur ce que vous faites de mieux : créer de bonnes expériences
-                culinaires.
-              </p>
-              <ul className="mt-6 space-y-3">
-                {[
-                  "Moins de tâches administratives",
-                  "Plus de visibilité sur votre activité",
-                  "Commandes centralisées",
-                  "Livraisons mieux organisées",
-                ].map((point) => (
-                  <li key={point} className="flex items-start gap-3">
-                    <CheckCircle2
-                      className="mt-0.5 h-5 w-5 shrink-0 text-primary"
-                      aria-hidden="true"
-                    />
-                    <span className="text-sm font-medium">{point}</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-7">
-                <Button asChild size="lg" className="h-12 rounded-full px-7 text-base">
-                  <a href="#fonctionnalites">Découvrir SAOVIA Food</a>
-                </Button>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* ------------------------------------------------------ Comment ça marche */}
         <section id="comment-ca-marche" className="border-y border-border bg-secondary/40">
           <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:py-16">
@@ -988,257 +962,215 @@ function FoodLandingPage() {
           </div>
         </section>
 
-        {/* ------------------------------------------------------------- Essai */}
-        <section className="mx-auto max-w-7xl px-4 py-14 text-center sm:px-6 lg:py-16">
-          <ChefHat className="mx-auto h-10 w-10 text-primary" aria-hidden="true" />
-          <h2 className="mt-4 font-display text-3xl font-semibold sm:text-4xl">
-            Essayez avant de vous abonner.
-          </h2>
-          <p className="mx-auto mt-3 max-w-xl text-base text-muted-foreground">
-            Découvrez SAOVIA Food pendant votre période d'essai. À la fin de celle-ci, choisissez
-            simplement l'abonnement adapté à votre restaurant.
-          </p>
-          <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
-            Essayez SAOVIA Food et évaluez la solution avant de vous engager sur un abonnement.
-          </p>
-          <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-            <Button asChild size="lg" className="h-12 rounded-full px-7 text-base">
-              <Link to="/food-signup">
-                Démarrer mon essai <ArrowRight className="h-4 w-4" aria-hidden="true" />
-              </Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              size="lg"
-              className="h-12 rounded-full px-7 text-base"
-            >
-              <a href={ADVISOR_WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
-                Parler à un conseiller
-              </a>
-            </Button>
-          </div>
-        </section>
-
         {/* ------------------------------------------------------------ Tarifs */}
         <section id="tarifs" className="border-y border-border bg-secondary/40">
           <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:py-16">
             <div className="max-w-2xl">
               <SectionBadge>Des offres simples</SectionBadge>
-              <h2 className="mt-3 font-display text-3xl font-semibold sm:text-4xl">
-                Choisissez la solution adaptée à votre restaurant
+              <h2 className="mt-3 text-balance font-display text-3xl font-bold leading-[1.1] sm:text-4xl lg:text-[2.75rem]">
+                Des offres pensées pour évoluer avec <span className="text-primary">votre activité</span>
               </h2>
-              <p className="mt-3 text-base text-muted-foreground">
-                Des offres pensées pour évoluer avec votre activité -- sans commission sur vos
-                ventes.
+              <p className="mt-3 text-lg font-medium text-muted-foreground sm:text-xl">
+                Sans commission sur vos ventes.
               </p>
             </div>
             <div className="mt-9 grid grid-cols-1 gap-5 lg:grid-cols-3">
               {PRICING_PLANS.map((plan) => (
                 <div
                   key={plan.name}
-                  className={`relative rounded-[1.75rem] border p-7 ${
-                    plan.featured ? "border-primary bg-card shadow-md" : "border-border bg-card"
+                  className={`relative flex h-full flex-col rounded-[24px] border bg-card p-7 transition-all duration-300 hover:-translate-y-1 sm:p-8 ${
+                    plan.featured
+                      ? "border-primary/35 bg-gradient-to-b from-accent/40 to-card shadow-[0_18px_44px_-16px_rgba(255,90,0,0.22)] hover:shadow-[0_24px_56px_-16px_rgba(255,90,0,0.28)]"
+                      : "border-black/[0.08] shadow-[0_10px_32px_-16px_rgba(20,10,5,0.1)] hover:shadow-[0_16px_40px_-16px_rgba(20,10,5,0.14)]"
                   }`}
                 >
-                  {plan.featured && (
-                    <span className="absolute -top-3 left-7 rounded-full bg-primary px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-wide text-primary-foreground">
-                      Recommandé
+                  {plan.badge && (
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-primary px-4 py-1 text-[0.65rem] font-bold uppercase tracking-wide text-primary-foreground shadow-sm">
+                      {plan.badge}
                     </span>
                   )}
-                  <h3 className="font-display text-xl font-semibold">{plan.name}</h3>
+
+                  <span className="grid h-11 w-11 place-items-center rounded-full bg-accent text-primary">
+                    <plan.icon className="h-5 w-5" aria-hidden="true" />
+                  </span>
+
+                  <h3 className="mt-4 font-display text-xl font-semibold">{plan.name}</h3>
                   <p className="mt-1 text-sm text-muted-foreground">{plan.description}</p>
-                  <p className="mt-5 font-display text-2xl font-semibold">{plan.price}</p>
-                  <ul className="mt-5 space-y-2.5">
+
+                  <div className="mt-5 flex items-baseline gap-1.5">
+                    <span className="font-display text-4xl font-bold tracking-tight text-foreground sm:text-[2.75rem]">
+                      {plan.price}
+                    </span>
+                    {plan.period && (
+                      <span className="text-sm font-medium text-muted-foreground">
+                        {plan.period}
+                      </span>
+                    )}
+                  </div>
+
+                  <ul className="mt-6 space-y-2.5">
                     {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-center gap-2.5 text-sm">
+                      <li key={feature} className="flex items-start gap-2.5 text-sm">
                         <CheckCircle2
-                          className="h-4 w-4 shrink-0 text-primary"
+                          className="mt-0.5 h-4 w-4 shrink-0 text-primary"
                           aria-hidden="true"
                         />
                         {feature}
                       </li>
                     ))}
                   </ul>
-                  <Button
-                    asChild
-                    variant={plan.featured ? "default" : "outline"}
-                    className="mt-7 h-11 w-full rounded-full"
-                  >
-                    {plan.external ? (
-                      <a href={plan.href} target="_blank" rel="noopener noreferrer">
-                        {plan.cta}
-                      </a>
-                    ) : (
-                      <Link to={plan.href}>{plan.cta}</Link>
-                    )}
-                  </Button>
+
+                  <div className="mt-auto pt-7">
+                    <div className="border-t border-black/[0.06] pt-6">
+                      <Button
+                        asChild
+                        variant={plan.featured ? "default" : "outline"}
+                        className={`h-11 w-full rounded-full transition-all duration-200 ${
+                          plan.featured
+                            ? ""
+                            : "border-primary/30 bg-primary/10 text-primary hover:bg-primary/15"
+                        }`}
+                      >
+                        {plan.external ? (
+                          <a href={plan.href} target="_blank" rel="noopener noreferrer">
+                            {plan.cta}
+                          </a>
+                        ) : (
+                          <Link to={plan.href}>{plan.cta}</Link>
+                        )}
+                      </Button>
+                      <p className="mt-3 text-center text-xs text-muted-foreground">
+                        {plan.tagline}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
-            <p className="mt-6 text-center text-xs text-muted-foreground">
-              Tarifs communiqués sur devis, selon les besoins de votre restaurant.
-            </p>
+            <div className="mt-9 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {PRICING_BENEFITS.map((benefit) => (
+                <div
+                  key={benefit.title}
+                  className="rounded-2xl border border-black/[0.06] bg-card p-5 shadow-[0_6px_20px_-12px_rgba(20,10,5,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_-12px_rgba(20,10,5,0.14)]"
+                >
+                  <span className="grid h-10 w-10 place-items-center rounded-full bg-accent text-primary">
+                    <benefit.icon className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <h3 className="mt-4 font-semibold">{benefit.title}</h3>
+                  <p className="mt-1.5 text-sm text-muted-foreground">{benefit.description}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
         {/* --------------------------------------------------------------- FAQ */}
-        <section id="faq" className="mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:py-20">
-          <div className="text-center">
+        <section
+          id="faq"
+          className="relative mx-auto max-w-[1200px] overflow-hidden px-4 py-14 sm:px-6 lg:py-20"
+        >
+          {/* Discreet premium-SaaS decorations: a huge, near-invisible "?"
+              watermark and a soft orange blur -- both aria-hidden,
+              pointer-events-none, and placed before the real content in the
+              DOM so they always paint behind it and never affect
+              readability or the accordion's own layout/functionality. */}
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute -right-8 -top-14 select-none font-display text-[220px] font-bold leading-none text-primary/[0.05] sm:text-[280px] lg:-right-12 lg:-top-20 lg:text-[340px]"
+          >
+            ?
+          </span>
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -left-16 top-1/3 h-56 w-56 rounded-full bg-primary/[0.06] blur-[100px]"
+          />
+
+          <div className="relative mx-auto max-w-2xl text-center">
             <SectionBadge>FAQ</SectionBadge>
-            <h2 className="mt-3 font-display text-3xl font-semibold sm:text-4xl">
-              Les questions que vous vous posez
+            <h2 className="mt-3 font-display text-3xl font-bold leading-[1.1] sm:text-4xl lg:text-[2.75rem]">
+              Les questions que vous <span className="text-primary">vous posez</span>
             </h2>
+            <p className="mt-3 text-base leading-relaxed text-muted-foreground">
+              Vous avez une question ? Voici les réponses aux questions les plus fréquentes sur
+              SAOVIA Food. Et si vous ne trouvez pas ce que vous cherchez, notre équipe est là
+              pour vous.
+            </p>
           </div>
-          <Accordion type="single" collapsible className="mt-9">
+
+          <Accordion
+            type="single"
+            collapsible
+            defaultValue={FAQ[0].question}
+            className="relative mx-auto mt-10 flex max-w-3xl flex-col gap-4"
+          >
             {FAQ.map((item) => (
-              <AccordionItem key={item.question} value={item.question}>
-                <AccordionTrigger className="text-left text-base font-semibold">
-                  {item.question}
+              <AccordionItem
+                key={item.question}
+                value={item.question}
+                className="rounded-[18px] border border-black/[0.08] bg-card px-5 shadow-[0_4px_20px_-6px_rgba(20,10,5,0.06)] transition-all duration-200 hover:border-primary/25 hover:shadow-[0_8px_26px_-8px_rgba(20,10,5,0.1)] data-[state=open]:border-primary/30 data-[state=open]:bg-accent data-[state=open]:shadow-[0_10px_32px_-10px_rgba(255,90,0,0.15)]"
+              >
+                <AccordionTrigger className="gap-3 py-5 text-left text-sm font-semibold hover:text-primary hover:no-underline sm:text-base">
+                  <span className="flex items-center gap-3">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+                      <item.icon className="h-4 w-4" aria-hidden="true" />
+                    </span>
+                    {item.question}
+                  </span>
                 </AccordionTrigger>
-                <AccordionContent className="text-sm text-muted-foreground">
+                <AccordionContent className="pl-12 text-sm leading-relaxed text-muted-foreground">
                   {item.answer}
                 </AccordionContent>
               </AccordionItem>
             ))}
           </Accordion>
-        </section>
 
-        {/* ---------------------------------------------------------- Final CTA */}
-        <section className="border-t border-border bg-cocoa">
-          <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[1.3fr_1fr]">
-            <div className="text-center lg:text-left">
-              <h2 className="font-display text-3xl font-semibold text-cocoa-foreground sm:text-4xl">
-                Rejoignez la nouvelle génération de restaurateurs !
-              </h2>
-              <p className="mx-auto mt-4 max-w-xl text-base text-cocoa-foreground/75 lg:mx-0">
-                Digitalisez votre activité dès aujourd'hui et offrez une meilleure expérience à vos
-                clients.
-              </p>
-              <div className="mt-7 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
-                <Button asChild size="lg" className="h-12 rounded-full px-7 text-base">
+          {/* Inline CTA banner, distinct from the page's final CTA section
+              below -- a compact nudge right where a visitor who just read
+              the FAQ is most likely to convert. */}
+          <div className="relative mt-10 overflow-hidden rounded-[18px] border border-black/[0.08] bg-card shadow-[0_10px_36px_-12px_rgba(20,10,5,0.1)]">
+            <div className="grid gap-6 sm:grid-cols-[auto_1fr_auto] sm:items-center sm:gap-6 sm:p-6">
+              <img
+                src={faqPlateImage}
+                alt=""
+                aria-hidden="true"
+                loading="lazy"
+                className="hidden h-full w-40 rounded-2xl object-cover sm:block"
+              />
+              <div className="px-6 pt-6 sm:p-0">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.15em] text-primary">
+                  <Rocket className="h-3 w-3" aria-hidden="true" />
+                  Prêt à vous lancer ?
+                </span>
+                <h3 className="mt-3 font-display text-xl font-semibold sm:text-2xl">
+                  Rejoignez les restaurants qui grandissent avec SAOVIA Food.
+                </h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Créez votre restaurant en quelques minutes et commencez à attirer plus de
+                  clients dès aujourd'hui.
+                </p>
+              </div>
+              <div className="flex flex-col items-start gap-3 px-6 pb-6 sm:items-end sm:p-0">
+                <Button asChild size="lg" className="h-12 w-full rounded-full px-7 text-base sm:w-auto">
                   <Link to="/food-signup">
                     Créer mon restaurant <ArrowRight className="h-4 w-4" aria-hidden="true" />
                   </Link>
                 </Button>
-                <p className="inline-flex items-center gap-1.5 text-sm font-medium text-cocoa-foreground/70">
-                  <CheckCircle2 className="h-4 w-4 text-primary" aria-hidden="true" />
-                  Installation en quelques minutes
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-center gap-6 border-t border-cocoa-foreground/15 pt-8 lg:justify-start lg:border-l lg:border-t-0 lg:pl-10 lg:pt-0">
-              {[
-                { icon: Settings, label: "Simple" },
-                { icon: Zap, label: "Rapide" },
-                { icon: Heart, label: "Efficace" },
-              ].map((item) => (
-                <div key={item.label} className="flex flex-col items-center gap-2">
-                  <span className="grid h-11 w-11 place-items-center rounded-full bg-cocoa-foreground/10 text-cocoa-foreground">
-                    <item.icon className="h-5 w-5" aria-hidden="true" />
-                  </span>
-                  <span className="text-xs font-semibold text-cocoa-foreground/80">
-                    {item.label}
-                  </span>
+                <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-xs font-medium text-muted-foreground">
+                  {["Simple", "Rapide", "Sécurisé"].map((advantage) => (
+                    <span key={advantage} className="inline-flex items-center gap-1">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+                      {advantage}
+                    </span>
+                  ))}
                 </div>
-              ))}
+              </div>
             </div>
           </div>
         </section>
 
-        {/* ------------------------------------------------------------ Footer
-            Extra /food-specific marketing links, kept out of the shared
-            PublicFooter component (used across tenant storefronts and every
-            other public page, which shouldn't carry SAOVIA-Food-only nav
-            like "Tarifs"/"FAQ") -- PublicFooter below still provides the
-            actual copyright/WhatsApp-support line for every page. */}
-        <section className="border-t border-cocoa-foreground/15 bg-cocoa">
-          <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-            <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
-              <div className="col-span-2 sm:col-span-1">
-                <Link to="/food" className="inline-flex items-center gap-2">
-                  <img src={logoMark} alt="" className="h-8 w-8 rounded-full object-cover" />
-                  <span className="font-display text-base font-bold text-cocoa-foreground">
-                    SAOVIA Food
-                  </span>
-                </Link>
-                <p className="mt-2 text-xs text-cocoa-foreground/60">
-                  La solution digitale des restaurants.
-                </p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-cocoa-foreground/50">
-                  Produit
-                </p>
-                <ul className="mt-3 space-y-2 text-sm text-cocoa-foreground/75">
-                  <li>
-                    <a href="#fonctionnalites" className="hover:text-cocoa-foreground">
-                      Fonctionnalités
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#tarifs" className="hover:text-cocoa-foreground">
-                      Tarifs
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#faq" className="hover:text-cocoa-foreground">
-                      FAQ
-                    </a>
-                  </li>
-                </ul>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-cocoa-foreground/50">
-                  Entreprise
-                </p>
-                <ul className="mt-3 space-y-2 text-sm text-cocoa-foreground/75">
-                  <li>
-                    <Link to="/food" className="hover:text-cocoa-foreground">
-                      Accueil
-                    </Link>
-                  </li>
-                  <li>
-                    <a
-                      href={ADVISOR_WHATSAPP_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-cocoa-foreground"
-                    >
-                      Contact
-                    </a>
-                  </li>
-                </ul>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-cocoa-foreground/50">
-                  Support
-                </p>
-                <ul className="mt-3 space-y-2 text-sm text-cocoa-foreground/75">
-                  <li>
-                    <Link to="/auth" className="hover:text-cocoa-foreground">
-                      Se connecter
-                    </Link>
-                  </li>
-                  <li>
-                    <a
-                      href={ADVISOR_WHATSAPP_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-cocoa-foreground"
-                    >
-                      Parler à un conseiller
-                    </a>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </section>
+        {/* Shared dark "premium SaaS" footer -- see src/components/FoodFooter.tsx */}
+        <FoodFooter />
       </main>
-
-      <PublicFooter />
 
       {/* Mobile sticky conversion bar -- kept off desktop (lg:hidden) where the
           header's own CTA is always visible; pb-20 on the page wrapper above
