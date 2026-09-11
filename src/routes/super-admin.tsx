@@ -17,6 +17,11 @@ type SuperAdminProfile = {
 
 export const Route = createFileRoute("/super-admin")({
   ssr: false,
+  // No sub-route under /super-admin defines its own `robots` meta, so this
+  // is inherited by all of them via TanStack Router's per-property head
+  // merge (root -> this layout -> leaf route) -- verified against the built
+  // output, see the noindex check in this phase's report.
+  head: () => ({ meta: [{ name: "robots", content: "noindex" }] }),
   component: SuperAdminLayout,
 });
 

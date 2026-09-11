@@ -18,47 +18,62 @@ import { MoreSheet } from "@/components/MoreSheet";
 import { MenuSearchSheet } from "@/components/MenuSearchSheet";
 import { CategoriesSheet } from "@/components/CategoriesSheet";
 import { useVisitorTracking } from "@/lib/visitorTracking";
+import { siteOrigin } from "@/lib/seo";
+import heroImg from "@/assets/hero.jpg";
 
 const TITLE = "Le Pacha Restaurant | Restaurant à Angré 8e Tranche Abidjan";
 const DESCRIPTION =
   "Découvrez Le Pacha Restaurant à Angré 8e Tranche, Abidjan. Cuisine authentique, plats africains, réservation, commande à emporter et livraison.";
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: TITLE },
-      { name: "description", content: DESCRIPTION },
-      {
-        name: "keywords",
-        content:
-          "restaurant Angré, restaurant Angré 8e Tranche, restaurant Abidjan, restaurant SICOMEX, livraison repas Angré, restaurant cuisine africaine Abidjan, restaurant ivoirien Abidjan",
-      },
-      { property: "og:title", content: TITLE },
-      { property: "og:description", content: DESCRIPTION },
-      { property: "og:type", content: "restaurant" },
-      { property: "og:url", content: "/" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-    links: [{ rel: "canonical", href: "/" }],
-    scripts: [
-      {
-        type: "application/ld+json",
-        children: JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "Restaurant",
-          name: "Le Pacha Restaurant",
-          servesCuisine: ["Ivoirienne", "Africaine"],
-          telephone: "+2250707170514",
-          address: {
-            "@type": "PostalAddress",
-            streetAddress: "Angré 8e Tranche, Feu du SICOMEX",
-            addressLocality: "Abidjan",
-            addressCountry: "CI",
-          },
-        }),
-      },
-    ],
-  }),
+  head: () => {
+    const canonicalUrl = `${siteOrigin()}/`;
+    const ogImage = `${siteOrigin()}${heroImg}`;
+
+    return {
+      meta: [
+        { title: TITLE },
+        { name: "description", content: DESCRIPTION },
+        {
+          name: "keywords",
+          content:
+            "restaurant Angré, restaurant Angré 8e Tranche, restaurant Abidjan, restaurant SICOMEX, livraison repas Angré, restaurant cuisine africaine Abidjan, restaurant ivoirien Abidjan",
+        },
+        { name: "robots", content: "index,follow" },
+        { property: "og:title", content: TITLE },
+        { property: "og:description", content: DESCRIPTION },
+        { property: "og:type", content: "restaurant" },
+        { property: "og:url", content: canonicalUrl },
+        { property: "og:image", content: ogImage },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: TITLE },
+        { name: "twitter:description", content: DESCRIPTION },
+        { name: "twitter:image", content: ogImage },
+      ],
+      links: [{ rel: "canonical", href: canonicalUrl }],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Restaurant",
+            "@id": canonicalUrl,
+            name: "Le Pacha Restaurant",
+            url: canonicalUrl,
+            image: ogImage,
+            servesCuisine: ["Ivoirienne", "Africaine"],
+            telephone: "+2250707170514",
+            address: {
+              "@type": "PostalAddress",
+              streetAddress: "Angré 8e Tranche, Feu du SICOMEX",
+              addressLocality: "Abidjan",
+              addressCountry: "CI",
+            },
+          }),
+        },
+      ],
+    };
+  },
   component: Index,
 });
 

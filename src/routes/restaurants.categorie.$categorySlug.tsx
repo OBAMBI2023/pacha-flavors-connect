@@ -1,10 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { MarketplaceShell } from "@/components/marketplace/MarketplaceShell";
+import { siteOrigin } from "@/lib/seo";
 
 export const Route = createFileRoute("/restaurants/categorie/$categorySlug")({
+  // Placeholder page (no server-side category filtering implemented yet --
+  // see CategoryPage below), so noindex until it has real content. Remove
+  // once this actually filters restaurants by category.
   head: ({ params }) => ({
-    meta: [{ title: `${params.categorySlug} — Restaurants et menus | SAOVIA` }, { name: "robots", content: "index,follow" }],
-    links: [{ rel: "canonical", href: `/restaurants/categorie/${params.categorySlug}` }],
+    meta: [
+      { title: `${params.categorySlug} — Restaurants et menus | SAOVIA` },
+      { name: "robots", content: "noindex" },
+    ],
+    links: [{ rel: "canonical", href: `${siteOrigin()}/restaurants/categorie/${params.categorySlug}` }],
   }),
   component: CategoryPage,
 });

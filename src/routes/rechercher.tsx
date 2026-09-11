@@ -2,12 +2,31 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { MarketplaceShell } from "@/components/marketplace/MarketplaceShell";
 import { useMarketplaceRestaurants } from "@/lib/marketplace";
+import { siteOrigin } from "@/lib/seo";
+
+const TITLE = "Rechercher un restaurant | SAOVIA";
+const DESCRIPTION = "Recherchez un restaurant partenaire SAOVIA et commandez en ligne à Abidjan.";
 
 export const Route = createFileRoute("/rechercher")({
-  head: () => ({
-    meta: [{ title: "Rechercher un restaurant | SAOVIA" }, { name: "robots", content: "index,follow" }],
-    links: [{ rel: "canonical", href: "/rechercher" }],
-  }),
+  head: () => {
+    const canonicalUrl = `${siteOrigin()}/rechercher`;
+    return {
+      meta: [
+        { title: TITLE },
+        { name: "description", content: DESCRIPTION },
+        { name: "robots", content: "index,follow" },
+        { property: "og:type", content: "website" },
+        { property: "og:site_name", content: "SAOVIA" },
+        { property: "og:title", content: TITLE },
+        { property: "og:description", content: DESCRIPTION },
+        { property: "og:url", content: canonicalUrl },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: TITLE },
+        { name: "twitter:description", content: DESCRIPTION },
+      ],
+      links: [{ rel: "canonical", href: canonicalUrl }],
+    };
+  },
   component: SearchPage,
 });
 

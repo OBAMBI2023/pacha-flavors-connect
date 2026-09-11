@@ -13,7 +13,11 @@ const STORAGE_PHONE = "saovia.customer.phone";
 const STORAGE_NAME = "saovia.customer.name";
 const STORAGE_RESTAURANT_SLUG = "saovia.restaurant.slug";
 
-export const Route = createFileRoute("/commandes")({ ssr: false, component: OrdersPage });
+export const Route = createFileRoute("/commandes")({
+  ssr: false,
+  head: () => ({ meta: [{ name: "robots", content: "noindex" }] }),
+  component: OrdersPage,
+});
 
 function OrdersPage() {
   const navigate = useNavigate();

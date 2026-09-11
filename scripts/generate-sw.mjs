@@ -24,7 +24,17 @@ const { count, size, warnings } = await generateSW({
   globPatterns: ["assets/**/*.{js,css,woff,woff2}", "icons/**/*.png", "*.html"],
   swDest: "dist/client/sw.js",
   navigateFallback: "/offline.html",
-  navigateFallbackDenylist: [/^\/admin/, /^\/super-admin/, /^\/auth/],
+  // Keep in sync with scripts/generate-seo-files.mjs's DISALLOWED_PATHS.
+  navigateFallbackDenylist: [
+    /^\/admin/,
+    /^\/super-admin/,
+    /^\/auth/,
+    /^\/commande/,
+    /^\/commandes/,
+    /^\/livreur/,
+    /^\/deliver/,
+    /^\/delivery/,
+  ],
   importScripts: ["sw-push.js"],
   runtimeCaching: [
     {

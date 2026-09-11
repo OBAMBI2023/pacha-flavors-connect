@@ -12,6 +12,20 @@ export default defineConfig({
   server: {
     host: true,
   },
+  optimizeDeps: {
+    // maplibre-gl loads its own worker as a sibling module
+    // (maplibre-gl-worker.mjs) resolved relative to its own module URL. Vite
+    // dev's esbuild pre-bundler only pre-bundles the main "maplibre-gl"
+    // entry into node_modules/.vite/deps/, never that worker sub-module, so
+    // the sibling path it computes 404s there and the worker never gets its
+    // code -- the map then sits on a correctly-sized, empty WebGL canvas
+    // (style/sprites/tiles-source all fetch fine; zero .pbf tile requests
+    // ever fire since tile loading is gated on the worker). Excluding it
+    // here makes Vite serve it straight from node_modules instead, where
+    // its relative worker path resolves for real. Production builds are
+    // unaffected (Rollup inlines the worker code into the bundle instead).
+    exclude: ["maplibre-gl"],
+  },
   plugins: [
     tanstackStart(),
     react(),

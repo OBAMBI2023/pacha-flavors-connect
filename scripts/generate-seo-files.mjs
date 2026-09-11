@@ -41,6 +41,11 @@ const SITE_URL = (process.env.VITE_SITE_URL || "https://pacha-flavors-connect.lo
 // per-tenant storefront sitemaps further down genuinely need Supabase.
 const STATIC_MARKETING_PATHS = ["/food", "/food-signup", "/food/conseils"];
 
+// The marketplace/homepage surface (src/routes/index.tsx, restaurants.tsx,
+// rechercher.tsx) is indexable but was previously absent from every
+// sitemap. No DB dependency, same reasoning as STATIC_MARKETING_PATHS above.
+const STATIC_MARKETPLACE_PATHS = ["/", "/restaurants", "/rechercher"];
+
 // This plain Node script (run directly, not through Vite/tsx) can't resolve
 // the app's `@/` path aliases or import .ts source -- see this file's own
 // note further down about tenantCanonicalUrl. Same reasoning here: this is
@@ -72,6 +77,12 @@ function xmlEscape(value) {
 function tenantOrigin(tenant) {
   return tenant.custom_domain ? `https://${tenant.custom_domain}` : SITE_URL;
 }
+
+// Keep in sync with src/lib/seo.ts's ROOT_PAGE_TENANT_SLUG: "le-pacha" also
+// has its own dedicated page at the site root (src/routes/index.tsx),
+// already listed via STATIC_MARKETPLACE_PATHS above -- excluded below so it
+// isn't listed twice under two different (non-canonical vs. canonical) URLs.
+const ROOT_PAGE_TENANT_SLUG = "le-pacha";
 
 /** Mirrors src/lib/seo.ts's tenantCanonicalUrl: root path on a custom domain, `/r/<slug>` on the shared domain. */
 function tenantCanonicalUrl(tenant) {
@@ -124,6 +135,14 @@ function staticMarketingSitemapXml() {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${[...staticEntries, ...articleEntries].join("\n")}\n</urlset>\n`;
 }
 
+// --- static marketplace sitemap (sitemap-marketplace.xml) -----------------
+function staticMarketplaceSitemapXml() {
+  const entries = STATIC_MARKETPLACE_PATHS.map(
+    (path) => `  <url>\n    <loc>${xmlEscape(`${SITE_URL}${path}`)}</loc>\n    <changefreq>daily</changefreq>\n  </url>`,
+  );
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries.join("\n")}\n</urlset>\n`;
+}
+
 // --- per-tenant sitemap -------------------------------------------------
 // Only that tenant's own public URL(s) -- today just its storefront root
 // (no separate indexable product/category routes exist yet), but written
@@ -160,6 +179,7 @@ function sitemapIndexEntry(tenant) {
 await mkdir("dist/client/sitemaps", { recursive: true });
 await writeFile("dist/client/robots.txt", robotsLines.join("\n"), "utf8");
 await writeFile("dist/client/sitemap-food.xml", staticMarketingSitemapXml(), "utf8");
+await writeFile("dist/client/sitemap-marketplace.xml", staticMarketplaceSitemapXml(), "utf8");
 
 // --- per-tenant output (needs Supabase; degrades gracefully without it) ---
 let tenants = [];
@@ -171,13 +191,20 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
   if (error) {
     console.error("[generate-seo-files] get_public_sitemap_index failed:", error.message);
   } else {
-    tenants = data ?? [];
+    // ROOT_PAGE_TENANT_SLUG is already covered by STATIC_MARKETPLACE_PATHS's "/" entry.
+    tenants = (data ?? []).filter((tenant) => tenant.slug !== ROOT_PAGE_TENANT_SLUG);
   }
 }
 
 const foodSitemapEntry = ["  <sitemap>", `    <loc>${xmlEscape(`${SITE_URL}/sitemap-food.xml`)}</loc>`, "  </sitemap>"].join("\n");
+const marketplaceSitemapEntry = [
+  "  <sitemap>",
+  `    <loc>${xmlEscape(`${SITE_URL}/sitemap-marketplace.xml`)}</loc>`,
+  "  </sitemap>",
+].join("\n");
 const indexXml = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${[
   foodSitemapEntry,
+  marketplaceSitemapEntry,
   ...tenants.map(sitemapIndexEntry),
 ].join("\n")}\n</sitemapindex>\n`;
 await writeFile("dist/client/sitemap.xml", indexXml, "utf8");
@@ -185,5 +212,5 @@ await writeFile("dist/client/sitemap.xml", indexXml, "utf8");
 await Promise.all(tenants.map(writeTenantSitemap));
 
 console.log(
-  `[generate-seo-files] wrote dist/client/robots.txt, dist/client/sitemap.xml, dist/client/sitemap-food.xml, and ${tenants.length} tenant sitemap(s).`,
+  `[generate-seo-files] wrote dist/client/robots.txt, dist/client/sitemap.xml, dist/client/sitemap-food.xml, dist/client/sitemap-marketplace.xml, and ${tenants.length} tenant sitemap(s).`,
 );

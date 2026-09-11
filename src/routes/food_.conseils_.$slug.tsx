@@ -58,7 +58,6 @@ export const Route = createFileRoute("/food_/conseils_/$slug")({
     };
     const breadcrumbJsonLd = buildBreadcrumbJsonLd([
       { name: "Accueil", url: `${siteOrigin()}/food` },
-      { name: "Conseils", url: `${siteOrigin()}/food/conseils` },
       { name: category.title, url: `${siteOrigin()}/food/conseils` },
       { name: article.title, url: canonicalUrl },
     ]);

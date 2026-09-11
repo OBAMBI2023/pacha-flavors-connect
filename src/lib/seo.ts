@@ -59,11 +59,23 @@ function tenantOrigin(settings: SeoSettingsInput | null): string {
   return siteOrigin();
 }
 
-/** The tenant's own canonical page URL -- root path on a custom domain, `/r/<slug>` on the shared domain. */
+/**
+ * "le-pacha" is the one tenant that also has its own dedicated, hand-built
+ * page at the site root (src/routes/index.tsx) -- both are indexable, so
+ * without this the two would compete as duplicate content for the same
+ * restaurant. The root page is the authoritative one (richer JSON-LD,
+ * bespoke design); the tenant storefront stays reachable at /r/le-pacha but
+ * canonicalizes to it. No other tenant is affected.
+ */
+const ROOT_PAGE_TENANT_SLUG = "le-pacha";
+
+/** The tenant's own canonical page URL -- root path on a custom domain, `/r/<slug>` on the shared domain (or the site root itself for ROOT_PAGE_TENANT_SLUG). */
 export function tenantCanonicalUrl(restaurant: SeoRestaurantInput, settings: SeoSettingsInput | null): string {
   const origin = tenantOrigin(settings);
   const custom = settings?.custom_domain?.trim();
-  return custom ? `${origin}/` : `${origin}/r/${restaurant.slug}`;
+  if (custom) return `${origin}/`;
+  if (restaurant.slug === ROOT_PAGE_TENANT_SLUG) return `${origin}/`;
+  return `${origin}/r/${restaurant.slug}`;
 }
 
 export function resolveSeoTitle(restaurant: SeoRestaurantInput, settings: SeoSettingsInput | null): string {

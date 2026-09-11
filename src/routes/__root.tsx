@@ -81,19 +81,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-      { title: "Pacha Flavors Connect" },
-      { name: "description", content: "Menu public, administration et gestion des plats pour Pacha Restaurant." },
-      { name: "author", content: "Pacha Restaurant" },
-      { property: "og:title", content: "Pacha Flavors Connect" },
-      { property: "og:description", content: "Menu public, administration et gestion des plats pour Pacha Restaurant." },
+      { title: "SAOVIA" },
+      { name: "description", content: "SAOVIA : commande en ligne et gestion de restaurants." },
+      { name: "author", content: "SAOVIA" },
+      { property: "og:title", content: "SAOVIA" },
+      { property: "og:description", content: "SAOVIA : commande en ligne et gestion de restaurants." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@PachaRestaurant" },
       { name: "theme-color", content: "#32190c" },
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
-      { name: "apple-mobile-web-app-title", content: "LE PACHA" },
+      { name: "apple-mobile-web-app-title", content: "SAOVIA" },
     ],
     links: [
       {
@@ -119,7 +118,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="fr">
       <head>
         {/* HeadContent already renders <meta property="csp-nonce" content=
             {router.options.ssr.nonce}> whenever ssr.nonce is set -- read by

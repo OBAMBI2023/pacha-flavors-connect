@@ -23,7 +23,11 @@ const STATUS_HEADLINE: Record<OrderStatus, string> = {
   cancelled: "Commande refusée",
 };
 
-export const Route = createFileRoute("/commande/$orderId/confirmation")({ ssr: false, component: ConfirmationPage });
+export const Route = createFileRoute("/commande/$orderId/confirmation")({
+  ssr: false,
+  head: () => ({ meta: [{ name: "robots", content: "noindex" }] }),
+  component: ConfirmationPage,
+});
 
 function ConfirmationPage() {
   useStorefrontTheme(null);

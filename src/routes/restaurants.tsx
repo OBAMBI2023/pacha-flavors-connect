@@ -12,16 +12,31 @@ import { BottomNav } from "@/components/marketplace/BottomNav";
 import { PublicFooter } from "@/components/PublicFooter";
 import { useMarketplaceRestaurants } from "@/lib/marketplace";
 import { useFavoriteRestaurants } from "@/lib/favorites";
+import { siteOrigin } from "@/lib/seo";
+
+const TITLE = "Restaurants | SAOVIA";
+const DESCRIPTION = "Découvrez les restaurants disponibles sur SAOVIA à Abidjan.";
 
 export const Route = createFileRoute("/restaurants")({
-  head: () => ({
-    meta: [
-      { title: "Restaurants | SAOVIA" },
-      { name: "description", content: "Découvrez les restaurants disponibles sur SAOVIA à Abidjan." },
-      { name: "robots", content: "index,follow" },
-    ],
-    links: [{ rel: "canonical", href: "/restaurants" }],
-  }),
+  head: () => {
+    const canonicalUrl = `${siteOrigin()}/restaurants`;
+    return {
+      meta: [
+        { title: TITLE },
+        { name: "description", content: DESCRIPTION },
+        { name: "robots", content: "index,follow" },
+        { property: "og:type", content: "website" },
+        { property: "og:site_name", content: "SAOVIA" },
+        { property: "og:title", content: TITLE },
+        { property: "og:description", content: DESCRIPTION },
+        { property: "og:url", content: canonicalUrl },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: TITLE },
+        { name: "twitter:description", content: DESCRIPTION },
+      ],
+      links: [{ rel: "canonical", href: canonicalUrl }],
+    };
+  },
   component: RestaurantsPage,
 });
 
