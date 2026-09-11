@@ -4,6 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { VitePWA } from "vite-plugin-pwa";
+import { nitro } from "nitro/vite";
 
 export default defineConfig({
   // `npm run dev` (plain `vite dev`) binds to localhost only by default --
@@ -11,6 +12,15 @@ export default defineConfig({
   // without manually passing --host every time.
   server: {
     host: true,
+    watch: {
+      // Nitro's dev integration continuously regenerates files under
+      // .output/ (public assets, SSR manifest). Without this exclusion,
+      // Vite's own watcher (chokidar/fs.watch) picks up those writes as
+      // public-dir changes and triggers a full reload, which races Nitro's
+      // next write -- on Windows this write/watch collision surfaces as
+      // EBUSY: resource busy or locked and can crash the dev server.
+      ignored: ["**/.output/**"],
+    },
   },
   optimizeDeps: {
     // maplibre-gl loads its own worker as a sibling module
@@ -28,6 +38,13 @@ export default defineConfig({
   },
   plugins: [
     tanstackStart(),
+    nitro({
+      rolldownConfig: {
+        output: {
+          preserveModules: true,
+        },
+      },
+    }),
     react(),
     tailwindcss(),
     tsconfigPaths(),

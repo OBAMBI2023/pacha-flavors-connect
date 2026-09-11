@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { DbRestaurant } from "@/lib/menu-db";
-import { fetchOrderDetail, type Order, type OrderDetail, type OrderStatus } from "@/lib/orders-db";
+import { fetchOrderDetail, fetchOrderFinancialBreakdown, type Order, type OrderDetail, type OrderFinancialBreakdown, type OrderStatus } from "@/lib/orders-db";
 import { DRIVER_STATUS_BUCKET_CLASSNAMES, DRIVER_STATUS_BUCKET_LABELS, driverStatusBucket, fetchDriver, type Driver } from "@/lib/drivers";
 import { formatMoney as money } from "@/lib/currency";
 import { STATUS_BADGE_CLASS, STATUS_LABELS, buildDeliveryDetailsText, deliveryAddressLine, fulfillmentLabel, googleMapsUrl, nextActions } from "./orderStatusMeta";
@@ -50,6 +50,7 @@ export function OrderDetailSheet({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [assignedDriver, setAssignedDriver] = useState<Driver | null>(null);
+  const [financials, setFinancials] = useState<OrderFinancialBreakdown | null>(null);
 
   useEffect(() => {
     if (!orderId) {
@@ -68,6 +69,25 @@ export function OrderDetailSheet({
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [orderId]);
+
+  useEffect(() => {
+    if (!orderId) {
+      setFinancials(null);
+      return;
+    }
+    let cancelled = false;
+    fetchOrderFinancialBreakdown(orderId)
+      .then((data) => {
+        if (!cancelled) setFinancials(data);
+      })
+      .catch(() => {
+        // Non-blocking: the static subtotal/delivery/total section above
+        // already renders from `detail` regardless of this call's outcome.
       });
     return () => {
       cancelled = true;
@@ -345,6 +365,52 @@ export function OrderDetailSheet({
                   <span>TOTAL À PAYER</span>
                   <span>{money(detail.total_amount, detail.currency)}</span>
                 </div>
+              </section>
+
+              <section className="space-y-1.5 rounded-2xl border border-border p-4">
+                <h3 className="font-semibold">Répartition financière</h3>
+                {financials ? (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Total produits (restaurant)</span>
+                      <span>{money(financials.restaurant_total, detail.currency)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Frais de livraison (livreur)</span>
+                      <span>{money(financials.delivery_fee_amount, detail.currency)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">
+                        Commission Saovia{financials.commission_rate > 0 ? ` (${(financials.commission_rate * 100).toLocaleString("fr-FR")} %)` : ""}
+                      </span>
+                      <span>-{money(financials.saovia_commission, detail.currency)}</span>
+                    </div>
+                    <div className="flex items-center justify-between border-t border-border pt-1.5 font-semibold">
+                      <span>Net restaurant</span>
+                      <span>{money(financials.restaurant_net, detail.currency)}</span>
+                    </div>
+                    {financials.payments.length > 0 && (
+                      <div className="space-y-1.5 border-t border-border pt-2.5">
+                        <p className="text-xs font-semibold text-muted-foreground">Historique des paiements</p>
+                        <ul className="space-y-1 text-xs">
+                          {financials.payments.map((p) => (
+                            <li key={p.id} className="flex items-center justify-between gap-2">
+                              <span className="text-muted-foreground">
+                                {new Date(p.created_at).toLocaleString("fr-FR")}
+                                {p.collected_by_driver ? " · encaissé par le livreur" : ""}
+                              </span>
+                              <span>
+                                {money(p.amount, detail.currency)} · {PAYMENT_STATUS_LABELS[p.status]}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <Skeleton className="h-16 w-full" />
+                )}
               </section>
 
               <section className="space-y-2.5 rounded-2xl border border-border p-4">

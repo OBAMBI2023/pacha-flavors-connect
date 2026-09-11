@@ -1,7 +1,7 @@
-// Generates dist/client/robots.txt, dist/client/sitemap-food.xml (the
+// Generates .output/public/robots.txt, .output/public/sitemap-food.xml (the
 // static SAOVIA Food marketing pages + every /food/conseils article),
-// dist/client/sitemap.xml (a sitemap index referencing sitemap-food.xml
-// plus one dist/client/sitemaps/<slug>.xml per public tenant), after
+// .output/public/sitemap.xml (a sitemap index referencing sitemap-food.xml
+// plus one .output/public/sitemaps/<slug>.xml per public tenant), after
 // `vite build` -- automatic on every deploy, no manual step.
 //
 // robots.txt and sitemap-food.xml have no Supabase dependency and are
@@ -33,7 +33,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
-const SITE_URL = (process.env.VITE_SITE_URL || "https://pacha-flavors-connect.lovable.app").replace(/\/+$/, "");
+const SITE_URL = (process.env.VITE_SITE_URL || "https://food.saovia.net").replace(/\/+$/, "");
 
 // Static SAOVIA Food marketing pages -- no DB dependency, so these (and the
 // robots.txt/sitemap-food.xml/sitemap.xml files below) must be written
@@ -162,7 +162,7 @@ async function writeTenantSitemap(tenant) {
     .join("\n");
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urlEntry}\n</urlset>\n`;
-  await writeFile(`dist/client/sitemaps/${tenant.slug}.xml`, xml, "utf8");
+  await writeFile(`.output/public/sitemaps/${tenant.slug}.xml`, xml, "utf8");
 }
 
 // --- sitemap index --------------------------------------------------------
@@ -176,10 +176,10 @@ function sitemapIndexEntry(tenant) {
 }
 
 // --- always-on static output (no Supabase needed) -------------------------
-await mkdir("dist/client/sitemaps", { recursive: true });
-await writeFile("dist/client/robots.txt", robotsLines.join("\n"), "utf8");
-await writeFile("dist/client/sitemap-food.xml", staticMarketingSitemapXml(), "utf8");
-await writeFile("dist/client/sitemap-marketplace.xml", staticMarketplaceSitemapXml(), "utf8");
+await mkdir(".output/public/sitemaps", { recursive: true });
+await writeFile(".output/public/robots.txt", robotsLines.join("\n"), "utf8");
+await writeFile(".output/public/sitemap-food.xml", staticMarketingSitemapXml(), "utf8");
+await writeFile(".output/public/sitemap-marketplace.xml", staticMarketplaceSitemapXml(), "utf8");
 
 // --- per-tenant output (needs Supabase; degrades gracefully without it) ---
 let tenants = [];
@@ -207,10 +207,10 @@ const indexXml = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="h
   marketplaceSitemapEntry,
   ...tenants.map(sitemapIndexEntry),
 ].join("\n")}\n</sitemapindex>\n`;
-await writeFile("dist/client/sitemap.xml", indexXml, "utf8");
+await writeFile(".output/public/sitemap.xml", indexXml, "utf8");
 
 await Promise.all(tenants.map(writeTenantSitemap));
 
 console.log(
-  `[generate-seo-files] wrote dist/client/robots.txt, dist/client/sitemap.xml, dist/client/sitemap-food.xml, dist/client/sitemap-marketplace.xml, and ${tenants.length} tenant sitemap(s).`,
+  `[generate-seo-files] wrote .output/public/robots.txt, .output/public/sitemap.xml, .output/public/sitemap-food.xml, .output/public/sitemap-marketplace.xml, and ${tenants.length} tenant sitemap(s).`,
 );

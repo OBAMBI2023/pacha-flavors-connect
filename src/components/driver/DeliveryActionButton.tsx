@@ -82,12 +82,11 @@ function PickupCodeForm({
 }
 
 /**
- * The one contextual action for the driver's current step. `arrived_at_customer`
- * is the only branching point: cash-pending orders open the encaissement
- * sheet instead of calling the RPC directly, everything else (including a
- * non-cash order reaching this same step) is a single "next status" call --
- * the RPC is the actual enforcement, this only ever offers the one legal
- * next action.
+ * The one contextual action for the driver's current step. The restaurant
+ * is the sole cash collector now (see restaurant_settings.cash_collection_
+ * mode) -- `arrived_at_customer` always just confirms the delivery itself,
+ * regardless of payment_status; the RPC never routes a driver into a
+ * cash-collection step for a tenant in the default 'restaurant' mode.
  */
 export function DeliveryActionButton({
   activeDelivery,
@@ -118,15 +117,9 @@ export function DeliveryActionButton({
   }
 
   if (current === "arrived_at_customer") {
-    const isCash = activeDelivery.payment_status === "cash_pending";
-    async function startCashCollection() {
-      // The confirm-payment RPC requires driver_delivery_status='cash_collection'
-      // -- transition into that step before opening the sheet, not after.
-      if (await advance("cash_collection")) onOpenCashCollection();
-    }
     return (
-      <Button className="h-12 w-full" disabled={busy} onClick={() => (isCash ? void startCashCollection() : void advance("delivered"))}>
-        {isCash ? "Encaisser le paiement" : "Confirmer la livraison"}
+      <Button className="h-12 w-full" disabled={busy} onClick={() => void advance("delivered")}>
+        Confirmer la livraison
       </Button>
     );
   }

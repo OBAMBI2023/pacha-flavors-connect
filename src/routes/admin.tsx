@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   BarChart3,
@@ -96,6 +96,7 @@ import { SecurityCard } from "@/components/admin/settings/SecurityCard";
 import { FulfillmentSettingsCard } from "@/components/admin/settings/FulfillmentSettingsCard";
 import { CurrencyCard } from "@/components/admin/settings/CurrencyCard";
 import { SeoSettingsCard } from "@/components/admin/settings/SeoSettingsCard";
+import { QrCodeCard } from "@/components/admin/settings/QrCodeCard";
 import { useRestaurantTheme } from "@/hooks/useRestaurantTheme";
 import { DEFAULT_CURRENCY_CODE, currencySymbol, formatMoney } from "@/lib/currency";
 
@@ -512,7 +513,7 @@ export default function AdminPage() {
     }
 
     setBusy(true);
-    const payload = {
+    const payload: Record<string, unknown> = {
       name: itemForm.name.trim(),
       subtitle: itemForm.subtitle.trim() || null,
       description: itemForm.description.trim(),
@@ -520,9 +521,9 @@ export default function AdminPage() {
       prep_time_minutes: prepTime,
       category_id: itemForm.category_id || null,
       sort_order: Number(itemForm.position) || 0,
-      is_available: itemForm.available,
       is_daily_menu: itemForm.daily,
     };
+    payload["is_available"] = itemForm.available;
     let productId: string | null = editingItem?.id ?? null;
     if (editingItem) {
       const { error } = await supabase
@@ -1068,6 +1069,7 @@ export default function AdminPage() {
                     onSaved={() => void refresh()}
                   />
                   <SeoSettingsCard restaurantId={restaurantId} restaurant={restaurant} />
+                  <QrCodeCard restaurant={restaurant} />
                   <SubscriptionCard restaurantId={restaurantId} />
                   <SecurityCard email={user.email ?? null} />
                 </div>

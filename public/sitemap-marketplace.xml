@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Placeholder only -- see public/sitemap.xml's comment for why this file
+     must exist at build time. Overwritten in place by
+     scripts/generate-seo-files.mjs after every build. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+</urlset>

@@ -88,6 +88,16 @@ export function CashCollectionSheet({
               {activeDelivery.total_amount.toLocaleString("fr-FR")} {activeDelivery.currency}
             </span>
           </div>
+          <div className="space-y-1 rounded-2xl bg-secondary/60 p-3 text-xs text-muted-foreground">
+            <div className="flex items-center justify-between">
+              <span>Dont produits (pour le restaurant)</span>
+              <span>{(activeDelivery.total_amount - activeDelivery.delivery_fee_amount).toLocaleString("fr-FR")} {activeDelivery.currency}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Dont votre course</span>
+              <span>{activeDelivery.delivery_fee_amount.toLocaleString("fr-FR")} {activeDelivery.currency}</span>
+            </div>
+          </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Mode de paiement</span>
             <span className="font-medium">{PAYMENT_METHOD_LABELS[activeDelivery.payment_method] ?? activeDelivery.payment_method}</span>

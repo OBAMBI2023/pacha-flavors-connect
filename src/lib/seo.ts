@@ -44,7 +44,7 @@ const ENGLISH_WEEKDAY: Record<number, string> = {
  */
 function siteOrigin(): string {
   const configured = (import.meta.env as Record<string, string | undefined>)["VITE_SITE_URL"];
-  return (configured ?? "https://pacha-flavors-connect.lovable.app").replace(/\/+$/, "");
+  return (configured ?? "https://food.saovia.net").replace(/\/+$/, "");
 }
 
 /**

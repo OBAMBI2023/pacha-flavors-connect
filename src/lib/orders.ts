@@ -45,6 +45,8 @@ export type OrderRow = {
   estimated_preparation_minutes: number | null;
   currency: string;
   subtotal_amount: number;
+  delivery_fee_amount: number;
+  discount_amount: number;
   total_amount: number;
   created_at: string;
   driver_delivery_status: DriverDeliveryStatus | null;
@@ -94,6 +96,8 @@ export type CreateOrderInput = {
   promo_code?: string | null;
   /** Set only when checking out while the restaurant is closed -- an ISO timestamp for the customer-picked future slot. create_order re-validates it server-side against get_restaurant_availability(id, this timestamp); the client's own read of availability is only ever a display hint. Omitted (not just null) for a normal immediate order. */
   scheduled_for?: string | null;
+  /** "qr_code" only when this tab's most recent landing on this tenant carried ?source=qr (see hasQrAttribution) -- every other order is "direct". Attribution/analytics only, never affects pricing. */
+  order_source?: "direct" | "qr_code";
 };
 
 export type CreateOrderResult = {
@@ -135,7 +139,7 @@ export async function createRestaurantOrder(input: CreateOrderInput): Promise<Cr
     p_delivery_landmark: input.delivery_landmark ?? null,
     p_customer_notes: input.customer_notes ?? null,
     p_payment_method: input.payment_method ?? "cash",
-    p_order_source: "web",
+    p_order_source: input.order_source ?? "direct",
     p_source_metadata: { source: "saovia-mobile" },
     p_cutlery_requested: input.cutlery_requested ?? false,
     p_offer_id: input.offer_id ?? null,

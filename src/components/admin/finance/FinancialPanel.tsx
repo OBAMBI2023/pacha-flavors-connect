@@ -89,6 +89,23 @@ export function FinancialPanel({ currency }: { currency: string }) {
             <StatCard label="Remboursé" value={formatMoney(stats.refunded_amount, currency)} hint="Total remboursements enregistrés" />
           </div>
 
+          <div>
+            <h3 className="font-semibold">Répartition restaurant / livraison / Saovia</h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Les frais de livraison ne sont jamais comptés dans le CA produits du restaurant.
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <StatCard label="CA produits (restaurant)" value={formatMoney(stats.financials.restaurant_revenue, currency)} hint="Sous-total - remises, hors livraison" />
+              <StatCard label="Frais de livraison" value={formatMoney(stats.financials.delivery_fee_total, currency)} hint="Flux livreur, distinct du CA restaurant" />
+              <StatCard
+                label="Commission Saovia"
+                value={formatMoney(stats.financials.saovia_commission, currency)}
+                hint={stats.financials.commission_rate > 0 ? `Taux : ${(stats.financials.commission_rate * 100).toLocaleString("fr-FR")} %` : "Aucun taux configuré"}
+              />
+              <StatCard label="Net restaurant" value={formatMoney(stats.financials.restaurant_net, currency)} hint="CA produits - commission Saovia" />
+            </div>
+          </div>
+
           <div className="grid gap-4 lg:grid-cols-2">
             <section className="rounded-2xl border border-border bg-card p-5">
               <h3 className="font-semibold">Paiements par statut</h3>

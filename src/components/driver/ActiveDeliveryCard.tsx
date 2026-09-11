@@ -84,7 +84,12 @@ export function ActiveDeliveryCard({
       <DeliveryStepTimeline
         status={activeDelivery.driver_delivery_status}
         isCashOrder={
-          activeDelivery.payment_status === "cash_pending" ||
+          // The restaurant is the sole cash collector now (see
+          // restaurant_settings.cash_collection_mode) -- a plain
+          // cash_pending order no longer implies the driver's timeline
+          // should show an encaissement step. Only an order already sitting
+          // in that legacy state (a tenant explicitly left in 'driver'/'both'
+          // mode) still shows it.
           activeDelivery.driver_delivery_status === "cash_collection" ||
           activeDelivery.driver_delivery_status === "payment_confirmed"
         }

@@ -1,25 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
 import { CartProvider } from "@/lib/cart";
-import { Header } from "@/components/Header";
-import { Hero } from "@/components/Hero";
-import { DailyMenu } from "@/components/DailyMenu";
-import { MenuCategories } from "@/components/MenuCategories";
-import { DeliverySection } from "@/components/DeliverySection";
-import { ReservationSection } from "@/components/ReservationSection";
-import { AboutSection } from "@/components/AboutSection";
-import { ContactSection } from "@/components/ContactSection";
-import { Footer } from "@/components/Footer";
-import { PublicFooter } from "@/components/PublicFooter";
-import { CartDrawer } from "@/components/CartDrawer";
-import { MobileBottomNav } from "@/components/MobileBottomNav";
-import { StickyCartBar } from "@/components/StickyCartBar";
-import { MoreSheet } from "@/components/MoreSheet";
-import { MenuSearchSheet } from "@/components/MenuSearchSheet";
-import { CategoriesSheet } from "@/components/CategoriesSheet";
-import { useVisitorTracking } from "@/lib/visitorTracking";
+import { DeliveryLocationProvider } from "@/lib/deliveryLocation";
+import { TenantStorefront } from "@/routes/r.$slug";
 import { siteOrigin } from "@/lib/seo";
 import heroImg from "@/assets/hero.jpg";
+
+// "/" is the default storefront, currently pinned to this one tenant (same
+// hardcoded slug the legacy version of this page already passed to every
+// section -- not a new assumption). Renders the exact same generic,
+// slug-driven TenantStorefront as /r/$slug -- same data fetching (RLS/RPC
+// tenant-scoped via useMenuData), same components, same cart/checkout, so
+// this page can never diverge from the real storefront again. See
+// src/routes/r.$slug.tsx for the component this reuses.
+const HOME_TENANT_SLUG = "le-pacha";
 
 const TITLE = "Le Pacha Restaurant | Restaurant à Angré 8e Tranche Abidjan";
 const DESCRIPTION =
@@ -78,49 +71,11 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
-  const [categoriesOpen, setCategoriesOpen] = useState(false);
-  const [activeCategory, setActiveCategory] = useState("tous");
-  useVisitorTracking("le-pacha");
-
   return (
     <CartProvider>
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="pb-24 lg:pb-0">
-          <Hero />
-          <DailyMenu slug="le-pacha" />
-          <MenuCategories
-            slug="le-pacha"
-            activeCategory={activeCategory}
-            onActiveCategoryChange={setActiveCategory}
-            onOpenCategories={() => setCategoriesOpen(true)}
-          />
-          <DeliverySection />
-          <ReservationSection />
-          <AboutSection />
-          <ContactSection />
-        </main>
-        <Footer />
-        <PublicFooter restaurantName="Le Pacha Restaurant" />
-        <CartDrawer />
-        <StickyCartBar />
-        <MobileBottomNav
-          onOpenSearch={() => setSearchOpen(true)}
-          onOpenMore={() => setMoreOpen(true)}
-          isSearchOpen={searchOpen}
-          isMoreOpen={moreOpen}
-        />
-        <MenuSearchSheet slug="le-pacha" open={searchOpen} onOpenChange={setSearchOpen} />
-        <MoreSheet open={moreOpen} onOpenChange={setMoreOpen} />
-        <CategoriesSheet
-          slug="le-pacha"
-          open={categoriesOpen}
-          onOpenChange={setCategoriesOpen}
-          onSelectCategory={setActiveCategory}
-        />
-      </div>
+      <DeliveryLocationProvider>
+        <TenantStorefront slug={HOME_TENANT_SLUG} />
+      </DeliveryLocationProvider>
     </CartProvider>
   );
 }

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Placeholder only. Nitro's node-server preset builds its static-asset
+     route table by scanning public/ during `vite build`, before
+     scripts/generate-seo-files.mjs (a postbuild step) ever runs -- a file
+     that doesn't exist here yet at that point gets no route at all, 404s
+     forever even once the postbuild step writes the real one to
+     .output/public/, regardless of content. This placeholder's only job is
+     to exist at build time so Nitro registers the /sitemap.xml route; the
+     postbuild step then overwrites this file in place with the real,
+     tenant-aware sitemap index, which the server reads from disk on every
+     request (confirmed via robots.txt, which follows the same pattern). -->
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+</sitemapindex>
