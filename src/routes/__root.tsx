@@ -121,6 +121,10 @@ function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <head>
+        {/* HeadContent already renders <meta property="csp-nonce" content=
+            {router.options.ssr.nonce}> whenever ssr.nonce is set -- read by
+            the sonner patch (patches/sonner+2.0.8.patch) to nonce the
+            <style> it injects outside the React tree/head config system. */}
         <HeadContent />
       </head>
       <body>
@@ -133,6 +137,27 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    // Supabase/GoTrue always sends signInWithOAuth's own redirectTo ("/auth"
+    // here) on a *successful* callback, but falls back to the project's
+    // Site URL ("/", not our redirectTo) whenever the callback itself fails
+    // to validate -- e.g. bad_oauth_state ("OAuth state has expired", when
+    // too much time passed on Google's account/consent screens). That
+    // fallback is GoTrue's own behavior and isn't configurable from here.
+    // Without this, an OAuth error or a stray code/access_token landing on
+    // "/" is silently ignored -- only /auth knows how to read and surface
+    // it. Scoped to "/" plus a cheap query/hash check so this is a no-op on
+    // every other page load across the whole app (tenant storefronts,
+    // admin, delivery, etc.).
+    if (window.location.pathname !== "/") return;
+    const hasOAuthCallbackParams =
+      /[?&](code|error)=/.test(window.location.search) ||
+      /[#&](access_token|error)=/.test(window.location.hash);
+    if (hasOAuthCallbackParams) {
+      window.location.replace(`/auth${window.location.search}${window.location.hash}`);
+    }
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

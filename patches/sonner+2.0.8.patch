@@ -1,0 +1,38 @@
+diff --git a/node_modules/sonner/dist/index.js b/node_modules/sonner/dist/index.js
+index 394dbc2..7916ead 100644
+--- a/node_modules/sonner/dist/index.js
++++ b/node_modules/sonner/dist/index.js
+@@ -4,6 +4,14 @@ function __insertCSS(code) {
+   let head = document.head || document.getElementsByTagName('head')[0]
+   let style = document.createElement('style')
+   style.type = 'text/css'
++  // PATCH (patches/sonner+2.0.8.patch): CSP nonce, read from TanStack
++  // Router's own <meta property="csp-nonce"> (rendered automatically by
++  // <HeadContent/> whenever router.options.ssr.nonce is set -- see
++  // @tanstack/react-router's headContentUtils.tsx). sonner runs at
++  // module-import time, outside any component tree, so it can't call
++  // useRouter() the way the app's own SSR-rendered tags do.
++  var __cspNonceMeta = document.querySelector('meta[property="csp-nonce"]')
++  if (__cspNonceMeta) style.setAttribute('nonce', __cspNonceMeta.content)
+   head.appendChild(style)
+   ;style.styleSheet ? (style.styleSheet.cssText = code) : style.appendChild(document.createTextNode(code))
+ }
+diff --git a/node_modules/sonner/dist/index.mjs b/node_modules/sonner/dist/index.mjs
+index c124f82..5f7fc34 100644
+--- a/node_modules/sonner/dist/index.mjs
++++ b/node_modules/sonner/dist/index.mjs
+@@ -4,6 +4,14 @@ function __insertCSS(code) {
+   let head = document.head || document.getElementsByTagName('head')[0]
+   let style = document.createElement('style')
+   style.type = 'text/css'
++  // PATCH (patches/sonner+2.0.8.patch): CSP nonce, read from TanStack
++  // Router's own <meta property="csp-nonce"> (rendered automatically by
++  // <HeadContent/> whenever router.options.ssr.nonce is set -- see
++  // @tanstack/react-router's headContentUtils.tsx). sonner runs at
++  // module-import time, outside any component tree, so it can't call
++  // useRouter() the way the app's own SSR-rendered tags do.
++  var __cspNonceMeta = document.querySelector('meta[property="csp-nonce"]')
++  if (__cspNonceMeta) style.setAttribute('nonce', __cspNonceMeta.content)
+   head.appendChild(style)
+   ;style.styleSheet ? (style.styleSheet.cssText = code) : style.appendChild(document.createTextNode(code))
+ }
