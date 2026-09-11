@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-any";
 import type { PaymentMethod, PaymentStatus } from "@/lib/orders-db";
 
 export type DriverStatus = "offline" | "available" | "proposed" | "busy" | "delivering";

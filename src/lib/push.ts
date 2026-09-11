@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-any";
 
 /**
  * Web Push subscribe/unsubscribe -- prepared architecture, not wired to any

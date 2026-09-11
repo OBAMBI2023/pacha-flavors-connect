@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-any";
 import { getOrCreateVisitorId } from "@/lib/visitorTracking";
 
 export type ClientNotificationType = "order_confirmed" | "order_status_update" | "delivery_update" | "new_offer";

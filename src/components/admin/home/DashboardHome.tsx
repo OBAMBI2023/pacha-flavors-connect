@@ -11,7 +11,7 @@ import {
   UtensilsCrossed,
   Wallet,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-any";
 import { MENU_BUCKET, type DbMenuItem } from "@/lib/menu-db";
 import { useRealtimeOrders } from "@/hooks/useRealtimeOrders";
 import { useDashboardStats } from "@/hooks/useDashboardStats";

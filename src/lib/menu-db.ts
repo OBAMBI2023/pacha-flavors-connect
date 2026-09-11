@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-any";
 import { FALLBACK_IMAGES, type MenuItem, type ProductOptionGroup, type ProductPromotion } from "@/data/menu";
 import type { RestaurantAvailability } from "@/lib/businessHours";
 

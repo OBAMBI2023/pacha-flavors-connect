@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-any";
 
 /** 0 = Sunday .. 6 = Saturday -- matches JS Date.getDay() / Postgres extract(dow from ...), the same convention the get_restaurant_availability RPC uses. */
 export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;

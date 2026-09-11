@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { HelpCircle, LogOut, Shield, ShieldCheck } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-any";
 import { useDriverAuth } from "@/hooks/useDriverAuth";
 import { useDriverProposals } from "@/hooks/useDriverProposals";
 import { useAudioUnlock } from "@/hooks/useAudioUnlock";

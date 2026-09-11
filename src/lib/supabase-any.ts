@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { supabase as typedSupabase } from "@/integrations/supabase/client";
+import { supabase as typedSupabase } from "@/lib/supabase-any";
 
 // The generated Database types only describe the tables of the locally
 // connected backend instance, while the app targets the full production

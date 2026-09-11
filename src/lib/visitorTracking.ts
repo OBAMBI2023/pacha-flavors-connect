@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-any";
 
 const VISITOR_ID_KEY = "saovia.visitor_id";
 const HEARTBEAT_INTERVAL_MS = 60_000;

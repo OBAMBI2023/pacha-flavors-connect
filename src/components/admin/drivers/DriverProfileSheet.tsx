@@ -38,7 +38,7 @@ import {
 } from "@/lib/drivers";
 import { VehicleFormDialog } from "./VehicleFormDialog";
 import { DocumentFormDialog } from "./DocumentFormDialog";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-any";
 
 function money(n: number) {
   return `${n.toLocaleString("fr-FR")} FCFA`;

@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-any";
 
 export type DriverStatus = "offline" | "available" | "proposed" | "busy" | "delivering" | "suspended";
 

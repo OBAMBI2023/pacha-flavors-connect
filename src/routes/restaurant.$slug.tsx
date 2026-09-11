@@ -5,7 +5,7 @@ import { MarketplaceShell } from "@/components/marketplace/MarketplaceShell";
 import { ManageRestaurantButton } from "@/components/marketplace/ManageRestaurantButton";
 import { UserAccountMenu } from "@/components/marketplace/UserAccountMenu";
 import { useMenuData } from "@/lib/menu-db";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-any";
 import type { CreateOrderResult } from "@/lib/orders-db";
 
 type CartLine = {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-any";
 import { fetchOrderItemsSummary, fetchRestaurantOrders, type Order } from "@/lib/orders-db";
 
 export type RealtimeConnectionState = "connecting" | "connected" | "disconnected" | "error";

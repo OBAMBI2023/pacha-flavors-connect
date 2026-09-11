@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Clock, Tag } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-any";
 import { MENU_BUCKET } from "@/lib/menu-db";
 import { getOrCreateVisitorId } from "@/lib/visitorTracking";
 import { fetchTenantOffers, markOfferRead, notifyOfferRead, trackOfferClick, type TenantOffer } from "@/lib/offers";
