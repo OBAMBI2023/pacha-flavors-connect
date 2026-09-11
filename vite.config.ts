@@ -4,6 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { VitePWA } from "vite-plugin-pwa";
+import { nitro } from "nitro/vite";
 
 export default defineConfig({
   // `npm run dev` (plain `vite dev`) binds to localhost only by default --
@@ -29,6 +30,7 @@ export default defineConfig({
   },
   plugins: [
     tanstackStart(),
+    nitro(),
     react(),
     tailwindcss(),
     tsconfigPaths(),
