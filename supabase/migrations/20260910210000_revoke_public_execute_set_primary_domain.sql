@@ -1,0 +1,25 @@
+-- Security hardening (audit finding M-02): super_admin_set_primary_domain
+-- was only ever explicitly GRANTed to `authenticated` (20260904010000), but
+-- Supabase's default privileges on this project auto-grant EXECUTE on every
+-- new function in schema public to anon/authenticated (and Postgres itself
+-- grants EXECUTE to PUBLIC on function creation) -- neither was ever
+-- explicitly revoked here, so anon (and PUBLIC generally) could call it.
+--
+-- Verified via pg_proc.proacl on the remote project before this migration:
+-- {=X/postgres, postgres=X/postgres, anon=X/postgres, authenticated=X/postgres, service_role=X/postgres}
+-- i.e. anon had EXECUTE.
+--
+-- The function's own is_super_admin() check (SECURITY DEFINER, reads
+-- profiles.is_super_admin via auth.uid()) already returns false for anon
+-- (auth.uid() is null with no JWT) and for any authenticated non-super-admin,
+-- so no privileged action was actually reachable -- this closes the
+-- unnecessary grant surface itself (least privilege / defense in depth),
+-- matching the same pattern already applied to super_admin_create_tenant,
+-- super_admin_get_tenant_owner and super_admin_list_tenants
+-- (20260831211048 / 20260831211226).
+--
+-- authenticated keeps EXECUTE: the Super Admin UI calls this RPC from an
+-- authenticated session, and the internal is_super_admin() check is the
+-- real gate for that role.
+revoke execute on function public.super_admin_set_primary_domain(uuid) from public;
+revoke execute on function public.super_admin_set_primary_domain(uuid) from anon;

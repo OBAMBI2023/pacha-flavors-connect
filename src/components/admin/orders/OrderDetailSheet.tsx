@@ -13,6 +13,7 @@ import { formatMoney as money } from "@/lib/currency";
 import { STATUS_BADGE_CLASS, STATUS_LABELS, buildDeliveryDetailsText, deliveryAddressLine, fulfillmentLabel, googleMapsUrl, nextActions } from "./orderStatusMeta";
 import { PAYMENT_METHOD_LABELS, PAYMENT_STATUS_BADGE_CLASS, PAYMENT_STATUS_LABELS } from "./paymentStatusMeta";
 import { OrderPrintTicket } from "./OrderPrintTicket";
+import { OrderPrepCountdown } from "./OrderPrepCountdown";
 
 async function copyText(text: string, successMessage: string) {
   try {
@@ -135,8 +136,17 @@ export function OrderDetailSheet({
                 <p>{detail.customer_name}</p>
                 <p className="text-muted-foreground">{detail.customer_phone}</p>
                 <p className="text-muted-foreground">{fulfillmentLabel(detail.fulfillment_type)}</p>
-                {detail.estimated_preparation_minutes !== null && (
-                  <p className="text-muted-foreground">Préparation estimée : ⏱️ {detail.estimated_preparation_minutes} min</p>
+                <p className="text-muted-foreground">
+                  Préparation estimée : ⏱️{" "}
+                  {detail.estimated_preparation_minutes !== null
+                    ? `${detail.estimated_preparation_minutes} min`
+                    : "Non renseigné"}
+                </p>
+                {detail.status === "preparing" && (
+                  <OrderPrepCountdown
+                    preparingAt={detail.preparing_at}
+                    estimatedPreparationMinutes={detail.estimated_preparation_minutes}
+                  />
                 )}
                 {detail.customer_notes && <p className="text-muted-foreground">Notes client : {detail.customer_notes}</p>}
                 <p className={detail.allergy_information ? "text-destructive" : "text-muted-foreground"}>

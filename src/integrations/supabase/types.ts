@@ -163,6 +163,66 @@ export type Database = {
           },
         ]
       }
+      country_settings: {
+        Row: {
+          autocomplete_enabled: boolean
+          country_code: string
+          country_name: string
+          created_at: string
+          currency_code: string
+          dial_code: string
+          distance_matrix_enabled: boolean
+          geocoding_enabled: boolean
+          is_active: boolean
+          locale: string
+          map_display_enabled: boolean
+          maps_provider: string
+          maps_provider_enabled: boolean
+          maps_public_client_key: string | null
+          reverse_geocoding_enabled: boolean
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          autocomplete_enabled?: boolean
+          country_code: string
+          country_name: string
+          created_at?: string
+          currency_code: string
+          dial_code: string
+          distance_matrix_enabled?: boolean
+          geocoding_enabled?: boolean
+          is_active?: boolean
+          locale: string
+          map_display_enabled?: boolean
+          maps_provider?: string
+          maps_provider_enabled?: boolean
+          maps_public_client_key?: string | null
+          reverse_geocoding_enabled?: boolean
+          timezone: string
+          updated_at?: string
+        }
+        Update: {
+          autocomplete_enabled?: boolean
+          country_code?: string
+          country_name?: string
+          created_at?: string
+          currency_code?: string
+          dial_code?: string
+          distance_matrix_enabled?: boolean
+          geocoding_enabled?: boolean
+          is_active?: boolean
+          locale?: string
+          map_display_enabled?: boolean
+          maps_provider?: string
+          maps_provider_enabled?: boolean
+          maps_public_client_key?: string | null
+          reverse_geocoding_enabled?: boolean
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           address: string | null
@@ -845,6 +905,125 @@ export type Database = {
           },
         ]
       }
+      inventory: {
+        Row: {
+          alert_threshold: number
+          created_at: string
+          id: string
+          product_id: string
+          quantity: number
+          restaurant_id: string
+          tracking_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          alert_threshold?: number
+          created_at?: string
+          id?: string
+          product_id: string
+          quantity?: number
+          restaurant_id: string
+          tracking_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          alert_threshold?: number
+          created_at?: string
+          id?: string
+          product_id?: string
+          quantity?: number
+          restaurant_id?: string
+          tracking_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_movements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          id: string
+          movement_type: string
+          note: string | null
+          order_id: string | null
+          product_id: string
+          quantity: number
+          reason: string | null
+          restaurant_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          id?: string
+          movement_type: string
+          note?: string | null
+          order_id?: string | null
+          product_id: string
+          quantity: number
+          reason?: string | null
+          restaurant_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          id?: string
+          movement_type?: string
+          note?: string | null
+          order_id?: string | null
+          product_id?: string
+          quantity?: number
+          reason?: string | null
+          restaurant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_campaign_recipients: {
         Row: {
           campaign_id: string
@@ -1344,6 +1523,7 @@ export type Database = {
             | null
           driver_note: string | null
           estimated_preparation_minutes: number | null
+          expected_ready_at: string | null
           fulfillment_type: Database["public"]["Enums"]["order_fulfillment_type"]
           id: string
           is_for_someone_else: boolean
@@ -1361,6 +1541,7 @@ export type Database = {
           pickup_code_attempts: number
           pickup_code_verified_at: string | null
           pickup_code_verified_by: string | null
+          preparation_minutes: number | null
           preparing_at: string | null
           promo_code_id: string | null
           promo_code_snapshot: string | null
@@ -1416,6 +1597,7 @@ export type Database = {
             | null
           driver_note?: string | null
           estimated_preparation_minutes?: number | null
+          expected_ready_at?: string | null
           fulfillment_type: Database["public"]["Enums"]["order_fulfillment_type"]
           id?: string
           is_for_someone_else?: boolean
@@ -1433,6 +1615,7 @@ export type Database = {
           pickup_code_attempts?: number
           pickup_code_verified_at?: string | null
           pickup_code_verified_by?: string | null
+          preparation_minutes?: number | null
           preparing_at?: string | null
           promo_code_id?: string | null
           promo_code_snapshot?: string | null
@@ -1488,6 +1671,7 @@ export type Database = {
             | null
           driver_note?: string | null
           estimated_preparation_minutes?: number | null
+          expected_ready_at?: string | null
           fulfillment_type?: Database["public"]["Enums"]["order_fulfillment_type"]
           id?: string
           is_for_someone_else?: boolean
@@ -1505,6 +1689,7 @@ export type Database = {
           pickup_code_attempts?: number
           pickup_code_verified_at?: string | null
           pickup_code_verified_by?: string | null
+          preparation_minutes?: number | null
           preparing_at?: string | null
           promo_code_id?: string | null
           promo_code_snapshot?: string | null
@@ -1658,6 +1843,8 @@ export type Database = {
       payments: {
         Row: {
           amount: number
+          collected_by_driver_id: string | null
+          collector_type: string | null
           created_at: string
           created_by: string | null
           currency: string
@@ -1674,6 +1861,8 @@ export type Database = {
         }
         Insert: {
           amount: number
+          collected_by_driver_id?: string | null
+          collector_type?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -1690,6 +1879,8 @@ export type Database = {
         }
         Update: {
           amount?: number
+          collected_by_driver_id?: string | null
+          collector_type?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -1705,6 +1896,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "payments_collected_by_driver_id_fkey"
+            columns: ["collected_by_driver_id"]
+            isOneToOne: false
+            referencedRelation: "driver_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "payments_order_id_fkey"
             columns: ["order_id"]
@@ -1804,6 +2002,30 @@ export type Database = {
           is_active?: boolean
           name?: string
           price_amount?: number
+        }
+        Relationships: []
+      }
+      platform_settings: {
+        Row: {
+          created_at: string
+          default_maps_provider: string
+          id: boolean
+          maps_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_maps_provider?: string
+          id?: boolean
+          maps_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_maps_provider?: string
+          id?: boolean
+          maps_enabled?: boolean
+          updated_at?: string
         }
         Relationships: []
       }
@@ -2197,6 +2419,44 @@ export type Database = {
           },
         ]
       }
+      restaurant_availability_snapshots: {
+        Row: {
+          checked_at: string
+          id: number
+          is_open: boolean
+          reason: string
+          restaurant_id: string
+          scheduled_open: boolean
+          status: string
+        }
+        Insert: {
+          checked_at?: string
+          id?: never
+          is_open: boolean
+          reason: string
+          restaurant_id: string
+          scheduled_open: boolean
+          status: string
+        }
+        Update: {
+          checked_at?: string
+          id?: never
+          is_open?: boolean
+          reason?: string
+          restaurant_id?: string
+          scheduled_open?: boolean
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_availability_snapshots_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurant_categories: {
         Row: {
           created_at: string
@@ -2299,6 +2559,7 @@ export type Database = {
           is_featured: boolean
           name: string
           prep_time_minutes: number | null
+          prep_time_minutes_max: number | null
           price: number | null
           restaurant_id: string
           sku: string | null
@@ -2319,6 +2580,7 @@ export type Database = {
           is_featured?: boolean
           name: string
           prep_time_minutes?: number | null
+          prep_time_minutes_max?: number | null
           price?: number | null
           restaurant_id: string
           sku?: string | null
@@ -2339,6 +2601,7 @@ export type Database = {
           is_featured?: boolean
           name?: string
           prep_time_minutes?: number | null
+          prep_time_minutes_max?: number | null
           price?: number | null
           restaurant_id?: string
           sku?: string | null
@@ -2370,12 +2633,15 @@ export type Database = {
           background_color: string | null
           bing_site_verification: string | null
           border_radius: string | null
+          cash_collection_mode: string
+          commission_rate: number
           created_at: string
           custom_domain: string | null
           default_prep_time_minutes: number | null
           delivery_enabled: boolean
           delivery_fee: number
           delivery_fee_fallback: number
+          delivery_radius_km: number | null
           description: string | null
           dine_in_enabled: boolean
           driver_location_freshness_minutes: number
@@ -2384,6 +2650,8 @@ export type Database = {
           google_site_verification: string | null
           manual_override: boolean
           manual_status: string | null
+          meta_pixel_enabled: boolean
+          meta_pixel_id: string | null
           minimum_order: number
           opening_hours: Json
           pickup_enabled: boolean
@@ -2407,12 +2675,15 @@ export type Database = {
           background_color?: string | null
           bing_site_verification?: string | null
           border_radius?: string | null
+          cash_collection_mode?: string
+          commission_rate?: number
           created_at?: string
           custom_domain?: string | null
           default_prep_time_minutes?: number | null
           delivery_enabled?: boolean
           delivery_fee?: number
           delivery_fee_fallback?: number
+          delivery_radius_km?: number | null
           description?: string | null
           dine_in_enabled?: boolean
           driver_location_freshness_minutes?: number
@@ -2421,6 +2692,8 @@ export type Database = {
           google_site_verification?: string | null
           manual_override?: boolean
           manual_status?: string | null
+          meta_pixel_enabled?: boolean
+          meta_pixel_id?: string | null
           minimum_order?: number
           opening_hours?: Json
           pickup_enabled?: boolean
@@ -2444,12 +2717,15 @@ export type Database = {
           background_color?: string | null
           bing_site_verification?: string | null
           border_radius?: string | null
+          cash_collection_mode?: string
+          commission_rate?: number
           created_at?: string
           custom_domain?: string | null
           default_prep_time_minutes?: number | null
           delivery_enabled?: boolean
           delivery_fee?: number
           delivery_fee_fallback?: number
+          delivery_radius_km?: number | null
           description?: string | null
           dine_in_enabled?: boolean
           driver_location_freshness_minutes?: number
@@ -2458,6 +2734,8 @@ export type Database = {
           google_site_verification?: string | null
           manual_override?: boolean
           manual_status?: string | null
+          meta_pixel_enabled?: boolean
+          meta_pixel_id?: string | null
           minimum_order?: number
           opening_hours?: Json
           pickup_enabled?: boolean
@@ -2869,6 +3147,53 @@ export type Database = {
           },
         ]
       }
+      tenant_domains: {
+        Row: {
+          created_at: string
+          domain: string
+          id: string
+          is_active: boolean
+          is_primary: boolean
+          is_verified: boolean
+          tenant_id: string
+          updated_at: string
+          verification_token: string
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          domain: string
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          is_verified?: boolean
+          tenant_id: string
+          updated_at?: string
+          verification_token?: string
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          domain?: string
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          is_verified?: boolean
+          tenant_id?: string
+          updated_at?: string
+          verification_token?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_domains_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vehicles: {
         Row: {
           chassis_number: string | null
@@ -2945,21 +3270,27 @@ export type Database = {
         Row: {
           id: string
           last_seen_at: string
+          page_views: number
           restaurant_id: string
+          source: string | null
           started_at: string
           visitor_id: string
         }
         Insert: {
           id?: string
           last_seen_at?: string
+          page_views?: number
           restaurant_id: string
+          source?: string | null
           started_at?: string
           visitor_id: string
         }
         Update: {
           id?: string
           last_seen_at?: string
+          page_views?: number
           restaurant_id?: string
+          source?: string | null
           started_at?: string
           visitor_id?: string
         }
@@ -3109,6 +3440,10 @@ export type Database = {
         Args: { p_driver_id: string; p_order_id: string }
         Returns: Json
       }
+      compute_availability_status: {
+        Args: { p_now?: string; p_restaurant_id: string }
+        Returns: Json
+      }
       compute_delivery_pricing: {
         Args: {
           p_destination_lat: number
@@ -3121,6 +3456,19 @@ export type Database = {
           fee: number
           method: string
         }[]
+      }
+      compute_scheduled_spans: {
+        Args: { p_date: string; p_restaurant_id: string }
+        Returns: {
+          first_opens_at: string
+          has_schedule: boolean
+          last_closes_at: string
+          scheduled_minutes: number
+        }[]
+      }
+      consume_inventory_for_order: {
+        Args: { p_order_id: string; p_restaurant_id: string }
+        Returns: undefined
       }
       create_delivery: {
         Args: {
@@ -3338,6 +3686,10 @@ export type Database = {
         Returns: string
       }
       get_offers_analytics: { Args: never; Returns: Json }
+      get_order_financial_breakdown: {
+        Args: { p_order_id: string }
+        Returns: Json
+      }
       get_order_review: {
         Args: { p_customer_phone: string; p_order_id: string }
         Returns: Json
@@ -3392,6 +3744,10 @@ export type Database = {
         Args: { p_limit?: number; p_max_price?: number }
         Returns: Json
       }
+      get_public_live_overview: {
+        Args: { p_period_days?: number }
+        Returns: Json
+      }
       get_public_menu: { Args: { p_slug: string }; Returns: Json }
       get_public_restaurants: { Args: { p_query?: string }; Returns: Json }
       get_public_sitemap_index: { Args: never; Returns: Json }
@@ -3400,14 +3756,68 @@ export type Database = {
         Returns: Json
       }
       get_restaurant_dashboard_stats: {
-        Args: { p_end_date: string; p_start_date: string }
+        Args: {
+          p_end_date: string
+          p_restaurant_id?: string
+          p_start_date: string
+        }
+        Returns: Json
+      }
+      get_restaurant_report_data: {
+        Args: {
+          p_end_date: string
+          p_restaurant_id?: string
+          p_start_date: string
+        }
         Returns: Json
       }
       get_reviews_stats: { Args: never; Returns: Json }
+      get_super_admin_acquisition_overview: {
+        Args: { p_period_days?: number }
+        Returns: Json
+      }
+      get_super_admin_availability_overview: {
+        Args: { p_period_days?: number }
+        Returns: Json
+      }
+      get_super_admin_customer_map: {
+        Args: {
+          p_period_days?: number
+          p_restaurant_id?: string
+          p_search?: string
+          p_status?: string
+        }
+        Returns: Json
+      }
+      get_super_admin_driver_locations: {
+        Args: { p_restaurant_id?: string }
+        Returns: Json
+      }
+      get_super_admin_orders: {
+        Args: {
+          p_page?: number
+          p_page_size?: number
+          p_period_days?: number
+          p_restaurant_id?: string
+          p_search?: string
+          p_status?: Database["public"]["Enums"]["order_status"]
+        }
+        Returns: Json
+      }
+      get_super_admin_pageview_overview: {
+        Args: { p_period_days?: number }
+        Returns: Json
+      }
+      get_super_admin_revenue_analytics: {
+        Args: { p_period_days?: number }
+        Returns: Json
+      }
+      get_super_admin_tenant_map: { Args: never; Returns: Json }
       get_tenant_offers: {
         Args: { p_slug: string; p_visitor_id?: string }
         Returns: Json
       }
+      get_tenant_qr_stats: { Args: { p_restaurant_id?: string }; Returns: Json }
       get_tenant_reviews: {
         Args: { p_limit?: number; p_slug: string }
         Returns: Json
@@ -3447,6 +3857,10 @@ export type Database = {
       haversine_km: {
         Args: { p_lat1: number; p_lat2: number; p_lng1: number; p_lng2: number }
         Returns: number
+      }
+      heartbeat_visitor_session: {
+        Args: { p_slug: string; p_visitor_id: string }
+        Returns: undefined
       }
       is_super_admin: { Args: never; Returns: boolean }
       list_deliveries_for_dispatch: {
@@ -3612,6 +4026,33 @@ export type Database = {
         }
         Returns: Json
       }
+      record_availability_snapshots: { Args: never; Returns: undefined }
+      record_inventory_movement: {
+        Args: {
+          p_movement_type: string
+          p_note?: string
+          p_product_id: string
+          p_reason: string
+          p_restaurant_id: string
+          p_value: number
+        }
+        Returns: {
+          alert_threshold: number
+          created_at: string
+          id: string
+          product_id: string
+          quantity: number
+          restaurant_id: string
+          tracking_enabled: boolean
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "inventory"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       report_review: {
         Args: {
           p_description?: string
@@ -3636,16 +4077,73 @@ export type Database = {
           waives_delivery: boolean
         }[]
       }
+      restore_inventory_for_order: {
+        Args: { p_order_id: string; p_restaurant_id: string }
+        Returns: undefined
+      }
+      set_inventory_alert_threshold: {
+        Args: {
+          p_alert_threshold: number
+          p_product_id: string
+          p_restaurant_id: string
+        }
+        Returns: {
+          alert_threshold: number
+          created_at: string
+          id: string
+          product_id: string
+          quantity: number
+          restaurant_id: string
+          tracking_enabled: boolean
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "inventory"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_inventory_tracking: {
+        Args: {
+          p_alert_threshold?: number
+          p_enabled: boolean
+          p_initial_quantity?: number
+          p_product_id: string
+          p_restaurant_id: string
+        }
+        Returns: {
+          alert_threshold: number
+          created_at: string
+          id: string
+          product_id: string
+          quantity: number
+          restaurant_id: string
+          tracking_enabled: boolean
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "inventory"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_restaurant_commission_rate: {
+        Args: { p_rate: number; p_restaurant_id: string }
+        Returns: Json
+      }
       signup_organization: {
         Args: { p_name: string; p_slug: string }
         Returns: Json
       }
-      // Hand-added ahead of codegen: supabase/migrations/20260905120000_signup_restaurant.sql
-      // defines this function (already applied to the live project). Replace
-      // this entry (and remove this comment) the next time types.ts is
-      // regenerated for real.
       signup_restaurant: {
-        Args: { p_name: string; p_full_name: string; p_phone: string; p_email: string }
+        Args: {
+          p_email: string
+          p_full_name: string
+          p_name: string
+          p_phone: string
+        }
         Returns: Json
       }
       submit_review: {
@@ -3724,9 +4222,17 @@ export type Database = {
           status: Database["public"]["Enums"]["restaurant_status"]
         }[]
       }
+      super_admin_set_primary_domain: {
+        Args: { _domain_id: string }
+        Returns: undefined
+      }
+      super_admin_set_restaurant_plan: {
+        Args: { _plan_id: string; _restaurant_id: string }
+        Returns: Json
+      }
       track_offer_click: { Args: { p_offer_id: string }; Returns: undefined }
       track_visitor_session: {
-        Args: { p_slug: string; p_visitor_id: string }
+        Args: { p_slug: string; p_source?: string; p_visitor_id: string }
         Returns: undefined
       }
       update_order_status: {
@@ -3883,12 +4389,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3912,11 +4418,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3937,11 +4443,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3962,11 +4468,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3979,11 +4485,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

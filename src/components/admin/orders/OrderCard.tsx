@@ -1,4 +1,4 @@
-import { AlertTriangle, Banknote, Bike, CalendarClock, MapPin, Phone, ShoppingBag, Utensils } from "lucide-react";
+import { AlarmClock, AlertTriangle, Banknote, Bike, CalendarClock, MapPin, Phone, ShoppingBag, Utensils } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Order, OrderStatus } from "@/lib/orders-db";
@@ -6,6 +6,7 @@ import type { DispatchProposalWithDriver } from "@/lib/delivery";
 import { formatMoney } from "@/lib/currency";
 import { STATUS_BADGE_CLASS, STATUS_LABELS, deliveryAddressLine, elapsedLabel, fulfillmentLabel, googleMapsUrl, nextActions } from "./orderStatusMeta";
 import { PAYMENT_STATUS_BADGE_CLASS, PAYMENT_STATUS_LABELS } from "./paymentStatusMeta";
+import { OrderPrepCountdown } from "./OrderPrepCountdown";
 
 function dispatchLabel(order: Order, proposal: DispatchProposalWithDriver | undefined): string | null {
   if (order.fulfillment_type !== "delivery") return null;
@@ -92,6 +93,22 @@ export function OrderCard({
           </Badge>
         </div>
       </button>
+
+      {order.status !== "delivered" && order.status !== "cancelled" && (
+        order.status === "preparing" && order.preparing_at && order.estimated_preparation_minutes !== null ? (
+          <OrderPrepCountdown
+            preparingAt={order.preparing_at}
+            estimatedPreparationMinutes={order.estimated_preparation_minutes}
+          />
+        ) : (
+          <p className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+            <AlarmClock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            {order.estimated_preparation_minutes !== null
+              ? `Préparation : ${order.estimated_preparation_minutes} min`
+              : "Préparation : Non renseigné"}
+          </p>
+        )
+      )}
 
       {order.scheduled_for && (
         <p className="flex items-center gap-1.5 rounded-xl border border-violet-200 bg-violet-50 px-2.5 py-1.5 text-sm font-semibold text-violet-700">

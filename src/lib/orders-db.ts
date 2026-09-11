@@ -404,6 +404,16 @@ export type CurrentPeriodTotals = PeriodTotals & {
   pending_collection: number;
 };
 
+/** Added by the super_admin_tenant_fiche migration -- see get_restaurant_dashboard_stats. */
+export type DashboardFinancials = {
+  commission_rate: number;
+  restaurant_revenue: number;
+  delivery_fee_total: number;
+  discount_total: number;
+  saovia_commission: number;
+  restaurant_net: number;
+};
+
 export type RevenueSeriesPoint = { date: string; revenue: number; orders: number };
 export type TopProduct = { name: string; quantity: number; revenue: number };
 export type HourlyPoint = { hour: number; orders_count: number; revenue: number };
@@ -439,6 +449,7 @@ export type DashboardStats = {
   method_breakdown: MethodBreakdownRow[];
   collected_revenue: number;
   refunded_amount: number;
+  financials: DashboardFinancials;
 };
 
 /**
@@ -453,10 +464,17 @@ function toDateInputValue(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-export async function fetchDashboardStats(startDate: Date, endDate: Date): Promise<DashboardStats> {
+/**
+ * `restaurantId` is an explicit override the RPC only honors for a Super
+ * Admin (checked server-side via is_super_admin()); omitted, this resolves
+ * the caller's own restaurant exactly as before -- every existing call site
+ * (the tenant's own Statistiques/Finances panels) is unaffected.
+ */
+export async function fetchDashboardStats(startDate: Date, endDate: Date, restaurantId?: string): Promise<DashboardStats> {
   const { data, error } = await supabase.rpc("get_restaurant_dashboard_stats", {
     p_start_date: toDateInputValue(startDate),
     p_end_date: toDateInputValue(endDate),
+    ...(restaurantId ? { p_restaurant_id: restaurantId } : {}),
   });
   if (error) throw error;
   return data as unknown as DashboardStats;

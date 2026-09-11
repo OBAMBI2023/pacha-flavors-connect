@@ -27,12 +27,25 @@ import { Route as DeliveryDashboardRouteImport } from './routes/delivery.dashboa
 import { Route as DeliveryLoginRouteImport } from './routes/delivery.login'
 import { Route as DeliveryNewRouteImport } from './routes/delivery.new'
 import { Route as DeliverySignupRouteImport } from './routes/delivery.signup'
+import { Route as FoodConseilsRouteImport } from './routes/food_.conseils'
 import { Route as LivreurActivationRouteImport } from './routes/livreur.activation'
 import { Route as RSlugRouteImport } from './routes/r.$slug'
 import { Route as RestaurantSlugRouteImport } from './routes/restaurant.$slug'
 import { Route as SuperAdminIndexRouteImport } from './routes/super-admin.index'
+import { Route as SuperAdminAcquisitionRouteImport } from './routes/super-admin.acquisition'
+import { Route as SuperAdminAnalyticsRouteImport } from './routes/super-admin.analytics'
+import { Route as SuperAdminAvailabilityRouteImport } from './routes/super-admin.availability'
+import { Route as SuperAdminCarteOperationnelleRouteImport } from './routes/super-admin.carte-operationnelle'
+import { Route as SuperAdminCommandesRouteImport } from './routes/super-admin.commandes'
+import { Route as SuperAdminCustomerMapRouteImport } from './routes/super-admin.customer-map'
+import { Route as SuperAdminDomainsRouteImport } from './routes/super-admin.domains'
+import { Route as SuperAdminLiveRouteImport } from './routes/super-admin.live'
+import { Route as SuperAdminMapsRouteImport } from './routes/super-admin.maps'
 import { Route as SuperAdminMarketingRouteImport } from './routes/super-admin.marketing'
+import { Route as SuperAdminRevenusRouteImport } from './routes/super-admin.revenus'
+import { Route as SuperAdminZonesOpportunitesRouteImport } from './routes/super-admin.zones-opportunites'
 import { Route as CommandeOrderIdConfirmationRouteImport } from './routes/commande.$orderId.confirmation'
+import { Route as FoodConseilsSlugRouteImport } from './routes/food_.conseils_.$slug'
 import { Route as RestaurantsCategorieCategorySlugRouteImport } from './routes/restaurants.categorie.$categorySlug'
 import { Route as SuperAdminMarketingIndexRouteImport } from './routes/super-admin.marketing.index'
 import { Route as SuperAdminMarketingAudiencesRouteImport } from './routes/super-admin.marketing.audiences'
@@ -130,6 +143,11 @@ const DeliverySignupRoute = DeliverySignupRouteImport.update({
   path: '/signup',
   getParentRoute: () => DeliveryRoute,
 } as any)
+const FoodConseilsRoute = FoodConseilsRouteImport.update({
+  id: '/food_/conseils',
+  path: '/food/conseils',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LivreurActivationRoute = LivreurActivationRouteImport.update({
   id: '/activation',
   path: '/activation',
@@ -150,17 +168,79 @@ const SuperAdminIndexRoute = SuperAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => SuperAdminRoute,
 } as any)
+const SuperAdminAcquisitionRoute = SuperAdminAcquisitionRouteImport.update({
+  id: '/acquisition',
+  path: '/acquisition',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminAnalyticsRoute = SuperAdminAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminAvailabilityRoute = SuperAdminAvailabilityRouteImport.update({
+  id: '/availability',
+  path: '/availability',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminCarteOperationnelleRoute =
+  SuperAdminCarteOperationnelleRouteImport.update({
+    id: '/carte-operationnelle',
+    path: '/carte-operationnelle',
+    getParentRoute: () => SuperAdminRoute,
+  } as any)
+const SuperAdminCommandesRoute = SuperAdminCommandesRouteImport.update({
+  id: '/commandes',
+  path: '/commandes',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminCustomerMapRoute = SuperAdminCustomerMapRouteImport.update({
+  id: '/customer-map',
+  path: '/customer-map',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminDomainsRoute = SuperAdminDomainsRouteImport.update({
+  id: '/domains',
+  path: '/domains',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminLiveRoute = SuperAdminLiveRouteImport.update({
+  id: '/live',
+  path: '/live',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminMapsRoute = SuperAdminMapsRouteImport.update({
+  id: '/maps',
+  path: '/maps',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
 const SuperAdminMarketingRoute = SuperAdminMarketingRouteImport.update({
   id: '/marketing',
   path: '/marketing',
   getParentRoute: () => SuperAdminRoute,
 } as any)
+const SuperAdminRevenusRoute = SuperAdminRevenusRouteImport.update({
+  id: '/revenus',
+  path: '/revenus',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminZonesOpportunitesRoute =
+  SuperAdminZonesOpportunitesRouteImport.update({
+    id: '/zones-opportunites',
+    path: '/zones-opportunites',
+    getParentRoute: () => SuperAdminRoute,
+  } as any)
 const CommandeOrderIdConfirmationRoute =
   CommandeOrderIdConfirmationRouteImport.update({
     id: '/commande/$orderId/confirmation',
     path: '/commande/$orderId/confirmation',
     getParentRoute: () => rootRouteImport,
   } as any)
+const FoodConseilsSlugRoute = FoodConseilsSlugRouteImport.update({
+  id: '/food_/conseils_/$slug',
+  path: '/food/conseils/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RestaurantsCategorieCategorySlugRoute =
   RestaurantsCategorieCategorySlugRouteImport.update({
     id: '/categorie/$categorySlug',
@@ -216,13 +296,26 @@ export interface FileRoutesByFullPath {
   '/delivery/login': typeof DeliveryLoginRoute
   '/delivery/new': typeof DeliveryNewRoute
   '/delivery/signup': typeof DeliverySignupRoute
+  '/food/conseils': typeof FoodConseilsRoute
   '/livreur/activation': typeof LivreurActivationRoute
   '/r/$slug': typeof RSlugRoute
   '/restaurant/$slug': typeof RestaurantSlugRoute
+  '/super-admin/acquisition': typeof SuperAdminAcquisitionRoute
+  '/super-admin/analytics': typeof SuperAdminAnalyticsRoute
+  '/super-admin/availability': typeof SuperAdminAvailabilityRoute
+  '/super-admin/carte-operationnelle': typeof SuperAdminCarteOperationnelleRoute
+  '/super-admin/commandes': typeof SuperAdminCommandesRoute
+  '/super-admin/customer-map': typeof SuperAdminCustomerMapRoute
+  '/super-admin/domains': typeof SuperAdminDomainsRoute
+  '/super-admin/live': typeof SuperAdminLiveRoute
+  '/super-admin/maps': typeof SuperAdminMapsRoute
   '/super-admin/marketing': typeof SuperAdminMarketingRouteWithChildren
+  '/super-admin/revenus': typeof SuperAdminRevenusRoute
+  '/super-admin/zones-opportunites': typeof SuperAdminZonesOpportunitesRoute
   '/delivery/': typeof DeliveryIndexRoute
   '/super-admin/': typeof SuperAdminIndexRoute
   '/commande/$orderId/confirmation': typeof CommandeOrderIdConfirmationRoute
+  '/food/conseils/$slug': typeof FoodConseilsSlugRoute
   '/restaurants/categorie/$categorySlug': typeof RestaurantsCategorieCategorySlugRoute
   '/super-admin/marketing/audiences': typeof SuperAdminMarketingAudiencesRoute
   '/super-admin/marketing/campagnes': typeof SuperAdminMarketingCampagnesRoute
@@ -246,12 +339,25 @@ export interface FileRoutesByTo {
   '/delivery/login': typeof DeliveryLoginRoute
   '/delivery/new': typeof DeliveryNewRoute
   '/delivery/signup': typeof DeliverySignupRoute
+  '/food/conseils': typeof FoodConseilsRoute
   '/livreur/activation': typeof LivreurActivationRoute
   '/r/$slug': typeof RSlugRoute
   '/restaurant/$slug': typeof RestaurantSlugRoute
+  '/super-admin/acquisition': typeof SuperAdminAcquisitionRoute
+  '/super-admin/analytics': typeof SuperAdminAnalyticsRoute
+  '/super-admin/availability': typeof SuperAdminAvailabilityRoute
+  '/super-admin/carte-operationnelle': typeof SuperAdminCarteOperationnelleRoute
+  '/super-admin/commandes': typeof SuperAdminCommandesRoute
+  '/super-admin/customer-map': typeof SuperAdminCustomerMapRoute
+  '/super-admin/domains': typeof SuperAdminDomainsRoute
+  '/super-admin/live': typeof SuperAdminLiveRoute
+  '/super-admin/maps': typeof SuperAdminMapsRoute
+  '/super-admin/revenus': typeof SuperAdminRevenusRoute
+  '/super-admin/zones-opportunites': typeof SuperAdminZonesOpportunitesRoute
   '/delivery': typeof DeliveryIndexRoute
   '/super-admin': typeof SuperAdminIndexRoute
   '/commande/$orderId/confirmation': typeof CommandeOrderIdConfirmationRoute
+  '/food/conseils/$slug': typeof FoodConseilsSlugRoute
   '/restaurants/categorie/$categorySlug': typeof RestaurantsCategorieCategorySlugRoute
   '/super-admin/marketing/audiences': typeof SuperAdminMarketingAudiencesRoute
   '/super-admin/marketing/campagnes': typeof SuperAdminMarketingCampagnesRoute
@@ -278,13 +384,26 @@ export interface FileRoutesById {
   '/delivery/login': typeof DeliveryLoginRoute
   '/delivery/new': typeof DeliveryNewRoute
   '/delivery/signup': typeof DeliverySignupRoute
+  '/food_/conseils': typeof FoodConseilsRoute
   '/livreur/activation': typeof LivreurActivationRoute
   '/r/$slug': typeof RSlugRoute
   '/restaurant/$slug': typeof RestaurantSlugRoute
+  '/super-admin/acquisition': typeof SuperAdminAcquisitionRoute
+  '/super-admin/analytics': typeof SuperAdminAnalyticsRoute
+  '/super-admin/availability': typeof SuperAdminAvailabilityRoute
+  '/super-admin/carte-operationnelle': typeof SuperAdminCarteOperationnelleRoute
+  '/super-admin/commandes': typeof SuperAdminCommandesRoute
+  '/super-admin/customer-map': typeof SuperAdminCustomerMapRoute
+  '/super-admin/domains': typeof SuperAdminDomainsRoute
+  '/super-admin/live': typeof SuperAdminLiveRoute
+  '/super-admin/maps': typeof SuperAdminMapsRoute
   '/super-admin/marketing': typeof SuperAdminMarketingRouteWithChildren
+  '/super-admin/revenus': typeof SuperAdminRevenusRoute
+  '/super-admin/zones-opportunites': typeof SuperAdminZonesOpportunitesRoute
   '/delivery/': typeof DeliveryIndexRoute
   '/super-admin/': typeof SuperAdminIndexRoute
   '/commande/$orderId/confirmation': typeof CommandeOrderIdConfirmationRoute
+  '/food_/conseils_/$slug': typeof FoodConseilsSlugRoute
   '/restaurants/categorie/$categorySlug': typeof RestaurantsCategorieCategorySlugRoute
   '/super-admin/marketing/audiences': typeof SuperAdminMarketingAudiencesRoute
   '/super-admin/marketing/campagnes': typeof SuperAdminMarketingCampagnesRoute
@@ -312,13 +431,26 @@ export interface FileRouteTypes {
     | '/delivery/login'
     | '/delivery/new'
     | '/delivery/signup'
+    | '/food/conseils'
     | '/livreur/activation'
     | '/r/$slug'
     | '/restaurant/$slug'
+    | '/super-admin/acquisition'
+    | '/super-admin/analytics'
+    | '/super-admin/availability'
+    | '/super-admin/carte-operationnelle'
+    | '/super-admin/commandes'
+    | '/super-admin/customer-map'
+    | '/super-admin/domains'
+    | '/super-admin/live'
+    | '/super-admin/maps'
     | '/super-admin/marketing'
+    | '/super-admin/revenus'
+    | '/super-admin/zones-opportunites'
     | '/delivery/'
     | '/super-admin/'
     | '/commande/$orderId/confirmation'
+    | '/food/conseils/$slug'
     | '/restaurants/categorie/$categorySlug'
     | '/super-admin/marketing/audiences'
     | '/super-admin/marketing/campagnes'
@@ -342,12 +474,25 @@ export interface FileRouteTypes {
     | '/delivery/login'
     | '/delivery/new'
     | '/delivery/signup'
+    | '/food/conseils'
     | '/livreur/activation'
     | '/r/$slug'
     | '/restaurant/$slug'
+    | '/super-admin/acquisition'
+    | '/super-admin/analytics'
+    | '/super-admin/availability'
+    | '/super-admin/carte-operationnelle'
+    | '/super-admin/commandes'
+    | '/super-admin/customer-map'
+    | '/super-admin/domains'
+    | '/super-admin/live'
+    | '/super-admin/maps'
+    | '/super-admin/revenus'
+    | '/super-admin/zones-opportunites'
     | '/delivery'
     | '/super-admin'
     | '/commande/$orderId/confirmation'
+    | '/food/conseils/$slug'
     | '/restaurants/categorie/$categorySlug'
     | '/super-admin/marketing/audiences'
     | '/super-admin/marketing/campagnes'
@@ -373,13 +518,26 @@ export interface FileRouteTypes {
     | '/delivery/login'
     | '/delivery/new'
     | '/delivery/signup'
+    | '/food_/conseils'
     | '/livreur/activation'
     | '/r/$slug'
     | '/restaurant/$slug'
+    | '/super-admin/acquisition'
+    | '/super-admin/analytics'
+    | '/super-admin/availability'
+    | '/super-admin/carte-operationnelle'
+    | '/super-admin/commandes'
+    | '/super-admin/customer-map'
+    | '/super-admin/domains'
+    | '/super-admin/live'
+    | '/super-admin/maps'
     | '/super-admin/marketing'
+    | '/super-admin/revenus'
+    | '/super-admin/zones-opportunites'
     | '/delivery/'
     | '/super-admin/'
     | '/commande/$orderId/confirmation'
+    | '/food_/conseils_/$slug'
     | '/restaurants/categorie/$categorySlug'
     | '/super-admin/marketing/audiences'
     | '/super-admin/marketing/campagnes'
@@ -401,9 +559,11 @@ export interface RootRouteChildren {
   RechercherRoute: typeof RechercherRoute
   RestaurantsRoute: typeof RestaurantsRouteWithChildren
   SuperAdminRoute: typeof SuperAdminRouteWithChildren
+  FoodConseilsRoute: typeof FoodConseilsRoute
   RSlugRoute: typeof RSlugRoute
   RestaurantSlugRoute: typeof RestaurantSlugRoute
   CommandeOrderIdConfirmationRoute: typeof CommandeOrderIdConfirmationRoute
+  FoodConseilsSlugRoute: typeof FoodConseilsSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -534,6 +694,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DeliverySignupRouteImport
       parentRoute: typeof DeliveryRoute
     }
+    '/food_/conseils': {
+      id: '/food_/conseils'
+      path: '/food/conseils'
+      fullPath: '/food/conseils'
+      preLoaderRoute: typeof FoodConseilsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/livreur/activation': {
       id: '/livreur/activation'
       path: '/activation'
@@ -562,6 +729,69 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuperAdminIndexRouteImport
       parentRoute: typeof SuperAdminRoute
     }
+    '/super-admin/acquisition': {
+      id: '/super-admin/acquisition'
+      path: '/acquisition'
+      fullPath: '/super-admin/acquisition'
+      preLoaderRoute: typeof SuperAdminAcquisitionRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/analytics': {
+      id: '/super-admin/analytics'
+      path: '/analytics'
+      fullPath: '/super-admin/analytics'
+      preLoaderRoute: typeof SuperAdminAnalyticsRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/availability': {
+      id: '/super-admin/availability'
+      path: '/availability'
+      fullPath: '/super-admin/availability'
+      preLoaderRoute: typeof SuperAdminAvailabilityRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/carte-operationnelle': {
+      id: '/super-admin/carte-operationnelle'
+      path: '/carte-operationnelle'
+      fullPath: '/super-admin/carte-operationnelle'
+      preLoaderRoute: typeof SuperAdminCarteOperationnelleRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/commandes': {
+      id: '/super-admin/commandes'
+      path: '/commandes'
+      fullPath: '/super-admin/commandes'
+      preLoaderRoute: typeof SuperAdminCommandesRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/customer-map': {
+      id: '/super-admin/customer-map'
+      path: '/customer-map'
+      fullPath: '/super-admin/customer-map'
+      preLoaderRoute: typeof SuperAdminCustomerMapRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/domains': {
+      id: '/super-admin/domains'
+      path: '/domains'
+      fullPath: '/super-admin/domains'
+      preLoaderRoute: typeof SuperAdminDomainsRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/live': {
+      id: '/super-admin/live'
+      path: '/live'
+      fullPath: '/super-admin/live'
+      preLoaderRoute: typeof SuperAdminLiveRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/maps': {
+      id: '/super-admin/maps'
+      path: '/maps'
+      fullPath: '/super-admin/maps'
+      preLoaderRoute: typeof SuperAdminMapsRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
     '/super-admin/marketing': {
       id: '/super-admin/marketing'
       path: '/marketing'
@@ -569,11 +799,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuperAdminMarketingRouteImport
       parentRoute: typeof SuperAdminRoute
     }
+    '/super-admin/revenus': {
+      id: '/super-admin/revenus'
+      path: '/revenus'
+      fullPath: '/super-admin/revenus'
+      preLoaderRoute: typeof SuperAdminRevenusRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/zones-opportunites': {
+      id: '/super-admin/zones-opportunites'
+      path: '/zones-opportunites'
+      fullPath: '/super-admin/zones-opportunites'
+      preLoaderRoute: typeof SuperAdminZonesOpportunitesRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
     '/commande/$orderId/confirmation': {
       id: '/commande/$orderId/confirmation'
       path: '/commande/$orderId/confirmation'
       fullPath: '/commande/$orderId/confirmation'
       preLoaderRoute: typeof CommandeOrderIdConfirmationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/food_/conseils_/$slug': {
+      id: '/food_/conseils_/$slug'
+      path: '/food/conseils/$slug'
+      fullPath: '/food/conseils/$slug'
+      preLoaderRoute: typeof FoodConseilsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/restaurants/categorie/$categorySlug': {
@@ -685,13 +936,35 @@ const SuperAdminMarketingRouteWithChildren =
   SuperAdminMarketingRoute._addFileChildren(SuperAdminMarketingRouteChildren)
 
 interface SuperAdminRouteChildren {
+  SuperAdminAcquisitionRoute: typeof SuperAdminAcquisitionRoute
+  SuperAdminAnalyticsRoute: typeof SuperAdminAnalyticsRoute
+  SuperAdminAvailabilityRoute: typeof SuperAdminAvailabilityRoute
+  SuperAdminCarteOperationnelleRoute: typeof SuperAdminCarteOperationnelleRoute
+  SuperAdminCommandesRoute: typeof SuperAdminCommandesRoute
+  SuperAdminCustomerMapRoute: typeof SuperAdminCustomerMapRoute
+  SuperAdminDomainsRoute: typeof SuperAdminDomainsRoute
+  SuperAdminLiveRoute: typeof SuperAdminLiveRoute
+  SuperAdminMapsRoute: typeof SuperAdminMapsRoute
   SuperAdminMarketingRoute: typeof SuperAdminMarketingRouteWithChildren
+  SuperAdminRevenusRoute: typeof SuperAdminRevenusRoute
+  SuperAdminZonesOpportunitesRoute: typeof SuperAdminZonesOpportunitesRoute
   SuperAdminIndexRoute: typeof SuperAdminIndexRoute
   SuperAdminRestaurantsRestaurantIdRoute: typeof SuperAdminRestaurantsRestaurantIdRoute
 }
 
 const SuperAdminRouteChildren: SuperAdminRouteChildren = {
+  SuperAdminAcquisitionRoute: SuperAdminAcquisitionRoute,
+  SuperAdminAnalyticsRoute: SuperAdminAnalyticsRoute,
+  SuperAdminAvailabilityRoute: SuperAdminAvailabilityRoute,
+  SuperAdminCarteOperationnelleRoute: SuperAdminCarteOperationnelleRoute,
+  SuperAdminCommandesRoute: SuperAdminCommandesRoute,
+  SuperAdminCustomerMapRoute: SuperAdminCustomerMapRoute,
+  SuperAdminDomainsRoute: SuperAdminDomainsRoute,
+  SuperAdminLiveRoute: SuperAdminLiveRoute,
+  SuperAdminMapsRoute: SuperAdminMapsRoute,
   SuperAdminMarketingRoute: SuperAdminMarketingRouteWithChildren,
+  SuperAdminRevenusRoute: SuperAdminRevenusRoute,
+  SuperAdminZonesOpportunitesRoute: SuperAdminZonesOpportunitesRoute,
   SuperAdminIndexRoute: SuperAdminIndexRoute,
   SuperAdminRestaurantsRestaurantIdRoute:
     SuperAdminRestaurantsRestaurantIdRoute,
@@ -714,9 +987,11 @@ const rootRouteChildren: RootRouteChildren = {
   RechercherRoute: RechercherRoute,
   RestaurantsRoute: RestaurantsRouteWithChildren,
   SuperAdminRoute: SuperAdminRouteWithChildren,
+  FoodConseilsRoute: FoodConseilsRoute,
   RSlugRoute: RSlugRoute,
   RestaurantSlugRoute: RestaurantSlugRoute,
   CommandeOrderIdConfirmationRoute: CommandeOrderIdConfirmationRoute,
+  FoodConseilsSlugRoute: FoodConseilsSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

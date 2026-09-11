@@ -5,17 +5,25 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// Allowlist, not "*" -- Super Admin-only endpoint, never called cross-origin
+// by a third party. Only the confirmed dev origin is listed today; the
+// production origin is not yet confirmed (see CORS audit) -- add it here
+// once confirmed, never widen back to "*".
+const ALLOWED_ORIGINS = ["http://localhost:5173"];
 
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json", ...CORS_HEADERS },
-  });
+function buildCorsHeaders(origin: string | null): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  };
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    headers["Access-Control-Allow-Origin"] = origin;
+    headers["Vary"] = "Origin";
+  }
+  return headers;
 }
+
+type JsonResponder = (body: unknown, status?: number) => Response;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -61,7 +69,15 @@ type ResetPasswordPayload = {
 };
 
 Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
+  const corsHeaders = buildCorsHeaders(req.headers.get("Origin"));
+  const json: JsonResponder = (body, status = 200) => {
+    return new Response(JSON.stringify(body), {
+      status,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
+  };
+
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   const authHeader = req.headers.get("Authorization");
@@ -95,10 +111,10 @@ Deno.serve(async (req: Request) => {
   }
 
   if (payload.action === "create") {
-    return handleCreate(payload, callerClient, adminClient);
+    return handleCreate(payload, callerClient, adminClient, json);
   }
   if (payload.action === "reset_password") {
-    return handleResetPassword(payload, callerClient, adminClient);
+    return handleResetPassword(payload, callerClient, adminClient, json);
   }
   return json({ error: "Action inconnue." }, 400);
 });
@@ -109,6 +125,7 @@ async function handleCreate(
   callerClient: any,
   // deno-lint-ignore no-explicit-any
   adminClient: any,
+  json: JsonResponder,
 ) {
   const restaurant = payload.restaurant;
   const admin = payload.admin;
@@ -183,6 +200,7 @@ async function handleResetPassword(
   callerClient: any,
   // deno-lint-ignore no-explicit-any
   adminClient: any,
+  json: JsonResponder,
 ) {
   const restaurantId = payload.restaurant_id;
   const newPassword = payload.new_password;
