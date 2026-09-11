@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createDriver, uploadDriverFile, type CreateDriverResult } from "@/lib/drivers";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-any";
 
 function emptyForm() {
   return { lastName: "", firstName: "", phone: "", phoneSecondary: "", email: "", address: "", dateOfBirth: "", hiredAt: "", internalNote: "" };

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, Outlet, useMatchRoute } from "@tanstack/react-router";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-any";
 import { MarketingContext, type MarketingRestaurantOption } from "@/hooks/useMarketingContext";
 
 export const Route = createFileRoute("/super-admin/marketing")({

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-any";
 import { applyRestaurantTheme, type RestaurantTheme } from "@/lib/theme";
 
 /**

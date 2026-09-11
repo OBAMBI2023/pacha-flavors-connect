@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-any";
 import { fetchDriverPosition } from "@/lib/delivery";
 import type { RealtimeConnectionState } from "@/hooks/useRealtimeOrders";
 

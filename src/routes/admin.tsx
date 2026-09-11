@@ -31,7 +31,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-any";
 import { useAuth } from "@/hooks/useAuth";
 import { MENU_BUCKET, type DbMenuItem, useAdminMenuData } from "@/lib/menu-db";
 import { Button } from "@/components/ui/button";

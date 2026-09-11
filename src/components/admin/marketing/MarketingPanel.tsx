@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-any";
 import { MENU_BUCKET, type DbMenuItem } from "@/lib/menu-db";
 import { currencySymbol, formatMoney } from "@/lib/currency";
 import {

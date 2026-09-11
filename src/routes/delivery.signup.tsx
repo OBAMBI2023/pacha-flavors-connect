@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-any";
 import { signupOrganization, slugifyOrganizationName } from "@/lib/organizationDelivery";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

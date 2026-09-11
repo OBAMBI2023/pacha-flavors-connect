@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-any";
 
 export type FulfillmentModes = { delivery_enabled: boolean; pickup_enabled: boolean };
 

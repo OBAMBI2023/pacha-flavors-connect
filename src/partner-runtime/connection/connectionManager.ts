@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-any";
 import { ReconnectScheduler } from "@/partner-runtime/connection/reconnect";
 
 /**

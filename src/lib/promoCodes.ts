@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-any";
 import type { PromotionType } from "@/lib/promotions";
 import type { Customer } from "@/lib/customers-db";
 

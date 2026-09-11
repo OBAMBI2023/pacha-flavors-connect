@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-any";
 
 export type ReviewStatus = "published" | "hidden";
 export type ReportReason = "spam" | "harassment" | "offensive_content" | "false_review" | "inappropriate_content" | "other";
