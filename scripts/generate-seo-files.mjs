@@ -78,13 +78,7 @@ function tenantOrigin(tenant) {
   return tenant.custom_domain ? `https://${tenant.custom_domain}` : SITE_URL;
 }
 
-// Keep in sync with src/lib/seo.ts's ROOT_PAGE_TENANT_SLUG: "le-pacha" also
-// has its own dedicated page at the site root (src/routes/index.tsx),
-// already listed via STATIC_MARKETPLACE_PATHS above -- excluded below so it
-// isn't listed twice under two different (non-canonical vs. canonical) URLs.
-const ROOT_PAGE_TENANT_SLUG = "le-pacha";
-
-/** Mirrors src/lib/seo.ts's tenantCanonicalUrl: root path on a custom domain, `/r/<slug>` on the shared domain. */
+/** Mirrors src/lib/seo.ts's tenantCanonicalUrl: root path on a custom domain, `/r/<slug>` on the shared domain. Since Phase 3U, "/" is the SAOVIA Food B2B homepage for every tenant -- no tenant is excluded from this list anymore. */
 function tenantCanonicalUrl(tenant) {
   const origin = tenantOrigin(tenant);
   return tenant.custom_domain ? `${origin}/` : `${origin}/r/${tenant.slug}`;
@@ -191,8 +185,7 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
   if (error) {
     console.error("[generate-seo-files] get_public_sitemap_index failed:", error.message);
   } else {
-    // ROOT_PAGE_TENANT_SLUG is already covered by STATIC_MARKETPLACE_PATHS's "/" entry.
-    tenants = (data ?? []).filter((tenant) => tenant.slug !== ROOT_PAGE_TENANT_SLUG);
+    tenants = data ?? [];
   }
 }
 

@@ -40,7 +40,7 @@ export const Route = createFileRoute("/restaurants")({
   component: RestaurantsPage,
 });
 
-export function RestaurantsPage({ isHome = false }: { isHome?: boolean } = {}) {
+function RestaurantsPage() {
   const [q, setQ] = useState("");
   const [dishType, setDishType] = useState<string | null>(null);
   const [pickupOnly, setPickupOnly] = useState(false);
@@ -76,9 +76,7 @@ export function RestaurantsPage({ isHome = false }: { isHome?: boolean } = {}) {
   return (
     <div className="min-h-screen bg-background pb-28 lg:pb-12">
       <div className="mx-auto max-w-lg md:max-w-6xl">
-        {/* On "/", this page IS the homepage -- a back arrow to "/" would
-            just loop to the current page, so it's omitted there. */}
-        {!isHome && <TopBar backTo="/" />}
+        <TopBar backTo="/" />
 
         <div className="space-y-5 px-4">
           <h1 className="font-display text-[2rem] font-bold leading-none">Restaurants</h1>
