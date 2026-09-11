@@ -8,16 +8,22 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 
 const EMAIL_FROM = "SAOVIA Food <noreply@saovia.net>";
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// Allowlist, not "*" -- staff-only endpoint (owner/manager), never called
+// cross-origin by a third party. Only the confirmed dev origin is listed
+// today; the production origin is not yet confirmed (see CORS audit) --
+// add it here once confirmed, never widen back to "*".
+const ALLOWED_ORIGINS = ["http://localhost:5173"];
 
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json", ...CORS_HEADERS },
-  });
+function buildCorsHeaders(origin: string | null): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  };
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    headers["Access-Control-Allow-Origin"] = origin;
+    headers["Vary"] = "Origin";
+  }
+  return headers;
 }
 
 type ResendInvitePayload = {
@@ -182,7 +188,15 @@ async function sendActivationEmail(
  * `driver_profiles.invited_at` is updated only after that confirmation.
  */
 Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
+  const corsHeaders = buildCorsHeaders(req.headers.get("Origin"));
+  function json(body: unknown, status = 200) {
+    return new Response(JSON.stringify(body), {
+      status,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
+  }
+
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   const authHeader = req.headers.get("Authorization");

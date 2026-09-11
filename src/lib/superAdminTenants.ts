@@ -89,3 +89,47 @@ export async function resetTenantPassword(restaurantId: string, newPassword: str
     new_password: newPassword,
   });
 }
+
+export type Plan = {
+  id: string;
+  name: string;
+  description: string | null;
+  price_amount: number;
+  currency: string;
+  billing_period: string;
+};
+
+/** Every authenticated user can read plans (plans_select_authenticated) -- this is just the catalog, not a tenant's own subscription. */
+export async function fetchPlans(): Promise<Plan[]> {
+  const { data, error } = await supabase.from("plans").select("id,name,description,price_amount,currency,billing_period").eq("is_active", true).order("price_amount");
+  if (error) throw error;
+  return (data ?? []) as unknown as Plan[];
+}
+
+export type RestaurantSubscription = {
+  restaurant_id: string;
+  plan_id: string;
+  status: string;
+  current_period_end: string | null;
+};
+
+/** RLS-scoped read (restaurant_subscriptions_select_members, super admin included) -- no RPC needed for the read side, only the write. */
+export async function fetchRestaurantSubscription(restaurantId: string): Promise<RestaurantSubscription | null> {
+  const { data, error } = await supabase
+    .from("restaurant_subscriptions")
+    .select("restaurant_id,plan_id,status,current_period_end")
+    .eq("restaurant_id", restaurantId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as unknown as RestaurantSubscription | null) ?? null;
+}
+
+/**
+ * Super Admin-only. restaurant_subscriptions has no client-writable RLS
+ * policy at all (by design -- see phase4/super_admin_tenant_fiche
+ * migrations), so this RPC is the only path to change a tenant's plan.
+ */
+export async function setTenantPlan(restaurantId: string, planId: string): Promise<void> {
+  const { error } = await supabase.rpc("super_admin_set_restaurant_plan", { _restaurant_id: restaurantId, _plan_id: planId });
+  if (error) throw error;
+}

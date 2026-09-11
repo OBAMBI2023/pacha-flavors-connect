@@ -247,6 +247,31 @@
 }
 
 /*
+ * Scoped SAOVIA Super Admin brand tokens (/super-admin only). Same isolation
+ * approach as .driver-app-theme / .food-partner-theme above. Super Admin
+ * components style themselves with literal Tailwind utilities (slate-950,
+ * blue-600, emerald-500, etc.) rather than these var()s -- that matches the
+ * rest of this surface's existing convention -- so this block exists as the
+ * single documented source of the exact values in use, kept in sync by hand:
+ *   navy      #0b1220 / #0f172a (sidebar, mobile drawer)
+ *   sa-blue   #2563eb (primary actions, active nav state)
+ *   active    #10b981 (emerald)   trial   #f59e0b (amber)
+ *   suspended #ef4444 (red)       archive #64748b (slate)
+ *   violet    #8b5cf6 (optional secondary accent)
+ */
+.super-admin-theme {
+  --sa-navy: #0b1220;
+  --sa-navy-elevated: #111c33;
+  --sa-blue: #2563eb;
+  --sa-blue-foreground: #ffffff;
+  --sa-status-active: #10b981;
+  --sa-status-trial: #f59e0b;
+  --sa-status-suspended: #ef4444;
+  --sa-status-archived: #64748b;
+  --sa-violet: #8b5cf6;
+}
+
+/*
  * Printable order ticket (Admin > Commandes > OrderPrintTicket.tsx). The
  * ticket markup is always present in the DOM but hidden on screen; when
  * window.print() is called, this @media print block hides every other
@@ -363,5 +388,86 @@
   @page {
     size: 80mm auto;
     margin: 2mm;
+  }
+}
+
+/*
+ * Printable tenant QR code (Admin > Paramètres > QrCodeCard.tsx). Same
+ * hidden-until-print mechanism as .order-print-ticket above -- always in the
+ * DOM, revealed exclusively inside @media print so window.print() from that
+ * card produces just this A4-friendly sheet.
+ */
+.qr-print-sheet {
+  display: none;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .qr-print-sheet,
+  .qr-print-sheet * {
+    visibility: visible;
+  }
+
+  .qr-print-sheet {
+    display: block !important;
+    position: fixed;
+    inset: 0;
+    margin: 0;
+    background: #fff;
+  }
+
+  .qr-print-sheet__inner {
+    width: 100mm;
+    max-width: 100%;
+    margin: 40mm auto 0;
+    padding: 8mm;
+    text-align: center;
+    color: #000;
+    background: #fff;
+  }
+
+  .qr-print-sheet__logo {
+    display: block;
+    max-height: 20mm;
+    max-width: 60mm;
+    margin: 0 auto 4mm;
+  }
+
+  .qr-print-sheet__name {
+    font-size: 16pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin: 0 0 6mm;
+  }
+
+  .qr-print-sheet__qr {
+    width: 70mm;
+    height: 70mm;
+    margin: 0 auto;
+  }
+
+  .qr-print-sheet__qr svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .qr-print-sheet__cta {
+    font-size: 12pt;
+    font-weight: 600;
+    margin: 6mm 0 2mm;
+  }
+
+  .qr-print-sheet__url {
+    font-size: 9pt;
+    color: #555;
+    word-break: break-all;
+  }
+
+  @page {
+    size: auto;
+    margin: 10mm;
   }
 }

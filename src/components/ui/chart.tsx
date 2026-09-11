@@ -1,5 +1,6 @@
 import * as React from "react";
 import * as RechartsPrimitive from "recharts";
+import { useRouter } from "@tanstack/react-router";
 
 import { cn } from "@/lib/utils";
 
@@ -63,6 +64,9 @@ ChartContainer.displayName = "Chart";
 
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(([, config]) => config.theme || config.color);
+  // Same nonce TanStack Router stamps on its own SSR-rendered <style>/<script>
+  // tags (see HeadContent/ScriptOnce) -- avoids needing style-src 'unsafe-inline'.
+  const nonce = useRouter().options.ssr?.nonce;
 
   if (!colorConfig.length) {
     return null;
@@ -70,6 +74,7 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
 
   return (
     <style
+      nonce={nonce}
       dangerouslySetInnerHTML={{
         __html: Object.entries(THEMES)
           .map(

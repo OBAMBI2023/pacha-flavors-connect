@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Bell, Eye, EyeOff, Lock, Mail, Store, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import authHeroImage from "@/assets/saovia-food-auth-hero.png";
-import logoMark from "@/assets/saovia-food-favicon-mark.png";
+import logoMark from "@/assets/saovia-food-logo.png";
 
 const TITLE = "Connexion | SAOVIA Food Partner";
 const DESCRIPTION =
@@ -65,11 +65,22 @@ const BENEFITS = [
  * requirement.
  */
 async function resolvePostLoginPath(userId: string): Promise<"/super-admin" | "/admin"> {
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from("profiles")
     .select("is_super_admin")
     .eq("id", userId)
     .maybeSingle();
+  // TEMPORARY diagnostic (non-sensitive) -- see the matching note in
+  // AuthPage's useEffect. /admin itself then resolves the actual
+  // restaurant_memberships row (useAuth()) and shows a clear "Votre compte
+  // n'est pas encore rattaché à un restaurant." message if none exists --
+  // this only confirms whether a `profiles` row was found at all.
+  console.info("[Auth][diag] resolvePostLoginPath profile lookup", {
+    userId,
+    profileFound: Boolean(profile),
+    isSuperAdmin: profile?.is_super_admin ?? null,
+    error: error?.message ?? null,
+  });
   return profile?.is_super_admin ? "/super-admin" : "/admin";
 }
 
@@ -101,6 +112,13 @@ function AuthPage() {
   const [googleBusy, setGoogleBusy] = useState(false);
   const [existingSessionEmail, setExistingSessionEmail] = useState<string | null>(null);
   const [existingSessionUserId, setExistingSessionUserId] = useState<string | null>(null);
+  // Synchronous single-flight guard for onGoogleSignIn -- a ref (unlike
+  // googleBusy state, which only takes effect after React re-renders) so
+  // two rapid clicks in the same tick can never both pass the guard and
+  // fire two overlapping /authorize requests (points 9/10: a second
+  // request would overwrite the first's OAuth state before Google
+  // completes it, itself producing a bad_oauth_state-style error).
+  const googleSignInInFlight = useRef(false);
 
   useEffect(() => {
     const remembered = window.localStorage.getItem(REMEMBERED_EMAIL_KEY);
@@ -108,28 +126,111 @@ function AuthPage() {
   }, []);
 
   useEffect(() => {
+    // A Google OAuth redirect (or a magic-link/recovery email) lands back on
+    // this exact page with either #access_token=... (implicit flow) or
+    // ?code=... (PKCE) appended by Supabase, or -- if Google denied consent
+    // or the exchange failed -- an ?error=/#error= param instead. Captured
+    // once on mount, before supabase-js's own URL parsing (or our
+    // history.replaceState cleanup below) can remove it.
+    const initialHash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const initialSearch = new URLSearchParams(window.location.search);
+    const isOAuthCallback = initialHash.has("access_token") || initialSearch.has("code");
+    const oauthErrorCode = initialSearch.get("error_code") || initialHash.get("error_code");
+    const oauthErrorDescription =
+      initialSearch.get("error_description") ||
+      initialHash.get("error_description") ||
+      initialSearch.get("error") ||
+      initialHash.get("error");
+
+    // TEMPORARY diagnostic logging (non-sensitive only -- never tokens,
+    // codes, verifiers or secrets) to trace Google → Supabase /callback →
+    // /auth without needing dashboard log access. Safe to remove once the
+    // OAuth flow is confirmed stable end-to-end.
+    console.info("[Auth][diag] /auth mounted", {
+      pathname: window.location.pathname,
+      searchParamKeys: [...initialSearch.keys()],
+      hashParamKeys: [...initialHash.keys()],
+      hasCode: initialSearch.has("code"),
+      hasState: initialSearch.has("state") || initialHash.has("state"),
+      hasError: Boolean(oauthErrorDescription),
+      errorCode: oauthErrorCode,
+    });
+
+    if (oauthErrorDescription) {
+      // eslint-disable-next-line no-console -- deliberate: point 7 asks for
+      // the raw OAuth error to be visible in the browser console for
+      // debugging, in addition to the friendly message shown below.
+      console.error("[Auth] Google OAuth callback error:", {
+        code: oauthErrorCode,
+        description: oauthErrorDescription,
+      });
+      // Case 4: show the real technical reason, not just a generic phrase --
+      // a vague "connexion refusée" message would have hidden e.g. a
+      // misconfigured Google Client Secret behind wording that looks
+      // identical to the user simply cancelling the Google prompt.
+      setMessage(
+        `La connexion avec Google a échoué : ${oauthErrorDescription}. Réessayez ou contactez le support si le problème persiste.`,
+      );
+      // Drop the error params from the URL so refreshing this page doesn't
+      // keep re-showing a stale error.
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+
     supabase.auth.getSession().then(({ data }) => {
-      // Intentionally not an automatic navigate() here: a session found on
-      // mount can belong to a completely unrelated visit (e.g. a Marketplace
-      // customer whose browser still carries a tenant session from earlier
-      // testing) that only reaches /auth indirectly. Auto-redirecting would
-      // silently drop them into /admin. Surface it instead and let the
-      // visitor opt in.
+      // Intentionally not an automatic navigate() here for a *pre-existing*
+      // session: a session found on mount can belong to a completely
+      // unrelated visit (e.g. a Marketplace customer whose browser still
+      // carries a tenant session from earlier testing) that only reaches
+      // /auth indirectly. Auto-redirecting would silently drop them into
+      // /admin. Surface it instead and let the visitor opt in. A session
+      // that was *just* created by an OAuth redirect is handled separately
+      // below, via onAuthStateChange's SIGNED_IN event -- getSession() here
+      // can race supabase-js's own async parsing of the callback URL and
+      // momentarily report "no session" right after Google sign-in, which
+      // is exactly the false-logged-out state this must avoid.
+      console.info("[Auth][diag] getSession() on mount", {
+        hasSession: Boolean(data.session),
+        userId: data.session?.user?.id ?? null,
+      });
       setExistingSessionEmail(data.session?.user?.email ?? null);
       setExistingSessionUserId(data.session?.user?.id ?? null);
     });
 
     // A "Mot de passe oublié" email link lands back on this same page with a
     // recovery token in the URL; supabase-js parses it automatically and
-    // fires this event once a recovery session is live.
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+    // fires PASSWORD_RECOVERY once a recovery session is live. SIGNED_IN
+    // fires once supabase-js finishes turning a Google OAuth callback URL
+    // into a real session -- reacting to the event (rather than only
+    // getSession() above) is what guarantees the session is actually ready
+    // before this page treats the visitor as logged in and redirects them.
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      console.info("[Auth][diag] onAuthStateChange", {
+        event,
+        hasSession: Boolean(session),
+        userId: session?.user?.id ?? null,
+        email: session?.user?.email ?? null,
+        provider: session?.user?.app_metadata?.provider ?? null,
+        providerId: session?.user?.identities?.[0]?.id ?? null,
+      });
+
       if (event === "PASSWORD_RECOVERY") {
         setMessage(null);
         setView("recovery");
+        return;
+      }
+      if (event === "SIGNED_IN" && session) {
+        setExistingSessionEmail(session.user.email ?? null);
+        setExistingSessionUserId(session.user.id ?? null);
+        if (isOAuthCallback) {
+          setMessage(null);
+          resolvePostLoginPath(session.user.id).then((destination) => {
+            navigate({ to: destination });
+          });
+        }
       }
     });
     return () => sub.subscription.unsubscribe();
-  }, []);
+  }, [navigate]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -157,7 +258,8 @@ function AuthPage() {
    * surfaces through the same error-message UI as a bad password instead of
    * failing silently. */
   async function onGoogleSignIn() {
-    if (busy || googleBusy) return;
+    if (busy || googleBusy || googleSignInInFlight.current) return;
+    googleSignInInFlight.current = true;
     setGoogleBusy(true);
     setMessage(null);
     const { error } = await supabase.auth.signInWithOAuth({
@@ -165,11 +267,15 @@ function AuthPage() {
       options: { redirectTo: `${window.location.origin}/auth` },
     });
     if (error) {
+      // eslint-disable-next-line no-console -- deliberate, see point 7.
+      console.error("[Auth] signInWithOAuth (Google) error:", error);
+      googleSignInInFlight.current = false;
       setGoogleBusy(false);
       setMessage("Impossible de continuer avec Google. Réessayez.");
     }
     // On success the browser navigates away to Google immediately -- no
-    // further local state update happens (this component unmounts).
+    // further local state update happens (this component unmounts), so
+    // googleSignInInFlight is deliberately never reset to false there.
   }
 
   async function onForgotSubmit(e: React.FormEvent) {
@@ -534,9 +640,9 @@ function AuthPage() {
   );
 }
 
-/** Small circular icon mark + wordmark -- the one logo asset already used
+/** Official SAOVIA Food logo + wordmark -- the single logo asset used
  * site-wide on /food, /food-signup and this project's other public pages
- * (src/assets/saovia-food-favicon-mark.png), never a newly generated one. */
+ * (src/assets/saovia-food-logo.png), never a newly generated one. */
 function AuthLogo({ className = "" }: { className?: string }) {
   return (
     <div className={`flex items-center gap-2 ${className}`}>

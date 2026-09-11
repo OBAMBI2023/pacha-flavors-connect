@@ -7,11 +7,14 @@ import { Locate } from "lucide-react";
 // Free, no API key, no vendor lock-in. Noticeably more "premium/moderne"
 // than MapLibre's own plain gray demo style. Fallback if ever unavailable:
 // "https://demotiles.maplibre.org/style.json".
-const MAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
+// Exported so any other map on this map engine (e.g. DriverFleetMap) points
+// at the exact same tile source -- never a second style/provider.
+export const MAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 
 export type LatLng = { lat: number; lng: number };
 
-function markerElement(emoji: string): HTMLDivElement {
+/** Exported so other MapLibre-based maps (DriverFleetMap) reuse this exact emoji-marker look instead of re-implementing it. */
+export function markerElement(emoji: string): HTMLDivElement {
   const el = document.createElement("div");
   el.textContent = emoji;
   el.style.fontSize = "28px";

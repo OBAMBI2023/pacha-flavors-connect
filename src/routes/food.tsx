@@ -39,10 +39,10 @@ import { buildWhatsAppUrl, SAOVIA_SUPPORT_WHATSAPP_NUMBER } from "@/lib/whatsapp
 import logoMark from "@/assets/saovia-food-logo.png";
 import menuDigitalShowcaseImage from "@/assets/saovia-food-menu-digital-showcase.png";
 import heroVisualImage from "@/assets/saovia-food-hero-visual.jpg";
-import heroImmersiveImage from "@/assets/saovia-food-hero-immersive.jpg";
+import heroImmersiveImage from "@/assets/saovia-food-hero-immersive.png";
 import featuresCornerImage from "@/assets/saovia-food-features-corner.png";
 import faqPlateImage from "@/assets/saovia-food-auth-hero.png";
-import testimonialFatouPortrait from "@/assets/saovia-food-testimonial-fatou-portrait.jpg";
+import testimonialFatouPortrait from "@/assets/saovia-food-testimonial-fatou.png";
 import testimonialLeGoutDabidjanLogo from "@/assets/saovia-food-testimonial-legout-dabidjan-logo.jpg";
 
 const TITLE = "SAOVIA Food | Logiciel restaurant sans commission";
@@ -502,7 +502,7 @@ function FoodLandingPage() {
               loading="eager"
               fetchPriority="high"
               decoding="async"
-              className="absolute inset-0 h-full w-full object-cover object-[68%_14%] sm:object-[64%_18%] lg:object-[56%_22%]"
+              className="absolute inset-0 h-full w-full object-cover object-[63%_30%] sm:object-[58%_35%] lg:object-[58%_38%]"
             />
             <div
               className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/90 via-black/60 to-black/10 lg:from-[rgba(0,0,0,0.68)] lg:via-[rgba(0,0,0,0.25)] lg:to-[rgba(0,0,0,0.05)]"

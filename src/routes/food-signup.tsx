@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import logoMark from "@/assets/saovia-food-favicon-mark.png";
+import logoMark from "@/assets/saovia-food-logo.png";
 import signupHeroImage from "@/assets/saovia-food-signup-hero.png";
 
 const TITLE = "Créer votre compte — SAOVIA Food";
@@ -255,10 +255,25 @@ function FoodSignupPage() {
           {/* Image / marketing panel -- desktop only. The photo is never
               written on (no overlaid text/logo/graphics): it renders alone
               in its own rounded container, object-cover, so it can be used
-              as-is as the panel's visual. The short marketing headline sits
-              above it as plain HTML/CSS, on the page background, not on the
-              photo. */}
-          <section className="hidden lg:flex lg:flex-col lg:gap-6">
+              as-is as the panel's visual. The short marketing headline now
+              sits below the photo (plain HTML/CSS, on the page background,
+              not on the photo), so the photo's own top edge lines up with
+              the form card's top edge -- lg:pt-4 mirrors the form section's
+              own lg:py-4 so both top edges land at the same Y instead of
+              the image sitting flush with the (unpadded) grid row top. The
+              image keeps flex-1 (now as the *first* child) so it still
+              stretches to fill the column, matching the form's height
+              exactly as before -- only the order changed, not the sizing
+              math. */}
+          <section className="hidden lg:flex lg:flex-col lg:gap-6 lg:pt-4">
+            <div className="relative flex-1 overflow-hidden rounded-[28px] lg:rounded-[32px]">
+              <img
+                src={signupHeroImage}
+                alt="Restauratrice partenaire SAOVIA Food présentant son tableau de bord sur ordinateur portable et mobile"
+                className="h-full w-full object-cover object-[80%_50%]"
+              />
+            </div>
+
             <div className="max-w-xl">
               <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-primary">
                 Plus qu'une plateforme
@@ -267,14 +282,6 @@ function FoodSignupPage() {
                 Un partenaire pour la croissance de{" "}
                 <span className="text-primary">votre restaurant</span>.
               </h1>
-            </div>
-
-            <div className="relative flex-1 overflow-hidden rounded-[28px] lg:rounded-[32px]">
-              <img
-                src={signupHeroImage}
-                alt="Restauratrice partenaire SAOVIA Food présentant son tableau de bord sur ordinateur portable et mobile"
-                className="h-full w-full object-cover object-[80%_50%]"
-              />
             </div>
           </section>
 
