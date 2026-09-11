@@ -1,47 +1,32 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CartProvider } from "@/lib/cart";
-import { DeliveryLocationProvider } from "@/lib/deliveryLocation";
-import { TenantStorefront } from "@/routes/r.$slug";
-import { siteOrigin } from "@/lib/seo";
-import heroImg from "@/assets/hero.jpg";
+import { RestaurantsPage } from "@/routes/restaurants";
+import { buildOrganizationJsonLd, siteOrigin } from "@/lib/seo";
 
-// "/" is the default storefront, currently pinned to this one tenant (same
-// hardcoded slug the legacy version of this page already passed to every
-// section -- not a new assumption). Renders the exact same generic,
-// slug-driven TenantStorefront as /r/$slug -- same data fetching (RLS/RPC
-// tenant-scoped via useMenuData), same components, same cart/checkout, so
-// this page can never diverge from the real storefront again. See
-// src/routes/r.$slug.tsx for the component this reuses.
-const HOME_TENANT_SLUG = "le-pacha";
-
-const TITLE = "Le Pacha Restaurant | Restaurant à Angré 8e Tranche Abidjan";
+// "/" is the SAOVIA Food marketplace homepage: the same generic,
+// data-driven restaurant listing as /restaurants (see
+// src/routes/restaurants.tsx for the component this reuses), not any single
+// tenant's storefront. Tenant storefronts live at /r/$slug.
+const TITLE = "SAOVIA Food | Commandez dans vos restaurants préférés à Abidjan";
 const DESCRIPTION =
-  "Découvrez Le Pacha Restaurant à Angré 8e Tranche, Abidjan. Cuisine authentique, plats africains, réservation, commande à emporter et livraison.";
+  "Découvrez les restaurants partenaires SAOVIA Food à Abidjan et commandez en ligne : menu digital, livraison et retrait.";
 
 export const Route = createFileRoute("/")({
   head: () => {
     const canonicalUrl = `${siteOrigin()}/`;
-    const ogImage = `${siteOrigin()}${heroImg}`;
 
     return {
       meta: [
         { title: TITLE },
         { name: "description", content: DESCRIPTION },
-        {
-          name: "keywords",
-          content:
-            "restaurant Angré, restaurant Angré 8e Tranche, restaurant Abidjan, restaurant SICOMEX, livraison repas Angré, restaurant cuisine africaine Abidjan, restaurant ivoirien Abidjan",
-        },
         { name: "robots", content: "index,follow" },
         { property: "og:title", content: TITLE },
         { property: "og:description", content: DESCRIPTION },
-        { property: "og:type", content: "restaurant" },
+        { property: "og:type", content: "website" },
+        { property: "og:site_name", content: "SAOVIA" },
         { property: "og:url", content: canonicalUrl },
-        { property: "og:image", content: ogImage },
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:title", content: TITLE },
         { name: "twitter:description", content: DESCRIPTION },
-        { name: "twitter:image", content: ogImage },
       ],
       links: [{ rel: "canonical", href: canonicalUrl }],
       scripts: [
@@ -49,20 +34,15 @@ export const Route = createFileRoute("/")({
           type: "application/ld+json",
           children: JSON.stringify({
             "@context": "https://schema.org",
-            "@type": "Restaurant",
+            "@type": "WebSite",
             "@id": canonicalUrl,
-            name: "Le Pacha Restaurant",
+            name: "SAOVIA Food",
             url: canonicalUrl,
-            image: ogImage,
-            servesCuisine: ["Ivoirienne", "Africaine"],
-            telephone: "+2250707170514",
-            address: {
-              "@type": "PostalAddress",
-              streetAddress: "Angré 8e Tranche, Feu du SICOMEX",
-              addressLocality: "Abidjan",
-              addressCountry: "CI",
-            },
           }),
+        },
+        {
+          type: "application/ld+json",
+          children: JSON.stringify(buildOrganizationJsonLd()),
         },
       ],
     };
@@ -71,11 +51,5 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  return (
-    <CartProvider>
-      <DeliveryLocationProvider>
-        <TenantStorefront slug={HOME_TENANT_SLUG} />
-      </DeliveryLocationProvider>
-    </CartProvider>
-  );
+  return <RestaurantsPage isHome />;
 }
