@@ -38,6 +38,38 @@ function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
+const GENERIC_SIGNUP_ERROR =
+  "Impossible de créer votre compte pour le moment. Vérifiez vos informations et réessayez.";
+const EMAIL_CONFIRMATION_ERROR =
+  "Votre compte n'a pas pu être confirmé par e-mail. Veuillez réessayer dans quelques instants.";
+const ALREADY_REGISTERED_ERROR =
+  "Un compte existe déjà avec cette adresse e-mail. Connectez-vous plutôt.";
+
+/**
+ * Supabase Auth's raw error messages (e.g. "Error sending confirmation
+ * email", the built-in mailer's rate-limit response) are never shown to the
+ * end user -- only ever logged, and only in dev. This maps the small set of
+ * known signUp failure shapes to the safe, French copy this page shows
+ * instead. Never includes the password: only error.message/status/code ever
+ * reach here or the console.
+ */
+function mapSignupError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  if (/confirmation email|sending.*email|smtp/i.test(message)) {
+    return EMAIL_CONFIRMATION_ERROR;
+  }
+  return GENERIC_SIGNUP_ERROR;
+}
+
+function logSignupErrorInDev(context: string, error: unknown) {
+  if (!import.meta.env.DEV) return;
+  const status = (error as { status?: number } | null)?.status;
+  const code = (error as { code?: string } | null)?.code;
+  const message = error instanceof Error ? error.message : String(error);
+  // eslint-disable-next-line no-console -- dev-only diagnostic, never the password
+  console.error(`[food-signup] ${context}`, { message, status, code });
+}
+
 /** Loose international validity check (matches this app's own WhatsApp-number normalization, not a strict E.164 parser). */
 function isValidPhone(value: string): boolean {
   const digits = normalizeWhatsAppPhone(value).replace(/\D/g, "");
@@ -70,6 +102,8 @@ function FoodSignupPage() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [resendBusy, setResendBusy] = useState(false);
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
 
   function validate(): boolean {
     const errors: FieldErrors = {};
@@ -118,9 +152,26 @@ function FoodSignupPage() {
             phone: normalizedPhone,
             restaurant_name: restaurantName.trim(),
           },
+          // Must reflect wherever the user is actually signing up from (this
+          // dev server, a Vercel preview, or production) -- siteOrigin()'s
+          // fixed production fallback would send every preview/dev
+          // confirmation link to the live site instead. That target origin
+          // must also be present in Supabase Auth's Redirect URLs allowlist
+          // or the confirmation link itself will fail.
+          emailRedirectTo: `${window.location.origin}/auth`,
         },
       });
       if (signUpResult.error) throw signUpResult.error;
+
+      // Supabase deliberately returns a success-shaped response (no error)
+      // when the email already belongs to a confirmed account, to avoid
+      // leaking which emails are registered -- it does NOT send a new
+      // confirmation email in that case. Detected via the documented
+      // signal: a real user object with an empty `identities` array.
+      if (signUpResult.data.user && signUpResult.data.user.identities?.length === 0) {
+        setFormError(ALREADY_REGISTERED_ERROR);
+        return;
+      }
 
       if (!signUpResult.data.session) {
         setView("confirmation-pending");
@@ -137,11 +188,30 @@ function FoodSignupPage() {
       });
       setView("success");
     } catch (err) {
-      setFormError(
-        err instanceof Error ? err.message : "Impossible de créer votre compte. Réessayez.",
-      );
+      logSignupErrorInDev("signUp failed", err);
+      setFormError(mapSignupError(err));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function onResendConfirmation() {
+    if (resendBusy) return;
+    setResendBusy(true);
+    setResendMessage(null);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: email.trim(),
+        options: { emailRedirectTo: `${window.location.origin}/auth` },
+      });
+      if (error) throw error;
+      setResendMessage("E-mail renvoyé.");
+    } catch (err) {
+      logSignupErrorInDev("resend failed", err);
+      setResendMessage(mapSignupError(err));
+    } finally {
+      setResendBusy(false);
     }
   }
 
@@ -161,9 +231,37 @@ function FoodSignupPage() {
             <span className="font-medium text-foreground">{email}</span>. Cliquez sur le lien qu'il
             contient, puis connectez-vous pour terminer la création de votre compte restaurant.
           </p>
+
+          {resendMessage && (
+            <p className="mt-4 text-sm font-medium text-primary">{resendMessage}</p>
+          )}
+
           <Button asChild className="mt-6 h-12 w-full rounded-full">
             <Link to="/auth">Aller à la connexion</Link>
           </Button>
+
+          <div className="mt-4 flex items-center justify-center gap-4 text-sm">
+            <button
+              type="button"
+              onClick={onResendConfirmation}
+              disabled={resendBusy}
+              className="font-semibold text-primary hover:underline underline-offset-4 disabled:opacity-60"
+            >
+              {resendBusy ? "Envoi…" : "Renvoyer l'e-mail"}
+            </button>
+            <span className="text-muted-foreground">·</span>
+            <button
+              type="button"
+              onClick={() => {
+                setResendMessage(null);
+                setView("form");
+              }}
+              className="font-semibold text-primary hover:underline underline-offset-4"
+            >
+              Modifier mon adresse e-mail
+            </button>
+          </div>
+
           <a
             href={ADVISOR_WHATSAPP_URL}
             target="_blank"
