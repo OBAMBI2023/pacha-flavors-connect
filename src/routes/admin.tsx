@@ -791,9 +791,9 @@ export default function AdminPage() {
             >
               <MenuIcon className="h-5 w-5" aria-hidden="true" />
             </button>
-            <p className="min-w-0 truncate text-center font-display text-sm font-bold tracking-tight">
+            <p className="min-w-0 truncate text-center font-display text-base font-extrabold tracking-tight">
               SAOVIA{" "}
-              <span className="text-[0.6rem] font-semibold uppercase tracking-[0.25em] text-primary">
+              <span className="text-[0.65rem] font-bold uppercase tracking-[0.25em] text-primary">
                 Food Partner
               </span>
             </p>
@@ -805,6 +805,7 @@ export default function AdminPage() {
               canManageMenu={canManageMenu}
               busy={availabilityBusy}
               onToggle={handleToggleOpen}
+              description={availability.is_open ? "Votre restaurant est en ligne" : undefined}
               className="mb-4 w-full justify-between lg:hidden"
             />
           )}
@@ -2130,12 +2131,15 @@ function AvailabilityToggleControl({
   busy,
   onToggle,
   className = "",
+  description,
 }: {
   availability: RestaurantAvailability;
   canManageMenu: boolean;
   busy: boolean;
   onToggle: (next: boolean) => void;
   className?: string;
+  /** Optional second line under the Ouvert/Fermé label -- omitted by every existing call site except the mobile dashboard one, so this is purely additive. */
+  description?: string | undefined;
 }) {
   const isOpen = availability.is_open;
   return (
@@ -2144,9 +2148,12 @@ function AvailabilityToggleControl({
         isOpen ? "border-emerald-200 bg-emerald-50" : "border-destructive/20 bg-destructive/5"
       } ${className}`}
     >
-      <span className={`flex items-center gap-1.5 text-sm font-semibold ${isOpen ? "text-emerald-700" : "text-destructive"}`}>
-        <span aria-hidden="true">{isOpen ? "🟢" : "🔴"}</span>
-        {isOpen ? "Ouvert" : "Fermé"}
+      <span className="flex min-w-0 flex-col">
+        <span className={`flex items-center gap-1.5 text-sm font-semibold ${isOpen ? "text-emerald-700" : "text-destructive"}`}>
+          <span aria-hidden="true">{isOpen ? "🟢" : "🔴"}</span>
+          {isOpen ? "Ouvert" : "Fermé"}
+        </span>
+        {description && <span className="mt-0.5 truncate text-xs font-normal text-emerald-700/80">{description}</span>}
       </span>
       <Switch
         checked={isOpen}
