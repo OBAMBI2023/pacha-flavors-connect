@@ -1,6 +1,8 @@
 const CHIME_SRC = "/sounds/new-order.wav";
 const SOUND_PREF_KEY = "saovia:order-sound-enabled";
+const VIBRATION_PREF_KEY = "saovia:order-vibration-enabled";
 const REPEAT_INTERVAL_MS = 2_000;
+const NEW_ORDER_VIBRATION_PATTERN = [200, 100, 200];
 
 let audioEl: HTMLAudioElement | null = null;
 let unlocked = false;
@@ -116,5 +118,35 @@ export function stopOrderChime(): void {
   if (audioEl) {
     audioEl.pause();
     audioEl.currentTime = 0;
+  }
+}
+
+export function isVibrationSupported(): boolean {
+  return typeof navigator !== "undefined" && typeof navigator.vibrate === "function";
+}
+
+export function getVibrationPreference(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem(VIBRATION_PREF_KEY) === "true";
+}
+
+export function setVibrationPreference(enabled: boolean): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(VIBRATION_PREF_KEY, enabled ? "true" : "false");
+}
+
+/**
+ * One-shot vibration for a new order, fired once per event (unlike the
+ * chime, which repeats until accept/refuse) -- pure enhancement: unsupported
+ * or blocked `navigator.vibrate` is a silent no-op, never throws, and never
+ * gates the toast/sound/badge the rest of the alert already shows.
+ */
+export function vibrateNewOrder(): void {
+  if (!getVibrationPreference() || !isVibrationSupported()) return;
+  try {
+    navigator.vibrate(NEW_ORDER_VIBRATION_PATTERN);
+  } catch {
+    // Some browsers throw when called outside a user-gesture/visible-tab
+    // context -- never let that break the rest of the alert.
   }
 }

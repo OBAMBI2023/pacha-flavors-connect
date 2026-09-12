@@ -4,12 +4,16 @@ import { useRealtimeOrders, type RealtimeConnectionState } from "@/hooks/useReal
 import type { Order, OrderStatus } from "@/lib/orders-db";
 import {
   getSoundPreference,
+  getVibrationPreference,
+  isVibrationSupported,
   playNewOrderChime,
   preloadOrderAudio,
   setAutoplayBlockedListener,
   setSoundPreference,
+  setVibrationPreference,
   stopOrderChime,
   unlockOrderAudio,
+  vibrateNewOrder,
 } from "@/lib/order-audio";
 
 /**
@@ -24,11 +28,13 @@ import {
  */
 export function useOrdersAlert(restaurantId: string | null, options?: { onViewOrder?: (orderId: string) => void }) {
   const [soundEnabled, setSoundEnabledState] = useState(false);
+  const [vibrationEnabled, setVibrationEnabledState] = useState(false);
   const onViewOrderRef = useRef(options?.onViewOrder);
   onViewOrderRef.current = options?.onViewOrder;
 
   useEffect(() => {
     setSoundEnabledState(getSoundPreference());
+    setVibrationEnabledState(getVibrationPreference());
     // Fetch the chime file as soon as the dashboard mounts, whether or not
     // sound is currently enabled -- so the first real alert never has to
     // wait on a network fetch.
@@ -50,6 +56,7 @@ export function useOrdersAlert(restaurantId: string | null, options?: { onViewOr
       duration: 10_000,
       action: onViewOrder ? { label: "Voir", onClick: () => onViewOrder(order.id) } : undefined,
     });
+    vibrateNewOrder();
   }, []);
 
   const { orders, connectionState, newOrderIds, acknowledgeOrder, patchOrder, loading } = useRealtimeOrders(
@@ -84,6 +91,16 @@ export function useOrdersAlert(restaurantId: string | null, options?: { onViewOr
     stopOrderChime();
   }
 
+  function enableVibration() {
+    setVibrationPreference(true);
+    setVibrationEnabledState(true);
+  }
+
+  function disableVibration() {
+    setVibrationPreference(false);
+    setVibrationEnabledState(false);
+  }
+
   return {
     orders,
     connectionState,
@@ -95,6 +112,10 @@ export function useOrdersAlert(restaurantId: string | null, options?: { onViewOr
     soundEnabled,
     enableSound,
     disableSound,
+    vibrationEnabled,
+    vibrationSupported: isVibrationSupported(),
+    enableVibration,
+    disableVibration,
   };
 }
 

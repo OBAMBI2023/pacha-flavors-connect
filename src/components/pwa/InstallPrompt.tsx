@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { Download, Share, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { isIosSafari, isStandalone } from "@/lib/pwaEnv";
 
 const DISMISSED_ANDROID_KEY = "saovia:pwa-install-dismissed";
 const DISMISSED_IOS_KEY = "saovia:pwa-ios-install-dismissed";
@@ -9,22 +10,6 @@ const DISMISSED_IOS_KEY = "saovia:pwa-ios-install-dismissed";
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
-
-function isStandalone(): boolean {
-  if (typeof window === "undefined") return false;
-  return (
-    window.matchMedia?.("(display-mode: standalone)").matches ||
-    (window.navigator as { standalone?: boolean }).standalone === true
-  );
-}
-
-function isIosSafari(): boolean {
-  if (typeof navigator === "undefined") return false;
-  const ua = navigator.userAgent;
-  const isIosDevice =
-    /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
-  return isIosDevice;
 }
 
 /**

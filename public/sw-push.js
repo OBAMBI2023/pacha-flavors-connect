@@ -20,13 +20,36 @@ self.addEventListener("push", (event) => {
     icon: "/icons/icon-192.png",
     badge: "/icons/icon-192.png",
     // Matches the foreground Notification's own `tag` (the proposal id, set
-    // in useDriverProposalAlert.ts) so the OS coalesces the two into one
+    // in useDriverProposalAlert.ts, or the notification_events.id for the
+    // general notification engine) so the OS coalesces the two into one
     // visible notification instead of showing both.
     tag: typeof payload.tag === "string" ? payload.tag : undefined,
     data: { url: typeof payload.url === "string" ? payload.url : "/" },
+    // Tenant "nouvelle commande" alert only -- a plain array here is simply
+    // ignored by platforms/browsers that don't support the Notification
+    // vibrate option (no error, no feature check needed), so this never
+    // needs to gate on capability detection itself.
+    ...(payload.type === "NEW_ORDER" ? { vibrate: [200, 100, 200] } : {}),
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  // The notification engine (send-notification) already broadcasts the same
+  // event over Realtime, which a focused tab renders as an in-app toast --
+  // showing the OS notification too on top of that would be exactly the
+  // "toast + notification système inutile" duplicate the notification
+  // engine spec calls out. Only suppressed when a client is both open AND
+  // focused (a backgrounded/hidden tab still gets the system notification,
+  // same as before); any failure of this check just falls back to always
+  // showing it, never the other way around.
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clients) => clients.some((client) => client.focused))
+      .catch(() => false)
+      .then((hasFocusedClient) => {
+        if (hasFocusedClient) return;
+        return self.registration.showNotification(title, options);
+      }),
+  );
 });
 
 self.addEventListener("notificationclick", (event) => {

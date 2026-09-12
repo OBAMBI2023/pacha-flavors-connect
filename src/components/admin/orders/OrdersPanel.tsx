@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Bell, BellOff, Plus, RadioTower, Volume2 } from "lucide-react";
+import { Bell, BellOff, Plus, RadioTower, Vibrate, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { OrdersAlert, RealtimeConnectionState } from "@/hooks/useOrdersAlert";
 import { useDeliveryDispatch } from "@/hooks/useDeliveryDispatch";
@@ -9,6 +9,7 @@ import { createRefund, fetchOrderPaymentSummary, markCashPaymentReceived, update
 import { fetchDriverLocationFreshnessMinutes } from "@/lib/delivery";
 import { assignDriverToOrder } from "@/lib/drivers";
 import { playTestChime } from "@/lib/order-audio";
+import { NewOrderPushToggle } from "@/components/admin/notifications/NewOrderPushToggle";
 import { OrderCard } from "./OrderCard";
 import { OrderDetailSheet } from "./OrderDetailSheet";
 import { NewOrderDialog } from "./NewOrderDialog";
@@ -39,6 +40,10 @@ export function OrdersPanel({
   soundEnabled,
   enableSound,
   disableSound,
+  vibrationEnabled,
+  vibrationSupported,
+  enableVibration,
+  disableVibration,
 }: OrdersAlert & { restaurantId: string | null; restaurant: DbRestaurant | null }) {
   const [filter, setFilter] = useState<"all" | OrderStatus>("all");
   const dispatchByOrderId = useDeliveryDispatch(restaurantId);
@@ -196,6 +201,18 @@ export function OrdersPanel({
             {soundEnabled ? <Bell className="mr-2 h-4 w-4" /> : <BellOff className="mr-2 h-4 w-4" />}
             {soundEnabled ? "Son activé" : "Activer les alertes sonores"}
           </Button>
+          {vibrationSupported && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => (vibrationEnabled ? disableVibration() : enableVibration())}
+              className="h-11"
+            >
+              <Vibrate className="mr-2 h-4 w-4" />
+              {vibrationEnabled ? "Vibration activée" : "Activer la vibration"}
+            </Button>
+          )}
+          <NewOrderPushToggle />
         </div>
       </div>
 

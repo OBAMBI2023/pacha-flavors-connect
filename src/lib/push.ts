@@ -10,16 +10,37 @@ import { supabase } from "@/integrations/supabase/client";
  */
 
 export function isPushSupported(): boolean {
-  return typeof navigator !== "undefined" && "serviceWorker" in navigator && "PushManager" in window;
+  return (
+    typeof navigator !== "undefined" && "serviceWorker" in navigator && "PushManager" in window
+  );
 }
 
-/** Returns null when unset -- callers must treat that as "push not configured", never throw or fake success. */
+/**
+ * Same production key pair already provisioned for the driver push flow
+ * (src/partner-runtime/notifications/pushManager.ts, private half held by
+ * the send-push edge function secret). Public VAPID keys are never secret --
+ * only reused here as a fallback so the general notification engine
+ * (send-notification, which reads the *same* VAPID_PUBLIC_KEY/PRIVATE_KEY
+ * project secret names) doesn't need a second key pair provisioned.
+ * UNCONFIRMED: verify driver push notifications actually deliver in
+ * production before relying on this for a real release -- if send-push's
+ * VAPID env vars were ever rotated independently of this literal, browsers
+ * will still let a subscription succeed (subscribe() doesn't validate
+ * against the server's private key), but every send will then fail silently
+ * server-side.
+ */
+const FALLBACK_VAPID_PUBLIC_KEY =
+  "BHxS3xux61XKcOnRrsYmWSRQFhIRlBEacxLaf36PGjuHuiyo5QL4uTDvHR3JJiwwJRggqk3rPDuDF3bwhec3w-0";
+
+/** Falls back to the shared driver-push key when VITE_VAPID_PUBLIC_KEY isn't set at build time -- callers must still treat a null return (only possible if that fallback is ever cleared) as "push not configured", never throw or fake success. */
 export function getVapidPublicKey(): string | null {
   const key = import.meta.env["VITE_VAPID_PUBLIC_KEY"];
-  return typeof key === "string" && key.length > 0 ? key : null;
+  if (typeof key === "string" && key.length > 0) return key;
+  return FALLBACK_VAPID_PUBLIC_KEY;
 }
 
-function urlBase64ToUint8Array(base64: string): Uint8Array {
+/** Exported for src/lib/notifications.ts (the general notification engine) -- same conversion, one implementation. */
+export function urlBase64ToUint8Array(base64: string): Uint8Array {
   const padding = "=".repeat((4 - (base64.length % 4)) % 4);
   const raw = atob((base64 + padding).replace(/-/g, "+").replace(/_/g, "/"));
   return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
@@ -49,7 +70,13 @@ export async function subscribeToPush(driverId: string): Promise<void> {
     throw new Error("Abonnement push incomplet");
   }
   const { error } = await supabase.from("push_subscriptions").upsert(
-    { driver_id: driverId, endpoint: json.endpoint, p256dh, auth, user_agent: navigator.userAgent },
+    {
+      driver_id: driverId,
+      endpoint: json.endpoint,
+      p256dh,
+      auth,
+      user_agent: navigator.userAgent,
+    },
     { onConflict: "endpoint" },
   );
   if (error) throw error;
@@ -64,5 +91,9 @@ export async function unsubscribeFromPush(driverId: string): Promise<void> {
 
   const endpoint = subscription.endpoint;
   await subscription.unsubscribe();
-  await supabase.from("push_subscriptions").delete().eq("driver_id", driverId).eq("endpoint", endpoint);
+  await supabase
+    .from("push_subscriptions")
+    .delete()
+    .eq("driver_id", driverId)
+    .eq("endpoint", endpoint);
 }
