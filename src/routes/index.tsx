@@ -470,7 +470,7 @@ function FeatureVisual({ kind }: { kind: FeatureVisualKind }) {
 
 function FoodLandingPage() {
   return (
-    <div className="food-partner-theme min-h-screen bg-background pb-20 text-foreground lg:pb-0">
+    <div className="food-partner-theme min-h-screen bg-background text-foreground">
       <FoodHeader activePath="/food" />
 
       <main>
@@ -1175,17 +1175,6 @@ function FoodLandingPage() {
         {/* Shared dark "premium SaaS" footer -- see src/components/FoodFooter.tsx */}
         <FoodFooter />
       </main>
-
-      {/* Mobile sticky conversion bar -- kept off desktop (lg:hidden) where the
-          header's own CTA is always visible; pb-20 on the page wrapper above
-          reserves room so this never overlaps the footer/final CTA content. */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(0,0,0,0.12)] backdrop-blur lg:hidden">
-        <Button asChild className="h-12 w-full rounded-full text-base">
-          <Link to="/food-signup">
-            Créer mon restaurant <ArrowRight className="h-4 w-4" aria-hidden="true" />
-          </Link>
-        </Button>
-      </div>
     </div>
   );
 }
