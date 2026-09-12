@@ -1,6 +1,52 @@
 import { supabase } from "@/integrations/supabase/client";
+import { MENU_BUCKET, type AboutSection } from "@/lib/menu-db";
 
 export type FulfillmentModes = { delivery_enabled: boolean; pickup_enabled: boolean };
+
+export const ABOUT_SECTION_MAX_HIGHLIGHTS = 4;
+
+/** Same targeted-column read as fetchFulfillmentModes -- restaurant_settings always has exactly one row per restaurant (DB-enforced), so `{}` (the column's own default) is the only "not configured yet" case, never a missing row. */
+export async function fetchAboutSection(restaurantId: string): Promise<AboutSection> {
+  const { data, error } = await supabase
+    .from("restaurant_settings")
+    .select("about_section")
+    .eq("restaurant_id", restaurantId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data?.about_section as AboutSection | null) ?? {};
+}
+
+/**
+ * Same RLS boundary as updateFulfillmentModes (settings_manage_owner_manager)
+ * -- a tenant can only ever update its own restaurant's row. Highlights are
+ * clamped to ABOUT_SECTION_MAX_HIGHLIGHTS here too, not just in the form UI,
+ * so a direct call can never smuggle in more than the admin form allows.
+ */
+export async function updateAboutSection(
+  restaurantId: string,
+  section: AboutSection,
+): Promise<void> {
+  const next: AboutSection = {
+    ...section,
+    highlights: (section.highlights ?? []).slice(0, ABOUT_SECTION_MAX_HIGHLIGHTS),
+  };
+  const { error } = await supabase
+    .from("restaurant_settings")
+    .update({ about_section: next })
+    .eq("restaurant_id", restaurantId);
+  if (error) throw error;
+}
+
+/** Same bucket/path convention as the restaurant logo/cover upload (admin.tsx's uploadRestaurantAsset) -- storage RLS scopes by the first path segment being the restaurant's own id, generic to any subpath. */
+export async function uploadAboutImage(restaurantId: string, file: File): Promise<string> {
+  const ext = file.name.split(".").pop() ?? "jpg";
+  const path = `${restaurantId}/about/${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase.storage
+    .from(MENU_BUCKET)
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (error) throw error;
+  return supabase.storage.from(MENU_BUCKET).getPublicUrl(path).data.publicUrl;
+}
 
 /** Mirrors fetchManualOverride/setManualOverride's shape (src/lib/businessHours.ts) -- same table, same targeted-column pattern. */
 export async function fetchFulfillmentModes(restaurantId: string): Promise<FulfillmentModes> {

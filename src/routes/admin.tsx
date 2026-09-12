@@ -98,6 +98,7 @@ import { FulfillmentSettingsCard } from "@/components/admin/settings/Fulfillment
 import { CurrencyCard } from "@/components/admin/settings/CurrencyCard";
 import { SeoSettingsCard } from "@/components/admin/settings/SeoSettingsCard";
 import { QrCodeCard } from "@/components/admin/settings/QrCodeCard";
+import { AboutSectionCard } from "@/components/admin/settings/AboutSectionCard";
 import { useRestaurantTheme } from "@/hooks/useRestaurantTheme";
 import { DEFAULT_CURRENCY_CODE, currencySymbol, formatMoney } from "@/lib/currency";
 
@@ -314,7 +315,7 @@ export default function AdminPage() {
   const [existingPromotion, setExistingPromotion] = useState<Promotion | null>(null);
   const [promotionsRefreshSignal, setPromotionsRefreshSignal] = useState(0);
   const [promotionsSubTab, setPromotionsSubTab] = useState<"produits" | "codes">("produits");
-  const [settingsSubTab, setSettingsSubTab] = useState<"general" | "storefront" | "contact" | "disponibilite">(
+  const [settingsSubTab, setSettingsSubTab] = useState<"general" | "storefront" | "histoire" | "contact" | "disponibilite">(
     "general",
   );
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -1042,6 +1043,13 @@ export default function AdminPage() {
                 </button>
                 <button
                   type="button"
+                  onClick={() => setSettingsSubTab("histoire")}
+                  className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${settingsSubTab === "histoire" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+                >
+                  Notre histoire
+                </button>
+                <button
+                  type="button"
                   onClick={() => setSettingsSubTab("contact")}
                   className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${settingsSubTab === "contact" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
                 >
@@ -1172,6 +1180,9 @@ export default function AdminPage() {
                 </div>
               </Card>
               </div>
+              )}
+              {settingsSubTab === "histoire" && (
+                <AboutSectionCard restaurantId={restaurantId} restaurant={restaurant} />
               )}
               {settingsSubTab === "contact" && (
               <div className="grid gap-6 lg:grid-cols-2">

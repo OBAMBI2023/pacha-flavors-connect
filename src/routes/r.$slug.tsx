@@ -25,6 +25,7 @@ import { TenantOffersSheet } from "@/components/tenant/TenantOffersSheet";
 import type { TenantOffer } from "@/lib/offers";
 import { TenantNotificationsSheet } from "@/components/tenant/TenantNotificationsSheet";
 import { TenantTrustBar } from "@/components/tenant/TenantTrustBar";
+import { TenantAboutSection } from "@/components/tenant/TenantAboutSection";
 import { PublicFooter } from "@/components/PublicFooter";
 import { useVisitorTracking } from "@/lib/visitorTracking";
 import { trackMetaPixelEvent, useMetaPixel } from "@/lib/metaPixel";
@@ -237,6 +238,7 @@ export function TenantStorefront({ slug }: { slug: string }) {
           </div>
         </section>
         {hasMenu && <TenantTrustBar />}
+        <TenantAboutSection restaurant={restaurant} about={settings?.about_section} />
         <TenantLocationSection name={restaurant.name} address={restaurant.address} commune={restaurant.commune} city={restaurant.city} countryCode={restaurant.country_code} phone={restaurant.phone} />
       </main>
 

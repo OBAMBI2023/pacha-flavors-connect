@@ -54,6 +54,34 @@ export type PublicRestaurant = {
 
 export type OpeningHoursSpec = Record<string, { open: string; close: string; closed?: boolean } | null>;
 
+export type AboutHighlight = {
+  icon: string;
+  title: string;
+  description: string;
+};
+
+/**
+ * "Notre histoire" storefront section -- 100% tenant-authored, stored as
+ * one jsonb blob on restaurant_settings (see the tenant_about_section
+ * migration). Every field is optional: a tenant who hasn't configured this
+ * yet gets back `{}` from get_public_menu, and the public section (see
+ * TenantAboutSection) renders nothing at all rather than inventing content.
+ */
+export type AboutSection = {
+  enabled?: boolean;
+  eyebrow?: string;
+  title?: string;
+  description?: string;
+  secondary_description?: string;
+  signature?: string;
+  cta_label?: string;
+  chef_name?: string;
+  chef_role?: string;
+  chef_message?: string;
+  main_image_url?: string | null;
+  highlights?: AboutHighlight[];
+};
+
 export type PublicRestaurantSettings = {
   description: string | null;
   /** Short marketing tagline/slogan -- optional, distinct from `description`. Used by the SEO module in the schema.org `slogan` property and, when set, prepended to the default title. */
@@ -83,6 +111,8 @@ export type PublicRestaurantSettings = {
   custom_domain: string | null;
   /** Only ever present when the tenant has enabled Meta Pixel (get_public_menu omits it entirely otherwise) -- see useMetaPixel. */
   meta_pixel_id: string | null;
+  /** "Notre histoire" section -- see AboutSection. Always present as at least `{}` (the column's own default), never null. */
+  about_section: AboutSection;
 };
 
 /** Public weekly opening-hours row -- day_of_week follows JS Date.getDay() (0 = Sunday). */
