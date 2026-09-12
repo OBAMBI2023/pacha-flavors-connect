@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Bell, BellOff, RadioTower, Volume2 } from "lucide-react";
+import { Bell, BellOff, Plus, RadioTower, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { OrdersAlert, RealtimeConnectionState } from "@/hooks/useOrdersAlert";
 import { useDeliveryDispatch } from "@/hooks/useDeliveryDispatch";
@@ -15,6 +15,7 @@ import { RejectOrderDialog } from "./RejectOrderDialog";
 import { RefundDialog } from "./RefundDialog";
 import { AssignDriverDialog } from "./AssignDriverDialog";
 import { DriverTrackingModal } from "./DriverTrackingModal";
+import { NewOrderDialog } from "./NewOrderDialog";
 import { FILTER_TABS, TERMINAL_STATUSES } from "./orderStatusMeta";
 
 const CONNECTION_META: Record<RealtimeConnectionState, { label: string; dot: string }> = {
@@ -38,8 +39,10 @@ export function OrdersPanel({
   soundEnabled,
   enableSound,
   disableSound,
+  refresh,
 }: OrdersAlert & { restaurantId: string | null; restaurant: DbRestaurant | null }) {
   const [filter, setFilter] = useState<"all" | OrderStatus>("all");
+  const [newOrderOpen, setNewOrderOpen] = useState(false);
   const dispatchByOrderId = useDeliveryDispatch(restaurantId);
   const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<Order | null>(null);
