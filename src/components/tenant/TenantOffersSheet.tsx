@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, Clock, Tag } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -6,7 +6,13 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { MENU_BUCKET } from "@/lib/menu-db";
 import { getOrCreateVisitorId } from "@/lib/visitorTracking";
-import { fetchTenantOffers, markOfferRead, notifyOfferRead, trackOfferClick, type TenantOffer } from "@/lib/offers";
+import {
+  fetchTenantOffers,
+  markOfferRead,
+  notifyOfferRead,
+  trackOfferClick,
+  type TenantOffer,
+} from "@/lib/offers";
 import { useCart } from "@/lib/cart";
 import type { MenuItem } from "@/data/menu";
 import { formatMoney as money } from "@/lib/currency";
@@ -14,6 +20,13 @@ import { formatMoney as money } from "@/lib/currency";
 function imageUrl(path: string | null): string | null {
   return path ? supabase.storage.from(MENU_BUCKET).getPublicUrl(path).data.publicUrl : null;
 }
+
+/** Downward drag distance (px) past which releasing the handle closes the sheet instead of springing back. */
+const OFFERS_SHEET_SWIPE_CLOSE_DISTANCE = 100;
+/** Or, released before reaching that distance, a fast-enough flick (px/ms) still closes it. */
+const OFFERS_SHEET_SWIPE_CLOSE_VELOCITY = 0.5;
+/** Ignore tiny finger jitter before treating a touch on the handle as an actual drag. */
+const OFFERS_SHEET_SWIPE_START_DISTANCE = 4;
 
 function endsLabel(iso: string | null): string | null {
   if (!iso) return null;
@@ -57,6 +70,68 @@ export function TenantOffersSheet({
   const [loading, setLoading] = useState(true);
   const [detail, setDetail] = useState<TenantOffer | null>(null);
 
+  // Swipe-down-to-close, mirrors the admin mobile drawer's own drag-to-close
+  // (see MobileNavSheet in routes/admin.tsx) but vertical and only armed
+  // from the handle strip -- not the whole sheet -- so it never fights the
+  // offers list's own vertical scroll underneath it.
+  const [dragY, setDragY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const gestureRef = useRef<{
+    startY: number;
+    startTime: number;
+    lastY: number;
+    lastTime: number;
+    dragging: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    if (open) setDragY(0);
+  }, [open]);
+
+  function handleHandleTouchStart(e: React.TouchEvent) {
+    const t = e.touches[0];
+    if (!t) return;
+    gestureRef.current = {
+      startY: t.clientY,
+      startTime: Date.now(),
+      lastY: t.clientY,
+      lastTime: Date.now(),
+      dragging: false,
+    };
+  }
+  function handleHandleTouchMove(e: React.TouchEvent) {
+    const g = gestureRef.current;
+    const t = e.touches[0];
+    if (!g || !t) return;
+    const dy = t.clientY - g.startY;
+    if (!g.dragging) {
+      if (dy < OFFERS_SHEET_SWIPE_START_DISTANCE) return;
+      g.dragging = true;
+    }
+    g.lastY = t.clientY;
+    g.lastTime = Date.now();
+    setIsDragging(true);
+    setDragY(Math.max(0, dy));
+  }
+  function handleHandleTouchEnd() {
+    const g = gestureRef.current;
+    gestureRef.current = null;
+    setIsDragging(false);
+    if (!g || !g.dragging) return;
+    const distance = Math.max(0, g.lastY - g.startY);
+    const elapsed = Math.max(1, g.lastTime - g.startTime);
+    const velocity = distance / elapsed;
+    if (
+      distance >= OFFERS_SHEET_SWIPE_CLOSE_DISTANCE ||
+      velocity >= OFFERS_SHEET_SWIPE_CLOSE_VELOCITY
+    ) {
+      setDragY(9999);
+      onOpenChange(false);
+    } else {
+      setDragY(0);
+    }
+  }
+
   useEffect(() => {
     if (!open) return;
     setDetail(null);
@@ -69,10 +144,15 @@ export function TenantOffersSheet({
         const target = openOfferId ? rows.find((o) => o.id === openOfferId) : null;
         if (target) openDetail(target);
       })
-      .catch((err: unknown) => toast.error(err instanceof Error ? err.message : "Impossible de charger les offres."))
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+      .catch((err: unknown) =>
+        toast.error(err instanceof Error ? err.message : "Impossible de charger les offres."),
+      )
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [open, slug, openOfferId]);
 
   function openDetail(offer: TenantOffer) {
@@ -114,12 +194,33 @@ export function TenantOffersSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="flex h-[85vh] flex-col rounded-t-[20px] pb-[calc(1rem+env(safe-area-inset-bottom))] lg:inset-x-auto lg:bottom-auto lg:left-1/2 lg:top-1/2 lg:h-auto lg:max-h-[90vh] lg:w-[calc(100vw-48px)] lg:max-w-[700px] lg:-translate-x-1/2 lg:-translate-y-1/2 lg:rounded-[28px] lg:border-0 lg:pb-6"
+        style={
+          isDragging
+            ? { transform: `translateY(${dragY}px)`, transition: "none" }
+            : dragY !== 0
+              ? { transform: `translateY(${dragY}px)` }
+              : undefined
+        }
+        className={`flex flex-col rounded-t-[20px] pb-[calc(1rem+env(safe-area-inset-bottom))] data-[state=open]:duration-[280ms] data-[state=closed]:duration-[220ms] ${
+          detail ? "h-[85vh]" : "min-h-[38vh] max-h-[42vh]"
+        } lg:inset-x-auto lg:bottom-auto lg:left-1/2 lg:top-1/2 lg:h-auto lg:min-h-0 lg:max-h-[90vh] lg:w-[calc(100vw-48px)] lg:max-w-[700px] lg:-translate-x-1/2 lg:-translate-y-1/2 lg:rounded-[28px] lg:border-0 lg:pb-6`}
       >
+        <div
+          onTouchStart={handleHandleTouchStart}
+          onTouchMove={handleHandleTouchMove}
+          onTouchEnd={handleHandleTouchEnd}
+          className="-mt-4 flex shrink-0 items-center justify-center py-2.5 lg:hidden"
+        >
+          <span className="h-1 w-10 rounded-full bg-foreground/15" />
+        </div>
         {detail ? (
           <>
             <SheetHeader className="flex-row items-center gap-2 space-y-0 text-left">
-              <button onClick={() => setDetail(null)} aria-label="Retour" className="grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-accent">
+              <button
+                onClick={() => setDetail(null)}
+                aria-label="Retour"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-accent"
+              >
                 <ArrowLeft className="h-5 w-5" />
               </button>
               <SheetTitle className="font-display text-xl">{detail.title}</SheetTitle>
@@ -127,24 +228,40 @@ export function TenantOffersSheet({
             <div className="mt-4 flex-1 space-y-4 overflow-y-auto">
               <div className="aspect-video w-full overflow-hidden rounded-2xl bg-muted">
                 {(imageUrl(detail.image_url) ?? imageUrl(detail.product_image_path)) ? (
-                  <img src={imageUrl(detail.image_url) ?? imageUrl(detail.product_image_path)!} alt={detail.title} className="h-full w-full object-cover" />
+                  <img
+                    src={imageUrl(detail.image_url) ?? imageUrl(detail.product_image_path)!}
+                    alt={detail.title}
+                    className="h-full w-full object-cover"
+                  />
                 ) : (
-                  <div className="grid h-full w-full place-items-center"><Tag className="h-10 w-10 text-muted-foreground/40" /></div>
+                  <div className="grid h-full w-full place-items-center">
+                    <Tag className="h-10 w-10 text-muted-foreground/40" />
+                  </div>
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <span className="rounded-full bg-primary px-2.5 py-1 text-xs font-bold text-primary-foreground">-{detail.discount_percent}%</span>
+                <span className="rounded-full bg-primary px-2.5 py-1 text-xs font-bold text-primary-foreground">
+                  -{detail.discount_percent}%
+                </span>
                 {endsLabel(detail.ends_at) && (
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground"><Clock className="h-3.5 w-3.5" /> {endsLabel(detail.ends_at)}</span>
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Clock className="h-3.5 w-3.5" /> {endsLabel(detail.ends_at)}
+                  </span>
                 )}
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">{detail.product_name}</p>
-                {detail.description && <p className="mt-1 text-sm leading-relaxed">{detail.description}</p>}
+                {detail.description && (
+                  <p className="mt-1 text-sm leading-relaxed">{detail.description}</p>
+                )}
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="font-display text-2xl font-semibold text-primary">{money(detail.offer_price, currency)}</span>
-                <span className="text-sm text-muted-foreground line-through">{money(detail.original_price, currency)}</span>
+                <span className="font-display text-2xl font-semibold text-primary">
+                  {money(detail.offer_price, currency)}
+                </span>
+                <span className="text-sm text-muted-foreground line-through">
+                  {money(detail.original_price, currency)}
+                </span>
               </div>
             </div>
             <Button size="lg" className="mt-4 w-full" onClick={() => void claim(detail)}>
@@ -174,21 +291,37 @@ export function TenantOffersSheet({
                     >
                       <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-muted">
                         {(imageUrl(offer.image_url) ?? imageUrl(offer.product_image_path)) ? (
-                          <img src={imageUrl(offer.image_url) ?? imageUrl(offer.product_image_path)!} alt={offer.title} className="h-full w-full object-cover" />
+                          <img
+                            src={imageUrl(offer.image_url) ?? imageUrl(offer.product_image_path)!}
+                            alt={offer.title}
+                            className="h-full w-full object-cover"
+                          />
                         ) : (
-                          <div className="grid h-full w-full place-items-center"><Tag className="h-6 w-6 text-muted-foreground/40" /></div>
+                          <div className="grid h-full w-full place-items-center">
+                            <Tag className="h-6 w-6 text-muted-foreground/40" />
+                          </div>
                         )}
-                        {!offer.is_read && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary" />}
+                        {!offer.is_read && (
+                          <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary" />
+                        )}
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold">{offer.title}</p>
-                        <p className="truncate text-xs text-muted-foreground">{offer.product_name}</p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {offer.product_name}
+                        </p>
                         <div className="mt-1 flex items-baseline gap-1.5">
-                          <span className="text-sm font-bold text-primary">{money(offer.offer_price, currency)}</span>
-                          <span className="text-xs text-muted-foreground line-through">{money(offer.original_price, currency)}</span>
+                          <span className="text-sm font-bold text-primary">
+                            {money(offer.offer_price, currency)}
+                          </span>
+                          <span className="text-xs text-muted-foreground line-through">
+                            {money(offer.original_price, currency)}
+                          </span>
                         </div>
                       </div>
-                      <span className="shrink-0 rounded-full bg-primary/10 px-2 py-1 text-[0.7rem] font-bold text-primary">-{offer.discount_percent}%</span>
+                      <span className="shrink-0 rounded-full bg-primary/10 px-2 py-1 text-[0.7rem] font-bold text-primary">
+                        -{offer.discount_percent}%
+                      </span>
                     </button>
                   ))}
                 </div>

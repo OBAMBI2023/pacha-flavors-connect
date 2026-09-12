@@ -27,6 +27,7 @@ import {
   Wallet,
   Clock,
   ChevronDown,
+  ChevronRight,
   type LucideIcon,
 } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
@@ -1318,6 +1319,7 @@ export default function AdminPage() {
         onSelect={setTab}
         pendingCount={ordersAlert.pendingCount}
         restaurantName={restaurant?.name ?? "Restaurant"}
+        restaurantLogoUrl={restaurant?.logo_url ?? null}
         onLogout={() => {
           void supabase.auth.signOut();
           navigate({ to: "/auth", replace: true });
@@ -1676,6 +1678,21 @@ function SimpleAccess({
 type NavItem = { value: string; label: string; icon: LucideIcon };
 
 /**
+ * Presentation-only grouping of ADMIN_NAV_ITEMS for the mobile drawer's
+ * section headers -- purely cosmetic (labels/order/values are still driven
+ * entirely by ADMIN_NAV_ITEMS; a value missing here just renders without a
+ * section, it's never dropped). Desktop's AdminSidebar intentionally stays
+ * flat/ungrouped, so this constant is only read by NavItemsList's "mobile"
+ * variant.
+ */
+const MOBILE_NAV_SECTIONS: { title: string; values: readonly string[] }[] = [
+  { title: "ACTIVITÉ", values: ["accueil", "commandes", "clients", "livreurs"] },
+  { title: "CATALOGUE", values: ["menu", "promotions"] },
+  { title: "DÉVELOPPEMENT", values: ["marketing", "statistiques"] },
+  { title: "GESTION", values: ["finances", "avis", "settings"] },
+];
+
+/**
  * The one navigationItems renderer shared by the desktop sidebar and the
  * mobile drawer (see MobileNavSheet below) -- both pass the same
  * ADMIN_NAV_ITEMS array and the same `tab` state/setter, so routes, active
@@ -1687,12 +1704,70 @@ function NavItemsList({
   activeValue,
   onSelect,
   pendingCount,
+  variant = "desktop",
 }: {
   items: readonly NavItem[];
   activeValue: string;
   onSelect: (value: string) => void;
   pendingCount: number;
+  /** "mobile" reskins this list for the navy MobileNavSheet without touching the desktop AdminSidebar's rendering (default). */
+  variant?: "desktop" | "mobile";
 }) {
+  if (variant === "mobile") {
+    const byValue = new Map(items.map((item) => [item.value, item]));
+    return (
+      <nav>
+        {MOBILE_NAV_SECTIONS.map((section, sectionIndex) => {
+          const sectionItems = section.values
+            .map((value) => byValue.get(value))
+            .filter((item): item is NavItem => Boolean(item));
+          if (sectionItems.length === 0) return null;
+          return (
+            <div key={section.title}>
+              <div className={`mb-1.5 flex items-center gap-2 px-1 ${sectionIndex === 0 ? "mt-0" : "mt-3.5"}`}>
+                <span className="shrink-0 text-[11px] font-bold uppercase tracking-[0.12em] text-[#AEBBD0] opacity-85">
+                  {section.title}
+                </span>
+                <span className="h-px flex-1 bg-white/10" aria-hidden="true" />
+              </div>
+              <div className="space-y-0.5">
+                {sectionItems.map((item) => {
+                  const active = activeValue === item.value;
+                  const badgeCount = item.value === "commandes" ? pendingCount : 0;
+                  return (
+                    <button
+                      key={item.value}
+                      type="button"
+                      onClick={() => onSelect(item.value)}
+                      aria-current={active ? "page" : undefined}
+                      className={`flex min-h-[48px] w-full items-center gap-3 rounded-[14px] border px-3.5 py-2 text-left text-[15px] transition-colors duration-150 ${
+                        active
+                          ? "border-[#FF6B22] bg-[rgba(255,107,34,0.08)] font-bold text-[#FF6B22]"
+                          : "border-transparent font-semibold text-white hover:bg-white/[0.06]"
+                      }`}
+                    >
+                      <item.icon
+                        className={`h-[21px] w-[21px] shrink-0 ${active ? "text-[#FF6B22]" : "text-[#AEBBD0]"}`}
+                        strokeWidth={2}
+                        aria-hidden="true"
+                      />
+                      <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                      {badgeCount > 0 && (
+                        <span className="grid h-[22px] min-w-[22px] shrink-0 place-items-center rounded-full bg-[#FF6B22] px-1 text-[11px] font-extrabold text-white">
+                          {badgeCount > 9 ? "9+" : badgeCount}
+                        </span>
+                      )}
+                      {active && <ChevronRight className="h-4 w-4 shrink-0 text-[#FF6B22]" aria-hidden="true" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </nav>
+    );
+  }
   return (
     <nav className="space-y-1">
       {items.map((item) => {
@@ -1791,12 +1866,19 @@ function AdminSidebar({
 
 const BOTTOM_NAV_TAB_VALUES = ["accueil", "commandes", "statistiques"] as const;
 
+/** Horizontal drag distance (px) past which a left-swipe releases into a close instead of springing back. */
+const DRAWER_SWIPE_CLOSE_THRESHOLD = -80;
+/** Ignore tiny finger jitter before committing to either an horizontal (swipe) or vertical (scroll) gesture. */
+const DRAWER_SWIPE_LOCK_DISTANCE = 8;
+
 /**
- * Mobile drawer -- a Radix Dialog under the hood (via the existing Sheet
- * component), which already gives us the overlay, the Escape/overlay-click
- * close, the slide-in animation and correct z-index layering for free. Same
- * ADMIN_NAV_ITEMS + NavItemsList as the desktop sidebar (single source of
- * navigation), just themed and laid out for a slide-in panel.
+ * Mobile drawer -- navy/orange SAOVIA Food Partner identity, distinct from
+ * the desktop AdminSidebar's brown/cocoa surface (see the "mobile" variant
+ * of NavItemsList). Still a Radix Dialog under the hood via the shared Sheet
+ * component (overlay, Escape/overlay-click close, portal/z-index all come
+ * from there), so only presentation and the swipe-to-close gesture are
+ * custom here -- same ADMIN_NAV_ITEMS + NavItemsList as the desktop sidebar
+ * (single source of navigation, routes and RBAC never diverge).
  */
 function MobileNavSheet({
   open,
@@ -1806,6 +1888,7 @@ function MobileNavSheet({
   onSelect,
   pendingCount,
   restaurantName,
+  restaurantLogoUrl,
   onLogout,
 }: {
   open: boolean;
@@ -1815,24 +1898,89 @@ function MobileNavSheet({
   onSelect: (value: string) => void;
   pendingCount: number;
   restaurantName: string;
+  restaurantLogoUrl: string | null;
   onLogout: () => void;
 }) {
+  const [dragX, setDragX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const gestureRef = useRef<{ startX: number; startY: number; axis: "x" | "y" | null } | null>(null);
+
+  useEffect(() => {
+    if (open) setDragX(0);
+  }, [open]);
+
+  function handleTouchStart(e: React.TouchEvent) {
+    const t = e.touches[0];
+    if (!t) return;
+    gestureRef.current = { startX: t.clientX, startY: t.clientY, axis: null };
+  }
+  function handleTouchMove(e: React.TouchEvent) {
+    const g = gestureRef.current;
+    const t = e.touches[0];
+    if (!g || !t) return;
+    const dx = t.clientX - g.startX;
+    const dy = t.clientY - g.startY;
+    if (g.axis === null) {
+      if (Math.abs(dx) < DRAWER_SWIPE_LOCK_DISTANCE && Math.abs(dy) < DRAWER_SWIPE_LOCK_DISTANCE) return;
+      g.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+    }
+    if (g.axis !== "x") return;
+    if (dx < 0) {
+      setIsDragging(true);
+      setDragX(dx);
+    }
+  }
+  function handleTouchEnd() {
+    const g = gestureRef.current;
+    gestureRef.current = null;
+    if (!g || g.axis !== "x") {
+      setIsDragging(false);
+      return;
+    }
+    setIsDragging(false);
+    if (dragX < DRAWER_SWIPE_CLOSE_THRESHOLD) {
+      setDragX(-9999);
+      onOpenChange(false);
+    } else {
+      setDragX(0);
+    }
+  }
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="left"
-        className="flex w-[82%] max-w-xs flex-col gap-0 border-none bg-cocoa p-0 text-cocoa-foreground [&>button]:text-cocoa-foreground [&>button]:hover:bg-cocoa-foreground/10 [&>button]:focus:ring-cocoa-foreground/40"
+        overlayClassName="bg-[rgba(0,0,0,0.45)] backdrop-blur-[2px]"
+        closeButtonLabel="Fermer le menu"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={
+          isDragging
+            ? { transform: `translateX(${dragX}px)`, transition: "none" }
+            : dragX !== 0
+              ? { transform: `translateX(${dragX}px)` }
+              : undefined
+        }
+        className="flex w-[min(88vw,390px)] flex-col gap-0 border-none bg-[#071B3A] p-0 text-white shadow-2xl transition-transform duration-[260ms] ease-[cubic-bezier(0.22,1,0.36,1)] data-[state=open]:duration-[260ms] data-[state=closed]:duration-[220ms] [&>button]:right-4 [&>button]:top-[calc(1rem_+_env(safe-area-inset-top))] [&>button]:flex [&>button]:h-11 [&>button]:w-11 [&>button]:items-center [&>button]:justify-center [&>button]:rounded-full [&>button]:border [&>button]:border-white/15 [&>button]:bg-transparent [&>button]:opacity-100 [&>button]:ring-offset-transparent [&>button:hover]:bg-white/10 [&>button:focus-visible]:ring-white/30 [&>button>svg]:h-5 [&>button>svg]:w-5 [&>button>svg]:text-white"
       >
-        <SheetHeader className="px-5 pb-2 pt-6 text-left">
-          <SheetTitle className="font-display text-xl font-bold tracking-tight text-cocoa-foreground">
-            SAOVIA
-            <span className="ml-2 align-middle text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-primary">
-              Food Partner
-            </span>
+        <SheetHeader
+          className="shrink-0 px-6 pb-4 text-left"
+          style={{ paddingTop: "calc(1.5rem + env(safe-area-inset-top))" }}
+        >
+          <SheetTitle asChild>
+            <div>
+              <p className="font-display text-2xl font-extrabold leading-tight tracking-tight text-white">SAOVIA</p>
+              <p className="text-xs font-extrabold uppercase tracking-[0.25em] text-[#FF6B22]">Food Partner</p>
+              <p className="mt-1.5 text-[13px] font-medium normal-case tracking-normal text-[#AEBBD0]">
+                Pilotez. Servez. Développez.
+              </p>
+            </div>
           </SheetTitle>
         </SheetHeader>
-        <div className="flex-1 overflow-y-auto px-3 pb-4 pt-2">
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-[14px] pb-3 pt-1 [scrollbar-width:thin]">
           <NavItemsList
+            variant="mobile"
             items={items}
             activeValue={activeValue}
             onSelect={(value) => {
@@ -1842,16 +1990,41 @@ function MobileNavSheet({
             pendingCount={pendingCount}
           />
         </div>
-        <div className="space-y-1 border-t border-cocoa-foreground/10 p-3">
-          <p className="truncate px-3.5 py-1 text-xs text-cocoa-foreground/60">{restaurantName}</p>
+        <div
+          className="shrink-0 space-y-2 border-t border-white/10 px-[14px] pt-[10px]"
+          style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
+        >
+          <button
+            type="button"
+            className="flex h-16 w-full items-center gap-3 rounded-[18px] border border-white/[0.16] bg-white/[0.05] px-3 py-2 text-left transition-colors hover:bg-white/[0.08]"
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/10">
+              {restaurantLogoUrl ? (
+                <img src={restaurantLogoUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <Store className="h-4 w-4 text-[#AEBBD0]" aria-hidden="true" />
+              )}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold text-white">{restaurantName}</span>
+              <span className="block truncate text-xs text-[#AEBBD0]">Restaurant partenaire</span>
+            </span>
+            <ChevronRight className="h-4 w-4 shrink-0 text-[#AEBBD0]" aria-hidden="true" />
+          </button>
           <button
             type="button"
             onClick={onLogout}
-            className="flex w-full items-center gap-3 rounded-2xl px-3.5 py-2.5 text-left text-sm font-medium text-cocoa-foreground/75 transition-colors hover:bg-cocoa-foreground/10 hover:text-cocoa-foreground"
+            className="flex h-[54px] w-full items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.025] px-3.5 py-2.5 text-left text-sm font-medium text-white transition-colors hover:border-[#FF6B22]/40 hover:text-[#FF6B22]"
           >
             <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
             Déconnexion
           </button>
+          <div className="pt-1 text-center">
+            <p className="text-[11px] font-semibold text-[#AEBBD0] opacity-85">SAOVIA FOOD</p>
+            <p className="mt-0.5 text-[11px] font-semibold text-[#AEBBD0] opacity-85">
+              Votre restaurant, mieux piloté.
+            </p>
+          </div>
         </div>
       </SheetContent>
     </Sheet>

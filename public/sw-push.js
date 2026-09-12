@@ -14,7 +14,7 @@ self.addEventListener("push", (event) => {
     return;
   }
 
-  const title = typeof payload.title === "string" ? payload.title : "Le Pacha Restaurant";
+  const title = typeof payload.title === "string" ? payload.title : "SAOVIA Food";
   const options = {
     body: typeof payload.body === "string" ? payload.body : "",
     icon: "/icons/icon-192.png",
@@ -31,7 +31,8 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = event.notification.data && event.notification.data.url ? event.notification.data.url : "/";
+  const url =
+    event.notification.data && event.notification.data.url ? event.notification.data.url : "/";
 
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {

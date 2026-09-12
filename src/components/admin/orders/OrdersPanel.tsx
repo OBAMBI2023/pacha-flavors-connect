@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Bell, BellOff, RadioTower, Volume2 } from "lucide-react";
+import { Bell, BellOff, Plus, RadioTower, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { OrdersAlert, RealtimeConnectionState } from "@/hooks/useOrdersAlert";
 import { useDeliveryDispatch } from "@/hooks/useDeliveryDispatch";
@@ -11,6 +11,7 @@ import { assignDriverToOrder } from "@/lib/drivers";
 import { playTestChime } from "@/lib/order-audio";
 import { OrderCard } from "./OrderCard";
 import { OrderDetailSheet } from "./OrderDetailSheet";
+import { NewOrderDialog } from "./NewOrderDialog";
 import { RejectOrderDialog } from "./RejectOrderDialog";
 import { RefundDialog } from "./RefundDialog";
 import { AssignDriverDialog } from "./AssignDriverDialog";
@@ -49,6 +50,7 @@ export function OrdersPanel({
   const [assignTarget, setAssignTarget] = useState<Order | null>(null);
   const [freshnessMinutes, setFreshnessMinutes] = useState(5);
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null);
+  const [newOrderDialogOpen, setNewOrderDialogOpen] = useState(false);
   const [, setTick] = useState(0);
 
   useEffect(() => {
@@ -177,6 +179,9 @@ export function OrdersPanel({
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button size="sm" className="h-11" disabled={!restaurantId} onClick={() => setNewOrderDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" /> Nouvelle commande
+          </Button>
           {soundEnabled && (
             <Button variant="ghost" size="sm" onClick={() => void playTestChime()} title="Tester le son">
               <Volume2 className="h-4 w-4" />
@@ -250,6 +255,13 @@ export function OrdersPanel({
           ))}
         </div>
       )}
+
+      <NewOrderDialog
+        open={newOrderDialogOpen}
+        onOpenChange={setNewOrderDialogOpen}
+        restaurantId={restaurantId}
+        restaurant={restaurant}
+      />
 
       <OrderDetailSheet
         orderId={detailOrderId}

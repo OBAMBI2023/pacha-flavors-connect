@@ -1,4 +1,5 @@
-// Generates .output/public/sw.js after `vite build`.
+// Generates .output/public/sw.js after `vite build`, then copies the result
+// onto public/sw.js (source).
 //
 // vite-plugin-pwa's own closeBundle hook (which normally calls this same
 // workbox-build API) only runs when it sees `viteConfig.build.ssr === false`
@@ -6,10 +7,23 @@
 // drives Vite's Environment API (a client build *and* an ssr build in one
 // `vite build` invocation), and the config object the plugin captures never
 // satisfies that check in either environment here, so `sw.js` silently never
-// gets written even though `manifest.webmanifest` (an unconditional
-// `generateBundle` hook) does. Calling workbox-build directly, post-build,
+// gets written by the plugin. Calling workbox-build directly, post-build,
 // sidesteps that broken hook entirely -- see vite.config.ts for the
 // (disabled) `workbox` options this mirrors.
+//
+// The copy onto public/sw.js (source) below is not cosmetic: Nitro's
+// node-server preset builds its static-asset route table during `vite
+// build`, and every entry in that table (confirmed for all ~194 public
+// assets, not just this one) resolves back to a fixed `../public/<file>`
+// path relative to the compiled server bundle -- i.e. the *source* public/
+// directory, never `.output/public/`. Writing only to `.output/public/sw.js`
+// (as this script did previously) leaves the placeholder from public/sw.js
+// as the only thing ever actually served, silently -- no error, just the
+// wrong 355-byte file forever, verified live against a running
+// `.output/server/index.mjs` by editing both copies independently. Same
+// reasoning applies to scripts/generate-seo-files.mjs's robots.txt/sitemap
+// output, which is not touched here (out of scope for the PWA layer).
+import { copyFile } from "node:fs/promises";
 import { generateSW } from "workbox-build";
 
 const { count, size, warnings } = await generateSW({
@@ -56,4 +70,11 @@ const { count, size, warnings } = await generateSW({
 });
 
 for (const warning of warnings) console.warn("[generate-sw]", warning);
-console.log(`[generate-sw] wrote .output/public/sw.js -- ${count} files precached, ${(size / 1024).toFixed(1)} KB`);
+console.log(
+  `[generate-sw] wrote .output/public/sw.js -- ${count} files precached, ${(size / 1024).toFixed(1)} KB`,
+);
+
+await copyFile(".output/public/sw.js", "public/sw.js");
+console.log(
+  "[generate-sw] copied to public/sw.js (source) -- see this file's header comment for why",
+);

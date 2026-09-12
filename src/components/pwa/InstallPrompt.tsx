@@ -22,7 +22,8 @@ function isStandalone(): boolean {
 function isIosSafari(): boolean {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent;
-  const isIosDevice = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  const isIosDevice =
+    /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
   return isIosDevice;
 }
 
@@ -77,8 +78,10 @@ export function InstallPrompt() {
           <Download className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-foreground">Installer l'application</p>
-          <p className="text-xs text-muted-foreground">Accédez à Le Pacha directement depuis votre écran d'accueil.</p>
+          <p className="text-sm font-semibold text-foreground">Installer SAOVIA Food</p>
+          <p className="text-xs text-muted-foreground">
+            Accédez à SAOVIA Food directement depuis votre écran d'accueil.
+          </p>
         </div>
         <Button
           size="sm"
