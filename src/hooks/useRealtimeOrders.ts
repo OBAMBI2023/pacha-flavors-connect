@@ -120,5 +120,17 @@ export function useRealtimeOrders(
     applyOrder({ ...current, ...patch });
   }, [applyOrder]);
 
-  return { orders, connectionState, newOrderIds, acknowledgeOrder, patchOrder, loading };
+  /**
+   * Merge-refetch on demand (e.g. right after a manually created order), so the
+   * row shows up even if the Realtime INSERT is slower than the RPC response.
+   * Merges rather than replaces, exactly like the initial fetch.
+   */
+  const refresh = useCallback(async () => {
+    if (!restaurantId) return;
+    const rows = await fetchRestaurantOrders(restaurantId);
+    for (const row of rows) ordersMapRef.current.set(row.id, { ...ordersMapRef.current.get(row.id), ...row });
+    setOrders(Array.from(ordersMapRef.current.values()).sort(byCreatedDesc));
+  }, [restaurantId]);
+
+  return { orders, connectionState, newOrderIds, acknowledgeOrder, patchOrder, loading, refresh };
 }
