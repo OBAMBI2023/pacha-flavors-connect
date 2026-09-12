@@ -52,7 +52,7 @@ export function useOrdersAlert(restaurantId: string | null, options?: { onViewOr
     });
   }, []);
 
-  const { orders, connectionState, newOrderIds, acknowledgeOrder, patchOrder, loading } = useRealtimeOrders(
+  const { orders, connectionState, newOrderIds, acknowledgeOrder, patchOrder, loading, refresh } = useRealtimeOrders(
     restaurantId,
     onNewOrder,
   );
@@ -91,6 +91,7 @@ export function useOrdersAlert(restaurantId: string | null, options?: { onViewOr
     acknowledgeOrder,
     patchOrder,
     loading,
+    refresh,
     pendingCount,
     soundEnabled,
     enableSound,
