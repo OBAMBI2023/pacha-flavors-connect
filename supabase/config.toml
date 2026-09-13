@@ -1,1 +1,66 @@
 project_id = "haamomdggdubdzsmbwoq"
+
+# ---------------------------------------------------------------------------
+# Auth: production domain + branded email templates.
+#
+# This section only takes effect on the hosted project once pushed via the
+# Supabase CLI:
+#   supabase link --project-ref haamomdggdubdzsmbwoq
+#   supabase config push
+#
+# Until that's run (or the same values are set by hand in the Dashboard --
+# Authentication > URL Configuration, and Authentication > Email Templates /
+# Authentication > SMTP Settings), this file only documents the intended
+# configuration; it does not change anything live on its own.
+# ---------------------------------------------------------------------------
+
+[auth]
+# Production domain -- every confirmation/recovery/invite link Supabase
+# generates is built from this, never from whatever origin the request came
+# from. Must never be a localhost URL in production.
+site_url = "https://food.saovia.net"
+
+# Every origin/path a confirmation link is allowed to redirect back to.
+# food-signup.tsx and the driver activation flow both pass their own
+# `emailRedirectTo`/`redirectTo` at call time -- that value is only honored
+# if it (or its origin) is listed here. Add each preview/deploy origin your
+# team actually uses; never widen this to a wildcard.
+additional_redirect_urls = [
+  "https://food.saovia.net",
+  "https://food.saovia.net/auth",
+]
+
+[auth.email.smtp]
+# Custom SMTP relay so confirmation/recovery/invite emails come from
+# SAOVIA FOOD's own sender identity instead of Supabase's shared default
+# mailer (which is rate-limited and not meant for production traffic).
+# `env(...)` reads the value from an environment variable at push/deploy
+# time -- the real host/user/password are never written into this file or
+# committed to git.
+enabled = true
+host = "env(SMTP_HOST)"
+port = "env(SMTP_PORT)"
+user = "env(SMTP_USER)"
+pass = "env(SMTP_PASSWORD)"
+admin_email = "env(SMTP_FROM_EMAIL)"
+sender_name = "SAOVIA FOOD"
+
+# Branded HTML templates (see supabase/templates/*.html) -- table-based,
+# inline-CSS, 600px-max layout for Gmail/Outlook/Apple Mail compatibility.
+# Every CTA uses Supabase's own {{ .ConfirmationURL }}, never a hardcoded
+# link, so the real per-request/per-user token always drives the button.
+[auth.email.template.confirmation]
+subject = "Confirmez votre adresse e-mail — SAOVIA FOOD"
+content_path = "./supabase/templates/confirm-signup.html"
+
+[auth.email.template.recovery]
+subject = "Réinitialisez votre mot de passe — SAOVIA FOOD"
+content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.email_change]
+subject = "Confirmez votre nouvelle adresse e-mail — SAOVIA FOOD"
+content_path = "./supabase/templates/email-change.html"
+
+[auth.email.template.invite]
+subject = "Vous êtes invité à rejoindre SAOVIA FOOD"
+content_path = "./supabase/templates/invite.html"

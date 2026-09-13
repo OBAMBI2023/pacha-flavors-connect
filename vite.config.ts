@@ -32,8 +32,20 @@ export default defineConfig({
     // (style/sprites/tiles-source all fetch fine; zero .pbf tile requests
     // ever fire since tile loading is gated on the worker). Excluding it
     // here makes Vite serve it straight from node_modules instead, where
-    // its relative worker path resolves for real. Production builds are
-    // unaffected (Rollup inlines the worker code into the bundle instead).
+    // its relative worker path resolves for real.
+    //
+    // Production builds are NOT unaffected, despite what an earlier version
+    // of this comment claimed: maplibre-gl 6.x computes that same sibling
+    // URL at runtime via `new URL(\`./${t}\`, import.meta.url)` with a
+    // template-literal path, which Rollup's `new URL(..., import.meta.url)`
+    // static-asset detection can't resolve -- it never emits or copies
+    // maplibre-gl-worker.mjs into the build, so the exact same 404 (and the
+    // exact same "background/sprites/attribution render, zero .pbf tiles
+    // ever load" blank map) reproduced in production too, not just dev.
+    // Fixed by vendoring that file as a static public asset instead (see
+    // public/assets/maplibre-gl-worker.mjs) so it always lands next to the
+    // hashed main chunk under /assets/ in every build -- keep it in sync
+    // with the installed maplibre-gl version if that ever gets bumped.
     exclude: ["maplibre-gl"],
   },
   plugins: [

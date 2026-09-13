@@ -14,12 +14,32 @@ export type TenantRow = {
   primary_color: string | null;
   secondary_color: string | null;
   accent_color: string | null;
+  logo_url: string | null;
 };
 
+/**
+ * super_admin_list_tenants() doesn't return logo_url, and it's a security
+ * definer RPC we don't want to touch just for display -- so the logo is
+ * fetched with a second, RLS-scoped read of the same `restaurants` table the
+ * tenant fiche page already reads directly (super-admin.restaurants.$restaurantId.tsx).
+ */
 export async function fetchTenants(): Promise<TenantRow[]> {
   const { data, error } = await supabase.rpc("super_admin_list_tenants");
   if (error) throw error;
-  return (data ?? []) as TenantRow[];
+  const tenants = (data ?? []) as Omit<TenantRow, "logo_url">[];
+  if (tenants.length === 0) return [];
+
+  const { data: logos, error: logosError } = await supabase
+    .from("restaurants")
+    .select("id,logo_url")
+    .in(
+      "id",
+      tenants.map((t) => t.id),
+    );
+  if (logosError) throw logosError;
+
+  const logoById = new Map((logos ?? []).map((r) => [r.id, r.logo_url as string | null]));
+  return tenants.map((t) => ({ ...t, logo_url: logoById.get(t.id) ?? null }));
 }
 
 export type CreateTenantInput = {

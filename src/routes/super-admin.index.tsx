@@ -277,6 +277,31 @@ function PilotageTabs({ active, onChange }: { active: TabId; onChange: (id: TabI
   );
 }
 
+function StatusFilterPill({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors",
+        active
+          ? "border-blue-200 bg-blue-50 text-[color:var(--sa-blue)]"
+          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+      )}
+    >
+      {label}
+    </button>
+  );
+}
+
 function TenantsSection({
   tenants,
   loading,
@@ -348,44 +373,52 @@ function TenantsSection({
             Gérez l&apos;ensemble de vos restaurants partenaires.
           </p>
         </div>
-        <Button
-          onClick={onOpenCreate}
-          className="gap-2 bg-[color:var(--sa-blue)] text-white hover:bg-blue-700"
-        >
-          <Plus className="h-4 w-4" /> Nouveau tenant
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            onClick={onOpenCreate}
+            className="gap-2 bg-[color:var(--sa-blue)] text-white hover:bg-blue-700"
+          >
+            <Plus className="h-4 w-4" /> Nouveau tenant
+          </Button>
+          <Button variant="outline" className="gap-2" onClick={() => exportTenantsCsv(filtered)}>
+            <Download className="h-4 w-4" /> Exporter
+          </Button>
+        </div>
       </div>
 
-      <div className="mt-6 flex flex-wrap items-center gap-3">
-        <div className="relative min-w-[220px] flex-1">
-          <Search
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-            aria-hidden="true"
+      <div className="relative mt-6">
+        <Search
+          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+          aria-hidden="true"
+        />
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Rechercher un restaurant, administrateur, email..."
+          autoComplete="off"
+          className="pl-9"
+        />
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <StatusFilterPill
+          active={status === "all"}
+          label="Tous les statuts"
+          onClick={() => setStatus("all")}
+        />
+        {STATUSES.map((s) => (
+          <StatusFilterPill
+            key={s}
+            active={status === s}
+            label={STATUS_LABELS[s]}
+            onClick={() => setStatus(s)}
           />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Rechercher un restaurant, administrateur, email..."
-            autoComplete="off"
-            className="pl-9"
-          />
-        </div>
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value as RestaurantStatus | "all" | "new")}
-          className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700"
-        >
-          <option value="all">Tous les statuts</option>
-          {STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {STATUS_LABELS[s]}
-            </option>
-          ))}
-          <option value="new">Nouveau (7j)</option>
-        </select>
-        <Button variant="outline" className="gap-2" onClick={() => exportTenantsCsv(filtered)}>
-          <Download className="h-4 w-4" /> Exporter
-        </Button>
+        ))}
+        <StatusFilterPill
+          active={status === "new"}
+          label="Nouveau (7j)"
+          onClick={() => setStatus("new")}
+        />
       </div>
 
       <TenantsTable

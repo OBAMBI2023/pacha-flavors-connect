@@ -1,7 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import type { User } from "@supabase/supabase-js";
 import { ArrowRight, Bell, Eye, EyeOff, Lock, Mail, Store, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { hasAnyRestaurantMembership, signupRestaurant } from "@/lib/restaurantSignup";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +14,66 @@ import logoMark from "@/assets/saovia-food-logo.png";
 const TITLE = "Connexion | SAOVIA Food Partner";
 const DESCRIPTION =
   "Accedez a votre espace SAOVIA Food Partner pour gerer votre restaurant, vos commandes et votre menu.";
+
+const PROVISIONING_ERROR =
+  "Votre compte est bien authentifié, mais la configuration de votre restaurant n'a pas pu être finalisée. Veuillez réessayer.";
+
+function logAuthErrorInDev(context: string, error: unknown) {
+  if (!import.meta.env.DEV) return;
+  const status = (error as { status?: number } | null)?.status;
+  const code = (error as { code?: string } | null)?.code;
+  const message = error instanceof Error ? error.message : String(error);
+  // eslint-disable-next-line no-console -- dev-only diagnostic, never a password/token/secret
+  console.error(`[auth] ${context}`, { message, status, code });
+}
+
+/**
+ * Completes the restaurant provisioning food-signup.tsx defers until a real
+ * session exists (signUp() never returns one while email confirmation is
+ * pending -- restaurant_name/full_name/phone travel in user_metadata for
+ * exactly this reason). Same deferred-completion pattern as
+ * delivery.login.tsx's org_name/signupOrganization flow, centralized here so
+ * every way a session can appear on this page (password login, the
+ * email-confirmation-link/OAuth SIGNED_IN callback, and password recovery)
+ * goes through the one mechanism instead of three divergent copies.
+ *
+ * Idempotent by construction: hasAnyRestaurantMembership() is checked first
+ * and signupRestaurant() only ever runs when it returns false, so calling
+ * this on every login for the same already-provisioned owner is a no-op
+ * (one query, no write) rather than a second restaurant.
+ */
+async function ensureRestaurantProvisioned(
+  user: User,
+): Promise<{ ok: true } | { ok: false; error: unknown }> {
+  const restaurantName = (user.user_metadata?.["restaurant_name"] as string | undefined)?.trim();
+  if (!restaurantName) {
+    // Not a food-signup account (e.g. a manager/staff member invited onto an
+    // existing restaurant) -- nothing to provision, and no need to spend a
+    // round-trip on hasAnyRestaurantMembership to find that out.
+    return { ok: true };
+  }
+
+  const alreadyProvisioned = await hasAnyRestaurantMembership(user.id).catch(() => null);
+  if (alreadyProvisioned === null) {
+    // A failed *check* must never be treated as "needs provisioning" -- that
+    // risks calling signup_restaurant for a user who already has one, right
+    // when the DB is already struggling to answer. Surface it instead.
+    return { ok: false, error: new Error("hasAnyRestaurantMembership check failed") };
+  }
+  if (alreadyProvisioned) return { ok: true };
+
+  try {
+    await signupRestaurant({
+      restaurantName,
+      fullName: (user.user_metadata?.["full_name"] as string | undefined)?.trim() ?? "",
+      phone: (user.user_metadata?.["phone"] as string | undefined)?.trim() ?? "",
+      email: user.email ?? "",
+    });
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error };
+  }
+}
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -110,8 +172,11 @@ function AuthPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [googleBusy, setGoogleBusy] = useState(false);
-  const [existingSessionEmail, setExistingSessionEmail] = useState<string | null>(null);
-  const [existingSessionUserId, setExistingSessionUserId] = useState<string | null>(null);
+  // Full User (not just email/id) so the "Accéder à mon espace" button below
+  // can run it through ensureRestaurantProvisioned() exactly like every
+  // other path -- a session restored on mount never fires SIGNED_IN, so
+  // without this the button used to skip provisioning entirely.
+  const [existingSessionUser, setExistingSessionUser] = useState<User | null>(null);
   // Synchronous single-flight guard for onGoogleSignIn -- a ref (unlike
   // googleBusy state, which only takes effect after React re-renders) so
   // two rapid clicks in the same tick can never both pass the guard and
@@ -192,8 +257,7 @@ function AuthPage() {
         hasSession: Boolean(data.session),
         userId: data.session?.user?.id ?? null,
       });
-      setExistingSessionEmail(data.session?.user?.email ?? null);
-      setExistingSessionUserId(data.session?.user?.id ?? null);
+      setExistingSessionUser(data.session?.user ?? null);
     });
 
     // A "Mot de passe oublié" email link lands back on this same page with a
@@ -219,13 +283,23 @@ function AuthPage() {
         return;
       }
       if (event === "SIGNED_IN" && session) {
-        setExistingSessionEmail(session.user.email ?? null);
-        setExistingSessionUserId(session.user.id ?? null);
+        setExistingSessionUser(session.user);
         if (isOAuthCallback) {
           setMessage(null);
-          resolvePostLoginPath(session.user.id).then((destination) => {
+          // isOAuthCallback also covers a just-clicked email-confirmation
+          // link (Supabase puts the same access_token/code shape in the
+          // URL), which is exactly the case that needs restaurant
+          // provisioning completed before /admin can find it.
+          void (async () => {
+            const provisioning = await ensureRestaurantProvisioned(session.user);
+            if (!provisioning.ok) {
+              logAuthErrorInDev("ensureRestaurantProvisioned (SIGNED_IN callback)", provisioning.error);
+              setMessage(PROVISIONING_ERROR);
+              return;
+            }
+            const destination = await resolvePostLoginPath(session.user.id);
             navigate({ to: destination });
-          });
+          })();
         }
       }
     });
@@ -245,8 +319,19 @@ function AuthPage() {
     }
     if (rememberMe) window.localStorage.setItem(REMEMBERED_EMAIL_KEY, email);
     else window.localStorage.removeItem(REMEMBERED_EMAIL_KEY);
-    const userId = result.data.session?.user?.id;
-    const destination = userId ? await resolvePostLoginPath(userId) : "/admin";
+
+    const user = result.data.session?.user ?? null;
+    if (user) {
+      const provisioning = await ensureRestaurantProvisioned(user);
+      if (!provisioning.ok) {
+        logAuthErrorInDev("ensureRestaurantProvisioned (password login)", provisioning.error);
+        setBusy(false);
+        setMessage(PROVISIONING_ERROR);
+        return;
+      }
+    }
+
+    const destination = user ? await resolvePostLoginPath(user.id) : "/admin";
     setBusy(false);
     if (result.data.session) navigate({ to: destination });
   }
@@ -312,8 +397,22 @@ function AuthPage() {
       setMessage("Impossible de mettre à jour le mot de passe. Réessayez.");
       return;
     }
-    const userId = data.user?.id;
-    const destination = userId ? await resolvePostLoginPath(userId) : "/admin";
+
+    const user = data.user;
+    if (user) {
+      // Covers the edge case of a brand-new owner using "mot de passe
+      // oublié" before ever completing a normal login -- same centralized
+      // mechanism as onSubmit/SIGNED_IN, not a fourth divergent copy.
+      const provisioning = await ensureRestaurantProvisioned(user);
+      if (!provisioning.ok) {
+        logAuthErrorInDev("ensureRestaurantProvisioned (password recovery)", provisioning.error);
+        setBusy(false);
+        setMessage(PROVISIONING_ERROR);
+        return;
+      }
+    }
+
+    const destination = user ? await resolvePostLoginPath(user.id) : "/admin";
     setBusy(false);
     navigate({ to: destination });
   }
@@ -367,18 +466,26 @@ function AuthPage() {
             )}
           </div>
 
-          {existingSessionEmail && view === "login" && (
+          {existingSessionUser && view === "login" && (
             <div className="mt-6 rounded-2xl border border-border bg-secondary/60 p-4 text-sm">
               <p className="text-muted-foreground">
                 Vous êtes déjà connecté en tant que{" "}
-                <span className="font-medium text-foreground">{existingSessionEmail}</span>.
+                <span className="font-medium text-foreground">{existingSessionUser.email}</span>.
               </p>
               <Button
                 className="mt-3 h-11 w-full rounded-full"
                 onClick={async () => {
-                  const destination = existingSessionUserId
-                    ? await resolvePostLoginPath(existingSessionUserId)
-                    : "/admin";
+                  // A session restored on mount never fires SIGNED_IN, so
+                  // this is the one navigation path that must run
+                  // provisioning itself rather than relying on the
+                  // onAuthStateChange handler above to have already done it.
+                  const provisioning = await ensureRestaurantProvisioned(existingSessionUser);
+                  if (!provisioning.ok) {
+                    logAuthErrorInDev("ensureRestaurantProvisioned (existing session)", provisioning.error);
+                    setMessage(PROVISIONING_ERROR);
+                    return;
+                  }
+                  const destination = await resolvePostLoginPath(existingSessionUser.id);
                   navigate({ to: destination });
                 }}
               >

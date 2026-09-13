@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { ExternalLink, Eye, MoreHorizontal, Power } from "lucide-react";
+import { Calendar, ExternalLink, Eye, Mail, MoreHorizontal, Power, User } from "lucide-react";
+import { useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,15 +49,33 @@ function TenantActionsMenu({
   );
 }
 
-function TenantAvatar({ tenant }: { tenant: TenantRow }) {
+function TenantAvatarFallback({ tenant }: { tenant: TenantRow }) {
   return (
     <span
-      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-semibold text-white"
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-base font-semibold text-white"
       style={{ backgroundColor: tenant.primary_color ?? DEFAULT_THEME.primary_color ?? "#2563eb" }}
     >
       {tenant.name.slice(0, 1).toUpperCase()}
     </span>
   );
+}
+
+function TenantAvatar({ tenant }: { tenant: TenantRow }) {
+  const [imgError, setImgError] = useState(false);
+
+  if (tenant.logo_url && !imgError) {
+    return (
+      <img
+        src={tenant.logo_url}
+        alt=""
+        loading="lazy"
+        onError={() => setImgError(true)}
+        className="h-11 w-11 shrink-0 rounded-xl border border-slate-200 bg-white object-contain p-1"
+      />
+    );
+  }
+
+  return <TenantAvatarFallback tenant={tenant} />;
 }
 
 export function TenantsTable({
@@ -78,7 +97,7 @@ export function TenantsTable({
           <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.15em] text-slate-500">
             <tr>
               <th className="w-12 px-4 py-3">#</th>
-              <th className="px-4 py-3">Restaurant</th>
+              <th className="min-w-[240px] px-4 py-3">Restaurant</th>
               <th className="px-4 py-3">Administrateur</th>
               <th className="px-4 py-3">Email</th>
               <th className="px-4 py-3">Statut</th>
@@ -105,25 +124,27 @@ export function TenantsTable({
             {!loading &&
               tenants.map((tenant, i) => (
                 <tr key={tenant.id} className="hover:bg-slate-50/80">
-                  <td className="px-4 py-3 text-slate-400">{startIndex + i + 1}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-4 text-slate-400">{startIndex + i + 1}</td>
+                  <td className="px-4 py-4">
                     <div className="flex items-center gap-3">
                       <TenantAvatar tenant={tenant} />
                       <div className="min-w-0">
-                        <p className="truncate font-medium text-slate-900">{tenant.name}</p>
+                        <p className="truncate text-[15px] font-semibold text-slate-900">
+                          {tenant.name}
+                        </p>
                         <p className="truncate text-xs text-slate-400">/r/{tenant.slug}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-slate-600">{tenant.owner_name ?? "-"}</td>
-                  <td className="px-4 py-3 text-slate-600">{tenant.owner_email ?? "-"}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-4 text-slate-600">{tenant.owner_name ?? "-"}</td>
+                  <td className="px-4 py-4 text-slate-600">{tenant.owner_email ?? "-"}</td>
+                  <td className="px-4 py-4">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <TenantStatusBadge status={tenant.status} />
                       {isRecentlyCreated(tenant.created_at) && <TenantNewBadge />}
                     </div>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-4">
                     <span
                       className="inline-block h-4 w-4 rounded-full border border-slate-300"
                       style={{
@@ -133,10 +154,10 @@ export function TenantsTable({
                       title={tenant.primary_color ? "Thème personnalisé" : "Thème par défaut"}
                     />
                   </td>
-                  <td className="px-4 py-3 text-slate-600">
+                  <td className="px-4 py-4 text-slate-600">
                     {new Date(tenant.created_at).toLocaleDateString("fr-FR")}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-4 text-right">
                     <TenantActionsMenu tenant={tenant} onToggleStatus={onToggleStatus} />
                   </td>
                 </tr>
@@ -158,8 +179,10 @@ export function TenantsTable({
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="truncate font-medium text-slate-900">{tenant.name}</p>
-                    <p className="truncate text-xs text-slate-400">{tenant.owner_email ?? "-"}</p>
+                    <p className="truncate text-[15px] font-semibold text-slate-900">
+                      {tenant.name}
+                    </p>
+                    <p className="truncate text-xs text-slate-400">/r/{tenant.slug}</p>
                   </div>
                   <TenantActionsMenu tenant={tenant} onToggleStatus={onToggleStatus} />
                 </div>
@@ -167,9 +190,20 @@ export function TenantsTable({
                   <TenantStatusBadge status={tenant.status} />
                   {isRecentlyCreated(tenant.created_at) && <TenantNewBadge />}
                 </div>
-                <p className="mt-2 text-xs text-slate-400">
-                  Inscrit le {new Date(tenant.created_at).toLocaleDateString("fr-FR")}
-                </p>
+                <div className="mt-2.5 space-y-1.5 text-xs text-slate-500">
+                  <p className="flex items-center gap-1.5 truncate">
+                    <User className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />
+                    <span className="truncate">{tenant.owner_name ?? "-"}</span>
+                  </p>
+                  <p className="flex items-center gap-1.5 truncate">
+                    <Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />
+                    <span className="truncate">{tenant.owner_email ?? "-"}</span>
+                  </p>
+                  <p className="flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />
+                    {new Date(tenant.created_at).toLocaleDateString("fr-FR")}
+                  </p>
+                </div>
               </div>
             </div>
           ))}

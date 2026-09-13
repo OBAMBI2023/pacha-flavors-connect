@@ -506,14 +506,30 @@ function FoodLandingPage() {
               loading="eager"
               fetchPriority="high"
               decoding="async"
-              className="absolute inset-0 h-full w-full object-cover object-[63%_30%] sm:object-[58%_35%] lg:object-[58%_38%]"
+              className="absolute inset-0 h-full w-full object-cover object-[63%_30%] brightness-[1.12] contrast-[1.03] saturate-[1.06] sm:object-[58%_35%] lg:object-[58%_38%]"
             />
+            {/* Warm tone wash -- soft-light blend adds natural warmth (not
+                saturation) without touching exposure, so the photo reads
+                warmer without looking artificially color-graded. */}
             <div
-              className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/90 via-black/60 to-black/10 lg:from-[rgba(0,0,0,0.68)] lg:via-[rgba(0,0,0,0.25)] lg:to-[rgba(0,0,0,0.05)]"
+              className="pointer-events-none absolute inset-0 bg-gradient-to-br from-amber-400/20 via-orange-300/5 to-transparent mix-blend-soft-light"
               aria-hidden="true"
             />
+            {/* Left-to-right darkening, mainly for the text column -- much
+                lighter than before so the photo (and the chef's face) stays
+                bright across most of its width; still present on the left
+                edge where the text sits at every breakpoint. */}
             <div
-              className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-black/15"
+              className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/55 via-black/28 to-transparent lg:from-[rgba(0,0,0,0.48)] lg:via-[rgba(0,0,0,0.16)] lg:to-transparent"
+              aria-hidden="true"
+            />
+            {/* Vertical shape: light protection at the very top, the middle
+                of the photo left clear and bright, a progressive dark
+                gradient at the bottom behind the text (mobile layout pins
+                the headline/button there). Meaningfully lighter than the
+                previous version at every stop. */}
+            <div
+              className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/18 via-transparent to-black/50"
               aria-hidden="true"
             />
 

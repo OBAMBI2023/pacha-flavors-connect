@@ -1737,7 +1737,7 @@ function NavItemsList({
           return (
             <div key={section.title}>
               <div className={`mb-1.5 flex items-center gap-2 px-1 ${sectionIndex === 0 ? "mt-0" : "mt-3.5"}`}>
-                <span className="shrink-0 text-[11px] font-bold uppercase tracking-[0.12em] text-[#AEBBD0] opacity-85">
+                <span className="shrink-0 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-[#AEBBD0] opacity-80">
                   {section.title}
                 </span>
                 <span className="h-px flex-1 bg-white/10" aria-hidden="true" />
@@ -1758,11 +1758,16 @@ function NavItemsList({
                           : "border-transparent font-semibold text-white hover:bg-white/[0.06]"
                       }`}
                     >
-                      <item.icon
-                        className={`h-[21px] w-[21px] shrink-0 ${active ? "text-[#FF6B22]" : "text-[#AEBBD0]"}`}
-                        strokeWidth={2}
-                        aria-hidden="true"
-                      />
+                      {/* Fixed-width wrapper (not just a fixed-size icon) so every
+                          label starts on the exact same vertical line regardless
+                          of which lucide icon a given item uses. */}
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center">
+                        <item.icon
+                          className={`h-[21px] w-[21px] ${active ? "text-[#FF6B22]" : "text-[#AEBBD0]"}`}
+                          strokeWidth={2}
+                          aria-hidden="true"
+                        />
+                      </span>
                       <span className="min-w-0 flex-1 truncate">{item.label}</span>
                       {badgeCount > 0 && (
                         <span className="grid h-[22px] min-w-[22px] shrink-0 place-items-center rounded-full bg-[#FF6B22] px-1 text-[11px] font-extrabold text-white">
@@ -1983,8 +1988,8 @@ function MobileNavSheet({
           <SheetTitle asChild>
             <div>
               <p className="font-display text-2xl font-extrabold leading-tight tracking-tight text-white">SAOVIA</p>
-              <p className="text-xs font-extrabold uppercase tracking-[0.25em] text-[#FF6B22]">Food Partner</p>
-              <p className="mt-1.5 text-[13px] font-medium normal-case tracking-normal text-[#AEBBD0]">
+              <p className="mt-1 text-xs font-extrabold uppercase tracking-[0.25em] text-[#FF6B22]">Food Partner</p>
+              <p className="mt-2.5 text-[13px] font-medium normal-case tracking-normal text-[#AEBBD0]/75">
                 Pilotez. Servez. Développez.
               </p>
             </div>
@@ -2003,37 +2008,38 @@ function MobileNavSheet({
           />
         </div>
         <div
-          className="shrink-0 space-y-2 border-t border-white/10 px-[14px] pt-[10px]"
+          className="shrink-0 border-t border-white/10 px-[14px] pt-[10px]"
           style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
         >
+          {/* Single account card -- also the drawer's only sign-out affordance
+              (no separate logout button anymore, per the "un seul point de
+              déconnexion" requirement). restaurantName/restaurantLogoUrl stay
+              fully dynamic props, never hardcoded. */}
           <button
             type="button"
-            className="flex h-16 w-full items-center gap-3 rounded-[18px] border border-white/[0.16] bg-white/[0.05] px-3 py-2 text-left transition-colors hover:bg-white/[0.08]"
+            onClick={onLogout}
+            aria-label={`Se déconnecter -- ${restaurantName}`}
+            className="group flex h-16 w-full items-center gap-3 rounded-[18px] border border-white/[0.14] bg-white/[0.05] px-3 py-2 text-left transition-colors hover:border-[#FF6B22]/40 hover:bg-white/[0.08] active:bg-white/[0.1]"
           >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/10">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/10 ring-1 ring-white/10">
               {restaurantLogoUrl ? (
-                <img src={restaurantLogoUrl} alt="" className="h-full w-full object-cover" />
+                <img src={restaurantLogoUrl} alt="" className="h-full w-full object-contain" />
               ) : (
                 <Store className="h-4 w-4 text-[#AEBBD0]" aria-hidden="true" />
               )}
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-semibold text-white">{restaurantName}</span>
-              <span className="block truncate text-xs text-[#AEBBD0]">Restaurant partenaire</span>
+              <span className="block truncate text-xs text-[#AEBBD0]/80">Session active</span>
             </span>
-            <ChevronRight className="h-4 w-4 shrink-0 text-[#AEBBD0]" aria-hidden="true" />
+            <span className="flex shrink-0 items-center gap-1.5 text-[#AEBBD0] transition-colors group-hover:text-[#FF6B22]">
+              <span className="text-xs font-medium">Déconnexion</span>
+              <LogOut className="h-4 w-4" aria-hidden="true" />
+            </span>
           </button>
-          <button
-            type="button"
-            onClick={onLogout}
-            className="flex h-[54px] w-full items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.025] px-3.5 py-2.5 text-left text-sm font-medium text-white transition-colors hover:border-[#FF6B22]/40 hover:text-[#FF6B22]"
-          >
-            <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
-            Déconnexion
-          </button>
-          <div className="pt-1 text-center">
-            <p className="text-[11px] font-semibold text-[#AEBBD0] opacity-85">SAOVIA FOOD</p>
-            <p className="mt-0.5 text-[11px] font-semibold text-[#AEBBD0] opacity-85">
+          <div className="mt-2.5 border-t border-white/[0.06] pt-2.5 text-center">
+            <p className="text-[10.5px] font-medium text-[#AEBBD0] opacity-60">SAOVIA FOOD</p>
+            <p className="mt-0.5 text-[10.5px] font-medium text-[#AEBBD0] opacity-60">
               Votre restaurant, mieux piloté.
             </p>
           </div>
