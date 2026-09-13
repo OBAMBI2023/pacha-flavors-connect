@@ -73,6 +73,42 @@ export default defineConfig({
           preserveModules: true,
         },
       },
+      // Vercel's edge auto-compresses (Brotli) every static asset it can,
+      // including these two vendored MapLibre files (see the optimizeDeps
+      // comment above) -- but a module Worker's own static nested import
+      // (maplibre-gl-worker.mjs importing ./maplibre-gl-shared.mjs) fails to
+      // resolve when the browser fetches it over that Brotli-encoded,
+      // chunked-transfer response, even though the exact same bytes load
+      // fine as a plain fetch(), a dynamic import(), or a main-document
+      // static import. `Cache-Control: no-transform` is the documented way
+      // to tell Vercel's CDN not to re-encode a response; declared here
+      // (Nitro's own vercel-preset config, not vercel.json -- Nitro's
+      // generateBuildConfig() never reads vercel.json's `headers`, only this
+      // option) with continue:false so each rule is terminal and can't be
+      // overridden by Nitro's own generic `/assets/(.*)` cache-control rule,
+      // which this preset always appends after whatever routes are supplied
+      // here. Scoped to these two exact paths only -- every other asset
+      // keeps the normal generic rule untouched.
+      vercel: {
+        config: {
+          routes: [
+            {
+              src: "/assets/maplibre-gl-worker.mjs",
+              headers: {
+                "cache-control": "public, max-age=31536000, immutable, no-transform",
+              },
+              continue: false,
+            },
+            {
+              src: "/assets/maplibre-gl-shared.mjs",
+              headers: {
+                "cache-control": "public, max-age=31536000, immutable, no-transform",
+              },
+              continue: false,
+            },
+          ],
+        },
+      },
     }),
     react(),
     tailwindcss(),
