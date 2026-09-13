@@ -27,7 +27,7 @@ export function FoodHeader({ activePath }: FoodHeaderProps) {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] sm:px-6">
         <Link to="/food" className="flex items-center gap-2">
           <img src={logoMark} alt="" className="h-8 w-8 rounded-full object-cover" />
           <span className="font-display text-lg font-bold tracking-tight text-foreground">
