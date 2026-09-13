@@ -783,7 +783,7 @@ export default function AdminPage() {
           pendingCount={ordersAlert.pendingCount}
         />
         <div className="min-w-0 lg:ml-[calc(260px+1.5rem)]">
-          <div className="mb-4 flex items-center justify-between gap-3 lg:hidden">
+          <div className="mb-3 flex items-center justify-between gap-3 lg:hidden">
             <button
               type="button"
               onClick={() => setMobileSidebarOpen(true)}
@@ -807,7 +807,7 @@ export default function AdminPage() {
               busy={availabilityBusy}
               onToggle={handleToggleOpen}
               description={availability.is_open ? "Votre restaurant est en ligne" : undefined}
-              className="mb-4 w-full justify-between lg:hidden"
+              className="mb-3 w-full justify-between lg:hidden"
             />
           )}
           <header className="mb-6 hidden flex-wrap items-center justify-between gap-4 rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6 lg:flex">
@@ -2155,12 +2155,12 @@ function AvailabilityToggleControl({
   const isOpen = availability.is_open;
   return (
     <div
-      className={`inline-flex items-center gap-3 rounded-2xl border px-4 py-2.5 ${
+      className={`inline-flex items-center gap-3 rounded-2xl border px-4 py-2 ${
         isOpen ? "border-emerald-200 bg-emerald-50" : "border-destructive/20 bg-destructive/5"
       } ${className}`}
     >
       <span className="flex min-w-0 flex-col">
-        <span className={`flex items-center gap-1.5 text-sm font-semibold ${isOpen ? "text-emerald-700" : "text-destructive"}`}>
+        <span className={`flex items-center gap-1.5 text-base font-bold ${isOpen ? "text-emerald-700" : "text-destructive"}`}>
           <span aria-hidden="true">{isOpen ? "🟢" : "🔴"}</span>
           {isOpen ? "Ouvert" : "Fermé"}
         </span>

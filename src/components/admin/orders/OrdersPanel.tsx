@@ -156,6 +156,12 @@ export function OrdersPanel({
 
   const pendingCount = counts.get("pending") ?? 0;
 
+  const todayCount = useMemo(() => {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    return orders.filter((o) => new Date(o.created_at).getTime() >= startOfToday.getTime()).length;
+  }, [orders]);
+
   const visibleOrders = useMemo(() => {
     const list = filter === "all" ? orders : orders.filter((o) => o.status === filter);
     return [...list].sort((a, b) => {
@@ -169,50 +175,23 @@ export function OrdersPanel({
   const connection = CONNECTION_META[connectionState];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="font-display text-2xl font-semibold">Commandes</h2>
-          <p className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-            <span className={`h-2 w-2 rounded-full ${connection.dot}`} />
-            {connection.label}
-            {pendingCount > 0 && (
-              <span className="ml-2 rounded-full bg-primary px-2 py-0.5 text-[0.65rem] font-semibold text-primary-foreground">
-                {pendingCount} en attente
-              </span>
-            )}
+        <div className="min-w-0">
+          <h2 className="font-display text-2xl font-semibold leading-tight">Commandes</h2>
+          <p className="mt-0.5 flex items-center gap-1.5 text-sm">
+            <span className={`h-2 w-2 shrink-0 rounded-full ${connection.dot}`} />
+            <span className="font-semibold text-foreground">
+              {pendingCount > 0
+                ? `${pendingCount} nouvelle${pendingCount > 1 ? "s" : ""} commande${pendingCount > 1 ? "s" : ""}`
+                : connection.label}
+            </span>
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button size="sm" className="h-11" disabled={!restaurantId} onClick={() => setNewOrderDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Nouvelle commande
-          </Button>
-          {soundEnabled && (
-            <Button variant="ghost" size="sm" onClick={() => void playTestChime()} title="Tester le son">
-              <Volume2 className="h-4 w-4" />
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => (soundEnabled ? disableSound() : void enableSound())}
-            className="h-11"
-          >
-            {soundEnabled ? <Bell className="mr-2 h-4 w-4" /> : <BellOff className="mr-2 h-4 w-4" />}
-            {soundEnabled ? "Son activé" : "Activer les alertes sonores"}
-          </Button>
-          {vibrationSupported && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => (vibrationEnabled ? disableVibration() : enableVibration())}
-              className="h-11"
-            >
-              <Vibrate className="mr-2 h-4 w-4" />
-              {vibrationEnabled ? "Vibration activée" : "Activer la vibration"}
-            </Button>
-          )}
-          <NewOrderPushToggle />
+        <div className="flex shrink-0 items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5">
+          <RadioTower className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+          <span className="text-xs text-muted-foreground">Aujourd'hui</span>
+          <span className="text-sm font-bold text-foreground">{todayCount}</span>
         </div>
       </div>
 
@@ -222,15 +201,49 @@ export function OrdersPanel({
         </p>
       )}
 
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Button size="sm" className="hidden h-11 lg:inline-flex" disabled={!restaurantId} onClick={() => setNewOrderDialogOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" /> Nouvelle commande
+        </Button>
+        {soundEnabled && (
+          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => void playTestChime()} title="Tester le son">
+            <Volume2 className="h-4 w-4" />
+          </Button>
+        )}
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-9 w-9"
+          onClick={() => (soundEnabled ? disableSound() : void enableSound())}
+          title={soundEnabled ? "Son activé" : "Activer les alertes sonores"}
+          aria-label={soundEnabled ? "Son activé" : "Activer les alertes sonores"}
+        >
+          {soundEnabled ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
+        </Button>
+        {vibrationSupported && (
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-9 w-9"
+            onClick={() => (vibrationEnabled ? disableVibration() : enableVibration())}
+            title={vibrationEnabled ? "Vibration activée" : "Activer la vibration"}
+            aria-label={vibrationEnabled ? "Vibration activée" : "Activer la vibration"}
+          >
+            <Vibrate className="h-4 w-4" />
+          </Button>
+        )}
+        <NewOrderPushToggle />
+      </div>
+
       <div className="-mx-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
-        <div className="flex w-max gap-2">
+        <div className="flex w-max gap-1.5">
           {FILTER_TABS.map((tab) => {
             const count = tab.id === "all" ? orders.length : counts.get(tab.id) ?? 0;
             return (
               <button
                 key={tab.id}
                 onClick={() => setFilter(tab.id)}
-                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
                   filter === tab.id
                     ? "border-primary bg-primary text-primary-foreground"
                     : "border-border bg-card hover:bg-accent"
@@ -252,7 +265,7 @@ export function OrdersPanel({
           <p className="text-sm text-muted-foreground">Aucune commande dans cette vue pour le moment.</p>
         </div>
       ) : (
-        <div className="min-w-0 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="min-w-0 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {visibleOrders.map((order) => (
             <OrderCard
               key={order.id}

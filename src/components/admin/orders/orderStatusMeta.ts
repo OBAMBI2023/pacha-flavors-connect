@@ -142,6 +142,18 @@ export function buildDeliveryDetailsText(
   return lines.join("\n");
 }
 
+/**
+ * Best-effort wa.me deep link built from whatever digits customer_phone
+ * already contains -- this app has no reliable per-order country code to
+ * prepend (DbRestaurant carries no country_code field), so this never
+ * guesses one. Numbers already stored in local format may not resolve on
+ * WhatsApp's side; that is a pre-existing data-shape limitation, not
+ * something to silently "fix" here.
+ */
+export function whatsappUrl(phone: string): string {
+  return `https://wa.me/${phone.replace(/\D/g, "")}`;
+}
+
 export function elapsedLabel(fromIso: string): string {
   const minutes = Math.max(0, Math.floor((Date.now() - new Date(fromIso).getTime()) / 60000));
   if (minutes < 1) return "à l'instant";
