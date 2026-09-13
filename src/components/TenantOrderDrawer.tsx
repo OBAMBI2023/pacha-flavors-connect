@@ -41,6 +41,14 @@ const CUSTOMER_PHONE_KEY = "saovia.customer.phone";
 const CUSTOMER_PHONE_DIAL_CODE_KEY = "saovia.customer.phoneDialCode";
 const CUSTOMER_NAME_KEY = "saovia.customer.name";
 const CUSTOMER_INSTRUCTIONS_KEY = "saovia.customer.instructions";
+// Separate from CUSTOMER_PHONE_KEY on purpose: that key stays the raw
+// national number the checkout form itself pre-fills from (see
+// loadStoredCustomer below), while orders.customer_phone is the canonical
+// dial-code+national value from buildCanonicalPhone. Confirmation/orders
+// lookups (get_customer_order / get_customer_orders) compare against that
+// canonical value with strict string equality, so they need this dedicated
+// key rather than reusing (and reformatting) the national-only one.
+const CUSTOMER_ORDER_PHONE_KEY = "saovia.customer.orderPhone";
 
 const PICKUP_TIME_OPTIONS = ["Dès que possible", "Dans 30 minutes", "Dans 1 heure"];
 
@@ -460,13 +468,14 @@ export function TenantOrderDrawer({
 
     const notesParts: string[] = [];
     if (mode === "pickup") notesParts.push(`Retrait : ${pickupTime}`);
+    const canonicalPhone = buildCanonicalPhone(form.phoneDialCode, form.phone);
 
     try {
       const order = await createRestaurantOrder({
         restaurantSlug,
         fulfillment_type: mode,
         customer_name: form.name.trim(),
-        customer_phone: buildCanonicalPhone(form.phoneDialCode, form.phone),
+        customer_phone: canonicalPhone,
         delivery_address: mode === "delivery" ? (orderingForSomeone ? recipientAddress.trim() : location?.address ?? null) : null,
         delivery_instructions: mode === "delivery" ? form.instructions.trim() || null : null,
         delivery_latitude: mode === "delivery" ? (orderingForSomeone ? recipientLat : location?.latitude ?? null) : null,
@@ -499,6 +508,10 @@ export function TenantOrderDrawer({
 
       window.localStorage.setItem(CUSTOMER_PHONE_KEY, form.phone.trim());
       window.localStorage.setItem(CUSTOMER_PHONE_DIAL_CODE_KEY, form.phoneDialCode);
+      // Same canonical value just sent as orders.customer_phone -- confirmation/
+      // orders-list lookups need this exact string, not the national-only
+      // CUSTOMER_PHONE_KEY above (kept as-is for the checkout form's own prefill).
+      window.localStorage.setItem(CUSTOMER_ORDER_PHONE_KEY, canonicalPhone);
       window.localStorage.setItem(CUSTOMER_NAME_KEY, form.name.trim());
       window.localStorage.setItem(CUSTOMER_INSTRUCTIONS_KEY, form.instructions.trim());
       window.localStorage.setItem("saovia.restaurant.slug", restaurantSlug);

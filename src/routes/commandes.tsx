@@ -10,6 +10,10 @@ import { useStorefrontTheme } from "@/components/tenant/tenantTheme";
 import { PublicFooter } from "@/components/PublicFooter";
 
 const STORAGE_PHONE = "saovia.customer.phone";
+// Same canonical-first, national-fallback lookup as the confirmation page
+// (src/routes/commande.$orderId.confirmation.tsx) -- get_customer_orders()
+// also compares against orders.customer_phone by strict string equality.
+const STORAGE_ORDER_PHONE = "saovia.customer.orderPhone";
 const STORAGE_NAME = "saovia.customer.name";
 const STORAGE_RESTAURANT_SLUG = "saovia.restaurant.slug";
 
@@ -23,7 +27,10 @@ function OrdersPage() {
   const navigate = useNavigate();
   useStorefrontTheme(null);
   const slug = typeof window === "undefined" ? "" : window.localStorage.getItem(STORAGE_RESTAURANT_SLUG) ?? "";
-  const phone = typeof window === "undefined" ? "" : window.localStorage.getItem(STORAGE_PHONE) ?? "";
+  const phone =
+    typeof window === "undefined"
+      ? ""
+      : window.localStorage.getItem(STORAGE_ORDER_PHONE) ?? window.localStorage.getItem(STORAGE_PHONE) ?? "";
   const name = typeof window === "undefined" ? "" : window.localStorage.getItem(STORAGE_NAME) ?? "";
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const query = useQuery({
@@ -39,6 +46,7 @@ function OrdersPage() {
 
   function signOut() {
     window.localStorage.removeItem(STORAGE_PHONE);
+    window.localStorage.removeItem(STORAGE_ORDER_PHONE);
     window.localStorage.removeItem(STORAGE_NAME);
     window.localStorage.removeItem("saovia.customer.address");
     window.localStorage.removeItem("saovia.customer.instructions");

@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/accordion";
 import { FoodHeader } from "@/components/FoodHeader";
 import { FoodFooter } from "@/components/FoodFooter";
+import { WhatsAppFloatingButton } from "@/components/WhatsAppFloatingButton";
 import { jsonLdMetaEntry, siteOrigin } from "@/lib/seo";
 import { buildWhatsAppUrl, SAOVIA_SUPPORT_WHATSAPP_NUMBER } from "@/lib/whatsapp";
 import logoMark from "@/assets/saovia-food-logo.png";
@@ -1191,6 +1192,7 @@ function FoodLandingPage() {
         {/* Shared dark "premium SaaS" footer -- see src/components/FoodFooter.tsx */}
         <FoodFooter />
       </main>
+      <WhatsAppFloatingButton />
     </div>
   );
 }

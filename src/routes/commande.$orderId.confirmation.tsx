@@ -22,6 +22,13 @@ import { useNotificationEngine } from "@/hooks/useNotificationEngine";
 import { getOrCreateVisitorId } from "@/lib/visitorTracking";
 
 const STORAGE_PHONE = "saovia.customer.phone";
+// Canonical (dial code + national number) value TenantOrderDrawer writes
+// right after a successful order -- matches orders.customer_phone exactly,
+// which get_customer_order() compares by strict string equality. Falls back
+// to STORAGE_PHONE (national-only) for a browser that placed its order
+// before this key existed: that's the same value this page always used, so
+// it stays correct for orders whose customer_phone predates canonicalization.
+const STORAGE_ORDER_PHONE = "saovia.customer.orderPhone";
 const STORAGE_RESTAURANT_SLUG = "saovia.restaurant.slug";
 
 const STATUS_HEADLINE: Record<OrderStatus, string> = {
@@ -44,7 +51,9 @@ function ConfirmationPage() {
   useStorefrontTheme(null);
   const { orderId } = Route.useParams();
   const phone =
-    typeof window === "undefined" ? "" : (window.localStorage.getItem(STORAGE_PHONE) ?? "");
+    typeof window === "undefined"
+      ? ""
+      : (window.localStorage.getItem(STORAGE_ORDER_PHONE) ?? window.localStorage.getItem(STORAGE_PHONE) ?? "");
   const fallbackSlug =
     typeof window === "undefined"
       ? ""
