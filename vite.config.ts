@@ -44,8 +44,25 @@ export default defineConfig({
     // ever load" blank map) reproduced in production too, not just dev.
     // Fixed by vendoring that file as a static public asset instead (see
     // public/assets/maplibre-gl-worker.mjs) so it always lands next to the
-    // hashed main chunk under /assets/ in every build -- keep it in sync
-    // with the installed maplibre-gl version if that ever gets bumped.
+    // hashed main chunk under /assets/ in every build.
+    //
+    // That worker file itself has its own top-level ES module import --
+    // `import {...} from "./maplibre-gl-shared.mjs"` -- resolved by the
+    // browser relative to the worker's own URL once it's loaded as a module
+    // worker. The main-thread chunk never hits this because Rollup inlines
+    // that same shared code directly into it; the raw worker file vendored
+    // above is an unprocessed copy straight from node_modules and keeps its
+    // original relative import as-is. Without a matching
+    // public/assets/maplibre-gl-shared.mjs, that nested import 404s inside
+    // the worker's module graph -- a failure that's asynchronous and silent
+    // on the main thread (no console error, no thrown exception: maplibre-gl
+    // only try/catches the synchronous `new Worker(...)` call, not its
+    // module-loading failure), so the worker just never becomes functional
+    // and silently never processes a single tile request. Fixed the same way
+    // as the worker file: public/assets/maplibre-gl-shared.mjs is also
+    // vendored, byte-identical to node_modules/maplibre-gl/dist/maplibre-gl-shared.mjs.
+    // Both vendored files must be kept in sync with each other and with the
+    // installed maplibre-gl version if it's ever bumped.
     exclude: ["maplibre-gl"],
   },
   plugins: [
