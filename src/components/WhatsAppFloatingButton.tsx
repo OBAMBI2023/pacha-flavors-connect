@@ -29,8 +29,6 @@ export function WhatsAppFloatingButton({
   const [reducedMotion, setReducedMotion] = useState(false);
   const [entrance, setEntrance] = useState<"idle" | "pulse" | "bounce">("idle");
   const [ringing, setRinging] = useState(false);
-  const [tooltipOpen, setTooltipOpen] = useState(false);
-  const [tooltipDismissed, setTooltipDismissed] = useState(false);
   const idleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -77,39 +75,12 @@ export function WhatsAppFloatingButton({
     };
   }, [reducedMotion]);
 
-  // Tooltip: appears once, 3s after mount, unless the visitor already closed it.
-  useEffect(() => {
-    if (tooltipDismissed) return;
-    const t = setTimeout(() => setTooltipOpen(true), 3000);
-    return () => clearTimeout(t);
-  }, [tooltipDismissed]);
-
   return (
     <div
       className="fixed z-[100] bottom-[calc(20px+env(safe-area-inset-bottom))] right-4 md:bottom-6 md:right-6"
       role="complementary"
       aria-label="Contact WhatsApp"
     >
-      {tooltipOpen && (
-        <div className="absolute bottom-1/2 right-[calc(100%+12px)] flex translate-y-1/2 items-center">
-          <div className="relative flex items-center gap-2 rounded-2xl bg-white px-4 py-2.5 text-sm font-medium text-neutral-800 shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
-            <span className="whitespace-nowrap">{"Besoin d'aide ? Écrivez-nous sur WhatsApp 👋"}</span>
-            <button
-              type="button"
-              aria-label="Fermer"
-              onClick={() => {
-                setTooltipOpen(false);
-                setTooltipDismissed(true);
-              }}
-              className="ml-1 grid h-5 w-5 shrink-0 place-items-center rounded-full text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600"
-            >
-              ×
-            </button>
-            <span className="absolute left-full top-1/2 -translate-y-1/2 border-8 border-transparent border-l-white" aria-hidden="true" />
-          </div>
-        </div>
-      )}
-
       {!reducedMotion && ringing && (
         <span className="absolute inset-0 animate-ping rounded-full bg-[#25D366]/60" aria-hidden="true" />
       )}
@@ -119,7 +90,6 @@ export function WhatsAppFloatingButton({
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Discuter avec SAOVIA sur WhatsApp"
-        onClick={() => setTooltipOpen(false)}
         className={cn(
           "relative flex h-[58px] w-[58px] items-center justify-center rounded-full bg-[#25D366] shadow-[0_8px_20px_rgba(0,0,0,0.2)] outline-none transition-transform duration-200 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#25D366] motion-safe:hover:scale-[1.08] motion-safe:active:scale-95",
           !reducedMotion && entrance === "pulse" && "motion-safe:animate-pulse",
