@@ -27,6 +27,7 @@ import {
   fulfillmentLabel,
   googleMapsUrl,
   nextActions,
+  telUrl,
   whatsappUrl,
 } from "./orderStatusMeta";
 import { PAYMENT_METHOD_LABELS, PAYMENT_STATUS_BADGE_CLASS, PAYMENT_STATUS_LABELS } from "./paymentStatusMeta";
@@ -177,7 +178,7 @@ export function OrderCard({
               <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
             </a>
             <a
-              href={`tel:${order.customer_phone}`}
+              href={telUrl(order.customer_phone)}
               aria-label="Appeler le client"
               className="flex h-9 items-center gap-1.5 rounded-full border border-border px-3 text-xs font-semibold hover:bg-accent"
             >

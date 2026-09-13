@@ -154,6 +154,19 @@ export function whatsappUrl(phone: string): string {
   return `https://wa.me/${phone.replace(/\D/g, "")}`;
 }
 
+/**
+ * tel: links need a leading "+" for correct international dialing; the
+ * stored digits themselves never carry one (checkout's phone field submits
+ * dial code + national number, digits only -- see buildCanonicalPhone in
+ * TenantOrderDrawer.tsx). Only strips characters a tel: URI can't contain
+ * (spaces, parens, hyphens, a redundant "+") and adds exactly one back --
+ * same "never guess a country code" rule as whatsappUrl above, it just
+ * reformats whatever digits are already there.
+ */
+export function telUrl(phone: string): string {
+  return `tel:+${phone.replace(/\D/g, "")}`;
+}
+
 export function elapsedLabel(fromIso: string): string {
   const minutes = Math.max(0, Math.floor((Date.now() - new Date(fromIso).getTime()) / 60000));
   if (minutes < 1) return "à l'instant";

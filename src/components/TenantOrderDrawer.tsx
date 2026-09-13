@@ -27,6 +27,8 @@ import { AvailabilityBadge } from "@/components/tenant/AvailabilityBadge";
 import type { RestaurantAvailability } from "@/lib/businessHours";
 import { useDeliveryLocation } from "@/lib/deliveryLocation";
 import { lookupCustomerName } from "@/lib/customers-db";
+import { DEFAULT_DIAL_CODE } from "@/lib/countryDialCodes";
+import { PhoneNumberField } from "@/components/tenant/PhoneNumberField";
 import { computeDistanceBasedDelivery } from "@/lib/deliveryPricing";
 import { geocodeAddress } from "@/lib/geolocation";
 import { getOrCreateVisitorId, hasQrAttribution } from "@/lib/visitorTracking";
@@ -36,6 +38,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Switch } from "@/components/ui/switch";
 
 const CUSTOMER_PHONE_KEY = "saovia.customer.phone";
+const CUSTOMER_PHONE_DIAL_CODE_KEY = "saovia.customer.phoneDialCode";
 const CUSTOMER_NAME_KEY = "saovia.customer.name";
 const CUSTOMER_INSTRUCTIONS_KEY = "saovia.customer.instructions";
 
@@ -49,15 +52,20 @@ const PICKUP_TIME_OPTIONS = ["Dès que possible", "Dans 30 minutes", "Dans 1 heu
  * for someone who had just ordered. Only name/phone are restored -- not
  * instructions, which are specific to a single delivery, not the customer.
  */
-function loadStoredCustomer(): { name: string; phone: string } {
-  if (typeof window === "undefined") return { name: "", phone: "" };
+function loadStoredCustomer(): { name: string; phone: string; phoneDialCode: string } {
+  if (typeof window === "undefined") return { name: "", phone: "", phoneDialCode: DEFAULT_DIAL_CODE };
   try {
     return {
       name: window.localStorage.getItem(CUSTOMER_NAME_KEY) ?? "",
+      // Pre-existing entries never had a dial code (the whole system was
+      // implicitly Côte d'Ivoire-only) -- defaulting a missing key to 225
+      // matches that same assumption instead of leaving a returning
+      // customer's restored number un-prefixable.
       phone: window.localStorage.getItem(CUSTOMER_PHONE_KEY) ?? "",
+      phoneDialCode: window.localStorage.getItem(CUSTOMER_PHONE_DIAL_CODE_KEY) ?? DEFAULT_DIAL_CODE,
     };
   } catch {
-    return { name: "", phone: "" };
+    return { name: "", phone: "", phoneDialCode: DEFAULT_DIAL_CODE };
   }
 }
 
@@ -100,6 +108,20 @@ function formatSelectedOptions(options: CartOptionSelection[]): string {
 
 function isValidPhone(value: string): boolean {
   return value.replace(/[^0-9]/g, "").length >= 8;
+}
+
+/**
+ * Dial code + national number, digits only, with nothing stripped from the
+ * national part -- a leading trunk 0 (e.g. Côte d'Ivoire's "07 08 09 10 11")
+ * is kept exactly as typed. This is the one place that combines the two,
+ * matching the canonical shape already documented in src/lib/whatsapp.ts
+ * ("225" + untouched local number, e.g. "2250758483726" -- never
+ * "225758483726"). No "+" prefix, consistent with that same convention;
+ * tel: links add their own "+" at render time instead (see telUrl in
+ * src/components/admin/orders/orderStatusMeta.ts).
+ */
+function buildCanonicalPhone(dialCode: string, nationalNumber: string): string {
+  return `${dialCode.replace(/\D/g, "")}${nationalNumber.replace(/\D/g, "")}`;
 }
 
 /**
@@ -444,7 +466,7 @@ export function TenantOrderDrawer({
         restaurantSlug,
         fulfillment_type: mode,
         customer_name: form.name.trim(),
-        customer_phone: form.phone.trim(),
+        customer_phone: buildCanonicalPhone(form.phoneDialCode, form.phone),
         delivery_address: mode === "delivery" ? (orderingForSomeone ? recipientAddress.trim() : location?.address ?? null) : null,
         delivery_instructions: mode === "delivery" ? form.instructions.trim() || null : null,
         delivery_latitude: mode === "delivery" ? (orderingForSomeone ? recipientLat : location?.latitude ?? null) : null,
@@ -476,6 +498,7 @@ export function TenantOrderDrawer({
       });
 
       window.localStorage.setItem(CUSTOMER_PHONE_KEY, form.phone.trim());
+      window.localStorage.setItem(CUSTOMER_PHONE_DIAL_CODE_KEY, form.phoneDialCode);
       window.localStorage.setItem(CUSTOMER_NAME_KEY, form.name.trim());
       window.localStorage.setItem(CUSTOMER_INSTRUCTIONS_KEY, form.instructions.trim());
       window.localStorage.setItem("saovia.restaurant.slug", restaurantSlug);
@@ -646,7 +669,18 @@ export function TenantOrderDrawer({
               <div className="mt-6 space-y-3">
                 <h3 className="text-lg font-semibold text-foreground">Vos informations</h3>
                 <Field ref={nameInputRef} label="Nom" required placeholder="Votre nom" value={form.name} onChange={(value) => setForm((current) => ({ ...current, name: value }))} error={fieldErrors.name} />
-                <Field ref={phoneInputRef} label="Téléphone" required placeholder="07 XX XX XX XX" value={form.phone} onChange={(value) => setForm((current) => ({ ...current, phone: value }))} onBlur={() => void handlePhoneBlur()} error={fieldErrors.phone} type="tel" />
+                <PhoneNumberField
+                  ref={phoneInputRef}
+                  label="Téléphone"
+                  required
+                  placeholder="07 XX XX XX XX"
+                  dialCode={form.phoneDialCode}
+                  onDialCodeChange={(dialCode) => setForm((current) => ({ ...current, phoneDialCode: dialCode }))}
+                  value={form.phone}
+                  onChange={(value) => setForm((current) => ({ ...current, phone: value }))}
+                  onBlur={() => void handlePhoneBlur()}
+                  error={fieldErrors.phone}
+                />
               </div>
 
               {mode === "delivery" && (
