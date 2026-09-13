@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
@@ -6,7 +8,38 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { VitePWA } from "vite-plugin-pwa";
 import { nitro } from "nitro/vite";
 
+// A browser that already cached the vendored worker under its old (pre-fix)
+// content, served with `Cache-Control: immutable, max-age=31536000`, will
+// never revalidate that response -- the URL is a stable, unhashed public/
+// path (see the optimizeDeps comment below), so `immutable` means "believe
+// this forever" regardless of what the server would answer now. Deriving a
+// `?v=` query string straight from the actual worker file's own content hash
+// (see src/lib/maplibreWorkerUrl.ts) turns any future content change into a
+// brand-new cache key automatically -- no version to remember to bump by
+// hand, and it can never drift from the file it describes since it's read
+// here at config-eval time, after scripts/vendor-maplibre-worker.mjs (which
+// runs first in `build`/`build:dev`) has already (re)written it.
+function readMaplibreWorkerVersion(): string {
+  try {
+    const content = readFileSync("public/assets/maplibre-gl-worker.mjs");
+    return createHash("md5").update(content).digest("hex").slice(0, 12);
+  } catch {
+    // `vite dev` never runs the vendor script first (dev serves maplibre-gl
+    // straight from node_modules instead, see below) -- a fresh checkout
+    // could in principle reach this before any build ever ran. The worker
+    // isn't loaded in dev at all, so the exact fallback value doesn't matter.
+    return "dev";
+  }
+}
+
 export default defineConfig({
+  // Baked in at build time so src/lib/maplibreWorkerUrl.ts can hand
+  // maplibregl.setWorkerUrl() a `?v=<hash>` query string without reading the
+  // file itself at runtime or recomputing anything per-render -- see that
+  // module and readMaplibreWorkerVersion() above.
+  define: {
+    __MAPLIBRE_WORKER_VERSION__: JSON.stringify(readMaplibreWorkerVersion()),
+  },
   // `npm run dev` (plain `vite dev`) binds to localhost only by default --
   // LAN origins like http://192.168.1.79:5173 need this to be reachable
   // without manually passing --host every time.

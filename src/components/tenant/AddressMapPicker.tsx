@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import "@/lib/maplibreWorkerUrl";
 import { Map as MaplibreMap, Marker, NavigationControl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 

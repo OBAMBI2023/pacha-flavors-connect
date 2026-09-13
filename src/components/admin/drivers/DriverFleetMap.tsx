@@ -1,4 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+import "@/lib/maplibreWorkerUrl";
 import { Map as MaplibreMap, Marker, Popup, NavigationControl, LngLatBounds } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { MAP_STYLE_URL, markerElement } from "@/components/admin/orders/DriverTrackingMap";
