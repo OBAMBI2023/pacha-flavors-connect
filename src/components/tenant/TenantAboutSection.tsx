@@ -107,7 +107,11 @@ export function TenantAboutSection({
           )}
 
           {highlights.length > 0 && (
-            <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div
+              className={`mt-8 grid grid-cols-1 gap-3 ${
+                isWide === undefined ? "sm:grid-cols-2" : isWide ? "grid-cols-2" : ""
+              }`}
+            >
               {highlights.map((highlight, index) => {
                 const Icon = resolveAboutHighlightIcon(highlight.icon);
                 const highlightDescription = highlight.description?.trim();
