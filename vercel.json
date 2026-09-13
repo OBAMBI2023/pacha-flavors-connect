@@ -1,0 +1,22 @@
+{
+  "headers": [
+    {
+      "source": "/assets/maplibre-gl-worker.mjs",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable, no-transform"
+        }
+      ]
+    },
+    {
+      "source": "/assets/maplibre-gl-shared.mjs",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable, no-transform"
+        }
+      ]
+    }
+  ]
+}
