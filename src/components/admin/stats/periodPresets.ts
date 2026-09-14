@@ -1,10 +1,12 @@
-export type PeriodPreset = "today" | "yesterday" | "last7" | "last30" | "thisMonth" | "lastMonth" | "custom";
+export type PeriodPreset =
+  "today" | "yesterday" | "thisWeek" | "last7" | "last30" | "thisMonth" | "lastMonth" | "custom";
 
 export type PeriodRange = { start: Date; end: Date };
 
 export const PERIOD_LABELS: Record<PeriodPreset, string> = {
   today: "Aujourd'hui",
   yesterday: "Hier",
+  thisWeek: "Cette semaine",
   last7: "7 derniers jours",
   last30: "30 derniers jours",
   thisMonth: "Mois courant",
@@ -12,7 +14,15 @@ export const PERIOD_LABELS: Record<PeriodPreset, string> = {
   custom: "Période personnalisée",
 };
 
-export const PERIOD_PRESETS: PeriodPreset[] = ["today", "yesterday", "last7", "last30", "thisMonth", "lastMonth", "custom"];
+export const PERIOD_PRESETS: PeriodPreset[] = [
+  "today",
+  "yesterday",
+  "last7",
+  "last30",
+  "thisMonth",
+  "lastMonth",
+  "custom",
+];
 
 function startOfDay(d: Date): Date {
   const x = new Date(d);
@@ -41,12 +51,20 @@ export function resolvePeriod(preset: PeriodPreset, custom?: PeriodRange): Perio
       const y = addDays(now, -1);
       return { start: startOfDay(y), end: endOfDay(y) };
     }
+    case "thisWeek": {
+      const day = now.getDay();
+      const diffToMonday = day === 0 ? 6 : day - 1;
+      return { start: startOfDay(addDays(now, -diffToMonday)), end: endOfDay(now) };
+    }
     case "last7":
       return { start: startOfDay(addDays(now, -6)), end: endOfDay(now) };
     case "last30":
       return { start: startOfDay(addDays(now, -29)), end: endOfDay(now) };
     case "thisMonth":
-      return { start: startOfDay(new Date(now.getFullYear(), now.getMonth(), 1)), end: endOfDay(now) };
+      return {
+        start: startOfDay(new Date(now.getFullYear(), now.getMonth(), 1)),
+        end: endOfDay(now),
+      };
     case "lastMonth": {
       const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const end = new Date(now.getFullYear(), now.getMonth(), 0);

@@ -898,7 +898,7 @@ export default function AdminPage() {
               />
             </TabsContent>
             <TabsContent value="commandes">
-              <OrdersPanel restaurantId={restaurantId} restaurant={restaurant} {...ordersAlert} />
+              <OrdersPanel restaurantId={restaurantId} restaurant={restaurant} onBack={() => setTab("accueil")} {...ordersAlert} />
             </TabsContent>
             <TabsContent value="clients">
               <CustomersPanel restaurantId={restaurantId} currency={restaurant?.currency ?? DEFAULT_CURRENCY_CODE} />

@@ -1,19 +1,62 @@
 import { useEffect, useState } from "react";
-import { Banknote, CalendarClock, Copy, MapPin, Printer, Share2, Truck, Undo2, UserRoundCog } from "lucide-react";
+import {
+  Banknote,
+  CalendarClock,
+  Copy,
+  MapPin,
+  Printer,
+  Share2,
+  Truck,
+  Undo2,
+  UserRoundCog,
+} from "lucide-react";
 import { toast } from "sonner";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { DbRestaurant } from "@/lib/menu-db";
-import { fetchOrderDetail, fetchOrderFinancialBreakdown, type Order, type OrderDetail, type OrderFinancialBreakdown, type OrderStatus } from "@/lib/orders-db";
-import { DRIVER_STATUS_BUCKET_CLASSNAMES, DRIVER_STATUS_BUCKET_LABELS, driverStatusBucket, fetchDriver, type Driver } from "@/lib/drivers";
+import {
+  fetchOrderDetail,
+  fetchOrderFinancialBreakdown,
+  type Order,
+  type OrderDetail,
+  type OrderFinancialBreakdown,
+  type OrderStatus,
+} from "@/lib/orders-db";
+import {
+  DRIVER_STATUS_BUCKET_CLASSNAMES,
+  DRIVER_STATUS_BUCKET_LABELS,
+  driverStatusBucket,
+  fetchDriver,
+  type Driver,
+} from "@/lib/drivers";
 import { formatMoney as money } from "@/lib/currency";
-import { STATUS_BADGE_CLASS, STATUS_LABELS, buildDeliveryDetailsText, deliveryAddressLine, fulfillmentLabel, googleMapsUrl, nextActions } from "./orderStatusMeta";
-import { PAYMENT_METHOD_LABELS, PAYMENT_STATUS_BADGE_CLASS, PAYMENT_STATUS_LABELS } from "./paymentStatusMeta";
+import {
+  STATUS_BADGE_CLASS,
+  STATUS_LABELS,
+  buildDeliveryDetailsText,
+  buildStatusTimeline,
+  deliveryAddressLine,
+  fulfillmentLabel,
+  googleMapsUrl,
+  nextActions,
+} from "./orderStatusMeta";
+import {
+  PAYMENT_METHOD_LABELS,
+  PAYMENT_STATUS_BADGE_CLASS,
+  PAYMENT_STATUS_LABELS,
+} from "./paymentStatusMeta";
 import { OrderPrintTicket } from "./OrderPrintTicket";
 import { OrderPrepCountdown } from "./OrderPrepCountdown";
+import { StatusTimeline } from "./StatusTimeline";
 
 async function copyText(text: string, successMessage: string) {
   try {
@@ -65,7 +108,8 @@ export function OrderDetailSheet({
         if (!cancelled) setDetail(data);
       })
       .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Impossible de charger la commande.");
+        if (!cancelled)
+          setError(err instanceof Error ? err.message : "Impossible de charger la commande.");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -100,8 +144,12 @@ export function OrderDetailSheet({
       return;
     }
     let cancelled = false;
-    fetchDriver(detail.assigned_driver_id).then((d) => { if (!cancelled) setAssignedDriver(d); });
-    return () => { cancelled = true; };
+    fetchDriver(detail.assigned_driver_id).then((d) => {
+      if (!cancelled) setAssignedDriver(d);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [detail?.assigned_driver_id]);
 
   const actions = detail ? nextActions(detail) : [];
@@ -110,7 +158,9 @@ export function OrderDetailSheet({
     <Sheet open={Boolean(orderId)} onOpenChange={(open) => !open && onClose()}>
       <SheetContent
         side={isMobile ? "bottom" : "right"}
-        className={isMobile ? "h-[92vh] overflow-y-auto rounded-t-2xl" : "w-full overflow-y-auto sm:max-w-lg"}
+        className={
+          isMobile ? "h-[92vh] overflow-y-auto rounded-t-2xl" : "w-full overflow-y-auto sm:max-w-lg"
+        }
       >
         {loading && (
           <div className="space-y-4 pt-6">
@@ -126,8 +176,13 @@ export function OrderDetailSheet({
             <SheetHeader>
               <div className="flex flex-wrap items-center gap-2">
                 <SheetTitle>Commande #{detail.order_number}</SheetTitle>
-                <Badge className={STATUS_BADGE_CLASS[detail.status]}>{STATUS_LABELS[detail.status]}</Badge>
-                <Badge variant="outline" className={PAYMENT_STATUS_BADGE_CLASS[detail.payment_status]}>
+                <Badge className={STATUS_BADGE_CLASS[detail.status]}>
+                  {STATUS_LABELS[detail.status]}
+                </Badge>
+                <Badge
+                  variant="outline"
+                  className={PAYMENT_STATUS_BADGE_CLASS[detail.payment_status]}
+                >
                   {PAYMENT_STATUS_LABELS[detail.payment_status]}
                 </Badge>
                 <Button
@@ -151,6 +206,11 @@ export function OrderDetailSheet({
             </SheetHeader>
 
             <div className="mt-5 space-y-6 text-sm">
+              <section className="rounded-2xl border border-border p-4">
+                <h3 className="mb-3 font-semibold">Suivi de la commande</h3>
+                <StatusTimeline steps={buildStatusTimeline(detail, detail.history)} />
+              </section>
+
               <section className="space-y-1.5 rounded-2xl border border-border p-4">
                 <h3 className="font-semibold">Client</h3>
                 <p>{detail.customer_name}</p>
@@ -168,23 +228,39 @@ export function OrderDetailSheet({
                     estimatedPreparationMinutes={detail.estimated_preparation_minutes}
                   />
                 )}
-                {detail.customer_notes && <p className="text-muted-foreground">Notes client : {detail.customer_notes}</p>}
-                <p className={detail.allergy_information ? "text-destructive" : "text-muted-foreground"}>
-                  {detail.allergy_information ? `⚠️ Allergies : ${detail.allergy_information}` : "Allergies : aucune signalée"}
+                {detail.customer_notes && (
+                  <p className="text-muted-foreground">Notes client : {detail.customer_notes}</p>
+                )}
+                <p
+                  className={
+                    detail.allergy_information ? "text-destructive" : "text-muted-foreground"
+                  }
+                >
+                  {detail.allergy_information
+                    ? `⚠️ Allergies : ${detail.allergy_information}`
+                    : "Allergies : aucune signalée"}
                 </p>
-                <p className="text-muted-foreground">Couverts : {detail.cutlery_requested ? "OUI" : "NON"}</p>
+                <p className="text-muted-foreground">
+                  Couverts : {detail.cutlery_requested ? "OUI" : "NON"}
+                </p>
               </section>
 
               {detail.is_for_someone_else && (
                 <section className="space-y-1.5 rounded-2xl border border-primary/30 bg-primary/5 p-4">
                   <h3 className="font-semibold">🎁 Commande pour quelqu'un d'autre</h3>
                   <p>{detail.recipient_name}</p>
-                  {detail.recipient_phone && <p className="text-muted-foreground">{detail.recipient_phone}</p>}
+                  {detail.recipient_phone && (
+                    <p className="text-muted-foreground">{detail.recipient_phone}</p>
+                  )}
                   {detail.customer_profile_address && (
-                    <p className="text-xs text-muted-foreground">Adresse habituelle du client : {detail.customer_profile_address}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Adresse habituelle du client : {detail.customer_profile_address}
+                    </p>
                   )}
                   {detail.recipient_additional_info && (
-                    <p className="text-muted-foreground">Informations complémentaires : {detail.recipient_additional_info}</p>
+                    <p className="text-muted-foreground">
+                      Informations complémentaires : {detail.recipient_additional_info}
+                    </p>
                   )}
                 </section>
               )}
@@ -194,34 +270,45 @@ export function OrderDetailSheet({
                   <h3 className="font-semibold">📍 Position de livraison</h3>
                   {(() => {
                     const addressLine = deliveryAddressLine(detail);
-                    const hasCoordinates = detail.delivery_latitude !== null && detail.delivery_longitude !== null;
+                    const hasCoordinates =
+                      detail.delivery_latitude !== null && detail.delivery_longitude !== null;
                     if (!addressLine && !hasCoordinates) {
-                      return <p className="text-destructive">⚠️ Adresse de livraison non renseignée</p>;
+                      return (
+                        <p className="text-destructive">⚠️ Adresse de livraison non renseignée</p>
+                      );
                     }
                     return (
                       <>
                         <p>{addressLine ?? "Adresse non disponible"}</p>
                         {detail.delivery_landmark && (
-                          <p className="text-muted-foreground">Point de repère : {detail.delivery_landmark}</p>
+                          <p className="text-muted-foreground">
+                            Point de repère : {detail.delivery_landmark}
+                          </p>
                         )}
                         {hasCoordinates && (
                           <p className="text-xs text-muted-foreground">
-                            GPS : {detail.delivery_latitude!.toFixed(5)}, {detail.delivery_longitude!.toFixed(5)}
+                            GPS : {detail.delivery_latitude!.toFixed(5)},{" "}
+                            {detail.delivery_longitude!.toFixed(5)}
                           </p>
                         )}
                       </>
                     );
                   })()}
                   {detail.delivery_instructions && (
-                    <p className="text-muted-foreground">Instructions : {detail.delivery_instructions}</p>
+                    <p className="text-muted-foreground">
+                      Instructions : {detail.delivery_instructions}
+                    </p>
                   )}
                   {detail.driver_note && detail.driver_note !== detail.delivery_instructions && (
-                    <p className="text-muted-foreground">Consigne au livreur : {detail.driver_note}</p>
+                    <p className="text-muted-foreground">
+                      Consigne au livreur : {detail.driver_note}
+                    </p>
                   )}
                   {detail.delivery_distance_km !== null && (
                     <p className="text-xs text-muted-foreground">
                       Distance : {detail.delivery_distance_km.toFixed(2)} km
-                      {detail.delivery_fee_calculation_method === "fallback" && " (tarif forfaitaire, position non déterminée)"}
+                      {detail.delivery_fee_calculation_method === "fallback" &&
+                        " (tarif forfaitaire, position non déterminée)"}
                     </p>
                   )}
 
@@ -238,7 +325,12 @@ export function OrderDetailSheet({
                         </a>
                         <button
                           type="button"
-                          onClick={() => void copyText(`${detail.delivery_latitude},${detail.delivery_longitude}`, "Coordonnées copiées")}
+                          onClick={() =>
+                            void copyText(
+                              `${detail.delivery_latitude},${detail.delivery_longitude}`,
+                              "Coordonnées copiées",
+                            )
+                          }
                           className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border px-3 text-xs font-semibold hover:bg-accent"
                         >
                           <Copy className="h-3.5 w-3.5" /> Copier les coordonnées
@@ -248,7 +340,9 @@ export function OrderDetailSheet({
                     {deliveryAddressLine(detail) && (
                       <button
                         type="button"
-                        onClick={() => void copyText(deliveryAddressLine(detail) ?? "", "Adresse copiée")}
+                        onClick={() =>
+                          void copyText(deliveryAddressLine(detail) ?? "", "Adresse copiée")
+                        }
                         className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border px-3 text-xs font-semibold hover:bg-accent"
                       >
                         <Copy className="h-3.5 w-3.5" /> Copier l'adresse
@@ -256,7 +350,12 @@ export function OrderDetailSheet({
                     )}
                     <button
                       type="button"
-                      onClick={() => void copyText(buildDeliveryDetailsText(detail), "Informations de livraison copiées")}
+                      onClick={() =>
+                        void copyText(
+                          buildDeliveryDetailsText(detail),
+                          "Informations de livraison copiées",
+                        )
+                      }
                       className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border px-3 text-xs font-semibold hover:bg-accent"
                     >
                       <Copy className="h-3.5 w-3.5" /> Copier les informations de livraison
@@ -265,9 +364,11 @@ export function OrderDetailSheet({
                       <button
                         type="button"
                         onClick={() => {
-                          void navigator.share({ text: buildDeliveryDetailsText(detail) }).catch(() => {
-                            // User cancelled the share sheet -- not an error worth surfacing.
-                          });
+                          void navigator
+                            .share({ text: buildDeliveryDetailsText(detail) })
+                            .catch(() => {
+                              // User cancelled the share sheet -- not an error worth surfacing.
+                            });
                         }}
                         className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border px-3 text-xs font-semibold hover:bg-accent"
                       >
@@ -282,7 +383,12 @@ export function OrderDetailSheet({
                 <section className="space-y-2 rounded-2xl border border-border p-4">
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="font-semibold">🚴 Livreur</h3>
-                    <Button variant="outline" size="sm" disabled={busy} onClick={() => onAssign(detail)}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={busy}
+                      onClick={() => onAssign(detail)}
+                    >
                       <UserRoundCog className="mr-1.5 h-3.5 w-3.5" />
                       {assignedDriver ? "Changer" : "Assigner un livreur"}
                     </Button>
@@ -292,7 +398,13 @@ export function OrderDetailSheet({
                       <div className="flex items-center gap-2">
                         <Truck className="h-4 w-4 shrink-0 text-muted-foreground" />
                         <span>{assignedDriver.full_name}</span>
-                        <Badge className={DRIVER_STATUS_BUCKET_CLASSNAMES[driverStatusBucket(assignedDriver.status)]}>
+                        <Badge
+                          className={
+                            DRIVER_STATUS_BUCKET_CLASSNAMES[
+                              driverStatusBucket(assignedDriver.status)
+                            ]
+                          }
+                        >
                           {DRIVER_STATUS_BUCKET_LABELS[driverStatusBucket(assignedDriver.status)]}
                         </Badge>
                       </div>
@@ -300,11 +412,19 @@ export function OrderDetailSheet({
                         <div className="space-y-1 border-t border-border pt-2 text-sm">
                           <div className="flex items-center justify-between">
                             <span className="text-muted-foreground">Code de collecte</span>
-                            <span className="font-mono text-base font-semibold tracking-widest">{detail.pickup_code}</span>
+                            <span className="font-mono text-base font-semibold tracking-widest">
+                              {detail.pickup_code}
+                            </span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="text-muted-foreground">Statut de collecte</span>
-                            <span className={detail.pickup_code_verified_at ? "font-medium text-emerald-700" : "text-muted-foreground"}>
+                            <span
+                              className={
+                                detail.pickup_code_verified_at
+                                  ? "font-medium text-emerald-700"
+                                  : "text-muted-foreground"
+                              }
+                            >
                               {detail.pickup_code_verified_at ? "✅ Collecté" : "En attente"}
                             </span>
                           </div>
@@ -326,20 +446,26 @@ export function OrderDetailSheet({
                         <p className="font-medium">
                           {item.quantity} × {item.product_name_snapshot}
                         </p>
-                        <p className="shrink-0 font-medium">{money(item.line_total, detail.currency)}</p>
+                        <p className="shrink-0 font-medium">
+                          {money(item.line_total, detail.currency)}
+                        </p>
                       </div>
                       {item.options.length > 0 && (
                         <ul className="mt-1.5 space-y-0.5 text-xs text-muted-foreground">
                           {item.options.map((opt) => (
                             <li key={opt.id}>
                               {opt.option_group_name_snapshot} : {opt.option_name_snapshot}
-                              {opt.extra_price_snapshot > 0 ? ` (+${money(opt.extra_price_snapshot, detail.currency)})` : ""}
+                              {opt.extra_price_snapshot > 0
+                                ? ` (+${money(opt.extra_price_snapshot, detail.currency)})`
+                                : ""}
                             </li>
                           ))}
                         </ul>
                       )}
                       {item.item_notes && (
-                        <p className="mt-1.5 text-xs italic text-muted-foreground">Note : {item.item_notes}</p>
+                        <p className="mt-1.5 text-xs italic text-muted-foreground">
+                          Note : {item.item_notes}
+                        </p>
                       )}
                     </li>
                   ))}
@@ -381,7 +507,10 @@ export function OrderDetailSheet({
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">
-                        Commission Saovia{financials.commission_rate > 0 ? ` (${(financials.commission_rate * 100).toLocaleString("fr-FR")} %)` : ""}
+                        Commission Saovia
+                        {financials.commission_rate > 0
+                          ? ` (${(financials.commission_rate * 100).toLocaleString("fr-FR")} %)`
+                          : ""}
                       </span>
                       <span>-{money(financials.saovia_commission, detail.currency)}</span>
                     </div>
@@ -391,7 +520,9 @@ export function OrderDetailSheet({
                     </div>
                     {financials.payments.length > 0 && (
                       <div className="space-y-1.5 border-t border-border pt-2.5">
-                        <p className="text-xs font-semibold text-muted-foreground">Historique des paiements</p>
+                        <p className="text-xs font-semibold text-muted-foreground">
+                          Historique des paiements
+                        </p>
                         <ul className="space-y-1 text-xs">
                           {financials.payments.map((p) => (
                             <li key={p.id} className="flex items-center justify-between gap-2">
@@ -400,7 +531,8 @@ export function OrderDetailSheet({
                                 {p.collected_by_driver ? " · encaissé par le livreur" : ""}
                               </span>
                               <span>
-                                {money(p.amount, detail.currency)} · {PAYMENT_STATUS_LABELS[p.status]}
+                                {money(p.amount, detail.currency)} ·{" "}
+                                {PAYMENT_STATUS_LABELS[p.status]}
                               </span>
                             </li>
                           ))}
@@ -421,7 +553,10 @@ export function OrderDetailSheet({
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Statut</span>
-                  <Badge variant="outline" className={PAYMENT_STATUS_BADGE_CLASS[detail.payment_status]}>
+                  <Badge
+                    variant="outline"
+                    className={PAYMENT_STATUS_BADGE_CLASS[detail.payment_status]}
+                  >
                     {PAYMENT_STATUS_LABELS[detail.payment_status]}
                   </Badge>
                 </div>
@@ -435,8 +570,14 @@ export function OrderDetailSheet({
                     <Banknote className="mr-2 h-4 w-4" /> Marquer comme encaissée
                   </Button>
                 )}
-                {(detail.payment_status === "paid" || detail.payment_status === "partially_refunded") && (
-                  <Button className="h-11 w-full" variant="outline" disabled={busy} onClick={() => onRefund(detail)}>
+                {(detail.payment_status === "paid" ||
+                  detail.payment_status === "partially_refunded") && (
+                  <Button
+                    className="h-11 w-full"
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() => onRefund(detail)}
+                  >
                     <Undo2 className="mr-2 h-4 w-4" /> Rembourser
                   </Button>
                 )}
@@ -459,7 +600,12 @@ export function OrderDetailSheet({
                         {STATUS_LABELS[entry.to_status]}
                         {entry.note ? ` — ${entry.note}` : ""}
                       </span>
-                      <span className="shrink-0">{new Date(entry.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
+                      <span className="shrink-0">
+                        {new Date(entry.created_at).toLocaleTimeString("fr-FR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -475,7 +621,9 @@ export function OrderDetailSheet({
                     variant={action.variant === "destructive" ? "outline" : "default"}
                     disabled={busy}
                     onClick={() =>
-                      action.nextStatus === "cancelled" ? onReject(detail) : onAdvance(detail, action.nextStatus)
+                      action.nextStatus === "cancelled"
+                        ? onReject(detail)
+                        : onAdvance(detail, action.nextStatus)
                     }
                   >
                     {action.label}

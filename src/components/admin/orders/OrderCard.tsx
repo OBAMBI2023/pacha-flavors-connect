@@ -5,23 +5,33 @@ import {
   Banknote,
   Bike,
   CalendarClock,
+  Eye,
   MapPin,
   MessageCircle,
   MoreHorizontal,
   Phone,
   ShoppingBag,
   Store,
+  Undo2,
   UserRound,
+  UserRoundCog,
   Utensils,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { Order, OrderStatus } from "@/lib/orders-db";
 import type { DispatchProposalWithDriver } from "@/lib/delivery";
 import { formatMoney } from "@/lib/currency";
 import {
   STATUS_BADGE_CLASS,
   STATUS_LABELS,
+  TERMINAL_STATUSES,
   deliveryAddressLine,
   elapsedLabel,
   fulfillmentLabel,
@@ -30,10 +40,17 @@ import {
   telUrl,
   whatsappUrl,
 } from "./orderStatusMeta";
-import { PAYMENT_METHOD_LABELS, PAYMENT_STATUS_BADGE_CLASS, PAYMENT_STATUS_LABELS } from "./paymentStatusMeta";
+import {
+  PAYMENT_METHOD_LABELS,
+  PAYMENT_STATUS_BADGE_CLASS,
+  PAYMENT_STATUS_LABELS,
+} from "./paymentStatusMeta";
 import { OrderPrepCountdown } from "./OrderPrepCountdown";
 
-function dispatchLabel(order: Order, proposal: DispatchProposalWithDriver | undefined): string | null {
+function dispatchLabel(
+  order: Order,
+  proposal: DispatchProposalWithDriver | undefined,
+): string | null {
   if (order.fulfillment_type !== "delivery") return null;
   switch (order.delivery_dispatch_status) {
     case "searching":
@@ -43,7 +60,9 @@ function dispatchLabel(order: Order, proposal: DispatchProposalWithDriver | unde
     case "no_driver_available":
       return "Aucun livreur disponible -- recherche en cours";
     case "assigned":
-      return proposal?.driver_name ? `Livreur assigné : ${proposal.driver_name}` : "Livreur assigné";
+      return proposal?.driver_name
+        ? `Livreur assigné : ${proposal.driver_name}`
+        : "Livreur assigné";
     default:
       return null;
   }
@@ -103,6 +122,8 @@ export function OrderCard({
   onReject,
   onMarkPaid,
   onTrack,
+  onAssign,
+  onRefund,
 }: {
   order: Order;
   isNew: boolean;
@@ -113,11 +134,16 @@ export function OrderCard({
   onReject: (order: Order) => void;
   onMarkPaid: (order: Order) => void;
   onTrack: (order: Order) => void;
+  onAssign: (order: Order) => void;
+  onRefund: (order: Order) => void;
 }) {
   const dispatch = dispatchLabel(order, dispatchProposal);
   const driverStep = driverStepLabel(order);
   const actions = nextActions(order);
-  const time = new Date(order.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  const time = new Date(order.created_at).toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
   const addressLine = deliveryAddressLine(order);
   const hasCoords = order.delivery_latitude !== null && order.delivery_longitude !== null;
 
@@ -127,9 +153,15 @@ export function OrderCard({
         isNew ? "border-primary ring-2 ring-primary/40" : "border-border"
       }`}
     >
-      <button type="button" onClick={() => onOpenDetail(order)} className="flex items-start justify-between gap-3 text-left">
+      <button
+        type="button"
+        onClick={() => onOpenDetail(order)}
+        className="flex items-start justify-between gap-3 text-left"
+      >
         <div className="min-w-0">
-          <p className="truncate font-display text-lg font-semibold leading-tight">Commande #{order.order_number}</p>
+          <p className="truncate font-display text-lg font-semibold leading-tight">
+            Commande #{order.order_number}
+          </p>
           <p className="text-xs text-muted-foreground">
             {time} · il y a {elapsedLabel(order.created_at)}
           </p>
@@ -146,7 +178,12 @@ export function OrderCard({
         <p className="flex items-center gap-1.5 rounded-xl border border-violet-200 bg-violet-50 px-2.5 py-1.5 text-sm font-semibold text-violet-700">
           <CalendarClock className="h-3.5 w-3.5 shrink-0" />
           Commande programmée ·{" "}
-          {new Date(order.scheduled_for).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+          {new Date(order.scheduled_for).toLocaleString("fr-FR", {
+            day: "2-digit",
+            month: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
         </p>
       )}
 
@@ -164,36 +201,77 @@ export function OrderCard({
               </span>
             )}
           </p>
-          {order.customer_phone && <p className="truncate text-xs text-muted-foreground">{order.customer_phone}</p>}
+          {order.customer_phone && (
+            <p className="truncate text-xs text-muted-foreground">{order.customer_phone}</p>
+          )}
         </div>
-        {order.customer_phone && (
-          <div className="flex shrink-0 items-center gap-1.5">
-            <a
-              href={whatsappUrl(order.customer_phone)}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Contacter sur WhatsApp"
-              className="flex h-9 items-center gap-1.5 rounded-full bg-emerald-600 px-3 text-xs font-semibold text-white hover:bg-emerald-700"
-            >
-              <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
-            </a>
-            <a
-              href={telUrl(order.customer_phone)}
-              aria-label="Appeler le client"
-              className="flex h-9 items-center gap-1.5 rounded-full border border-border px-3 text-xs font-semibold hover:bg-accent"
-            >
-              <Phone className="h-3.5 w-3.5" aria-hidden="true" />
-            </a>
-            <button
-              type="button"
-              onClick={() => onOpenDetail(order)}
-              aria-label="Plus d'options"
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-border hover:bg-accent"
-            >
-              <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
-            </button>
-          </div>
-        )}
+        <div className="flex shrink-0 items-center gap-1.5">
+          {order.customer_phone && (
+            <>
+              <a
+                href={whatsappUrl(order.customer_phone)}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Contacter sur WhatsApp"
+                className="flex h-9 items-center gap-1.5 rounded-full bg-emerald-600 px-3 text-xs font-semibold text-white hover:bg-emerald-700"
+              >
+                <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
+              </a>
+              <a
+                href={telUrl(order.customer_phone)}
+                aria-label="Appeler le client"
+                className="flex h-9 items-center gap-1.5 rounded-full border border-border px-3 text-xs font-semibold hover:bg-accent"
+              >
+                <Phone className="h-3.5 w-3.5" aria-hidden="true" />
+              </a>
+            </>
+          )}
+          <button
+            type="button"
+            onClick={() => onOpenDetail(order)}
+            aria-label="Voir la commande"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-border hover:bg-accent"
+          >
+            <Eye className="h-4 w-4" aria-hidden="true" />
+          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                aria-label="Plus d'options"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-border hover:bg-accent"
+              >
+                <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onOpenDetail(order)}>
+                <Eye className="mr-2 h-4 w-4" aria-hidden="true" /> Voir le détail
+              </DropdownMenuItem>
+              {order.fulfillment_type === "delivery" &&
+                !TERMINAL_STATUSES.includes(order.status) && (
+                  <DropdownMenuItem onClick={() => onAssign(order)}>
+                    <UserRoundCog className="mr-2 h-4 w-4" aria-hidden="true" />
+                    {order.assigned_driver_id ? "Changer de livreur" : "Assigner un livreur"}
+                  </DropdownMenuItem>
+                )}
+              {order.fulfillment_type === "delivery" &&
+                order.assigned_driver_id !== null &&
+                !TERMINAL_STATUSES.includes(order.status) && (
+                  <DropdownMenuItem onClick={() => onTrack(order)}>
+                    <MapPin className="mr-2 h-4 w-4" aria-hidden="true" /> Voir la position du
+                    livreur
+                  </DropdownMenuItem>
+                )}
+              {(order.payment_status === "paid" ||
+                order.payment_status === "partially_refunded") && (
+                <DropdownMenuItem onClick={() => onRefund(order)}>
+                  <Undo2 className="mr-2 h-4 w-4" aria-hidden="true" /> Rembourser
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {(dispatch || driverStep || order.cutlery_requested || order.allergy_information) && (
@@ -235,7 +313,9 @@ export function OrderCard({
           ) : (
             <p className="mt-1 text-sm text-destructive">⚠️ Adresse de livraison non renseignée</p>
           )}
-          {order.delivery_landmark && <p className="text-muted-foreground">Repère : {order.delivery_landmark}</p>}
+          {order.delivery_landmark && (
+            <p className="text-muted-foreground">Repère : {order.delivery_landmark}</p>
+          )}
           {hasCoords && (
             <a
               href={googleMapsUrl(order.delivery_latitude!, order.delivery_longitude!)}
@@ -265,7 +345,8 @@ export function OrderCard({
           </ul>
         ) : (
           <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <ShoppingBag className="h-3.5 w-3.5" /> {order.item_count} article{order.item_count > 1 ? "s" : ""}
+            <ShoppingBag className="h-3.5 w-3.5" /> {order.item_count} article
+            {order.item_count > 1 ? "s" : ""}
           </span>
         )}
 
@@ -295,7 +376,9 @@ export function OrderCard({
 
       <div className="grid grid-cols-3 gap-1.5">
         <MetaCell icon={AlarmClock} label="Préparation">
-          {order.status === "preparing" && order.preparing_at && order.estimated_preparation_minutes !== null ? (
+          {order.status === "preparing" &&
+          order.preparing_at &&
+          order.estimated_preparation_minutes !== null ? (
             <OrderPrepCountdown
               preparingAt={order.preparing_at}
               estimatedPreparationMinutes={order.estimated_preparation_minutes}
@@ -326,15 +409,6 @@ export function OrderCard({
         </Button>
       )}
 
-      {order.fulfillment_type === "delivery" &&
-        order.assigned_driver_id !== null &&
-        order.status !== "delivered" &&
-        order.status !== "cancelled" && (
-          <Button size="sm" variant="outline" className="h-11 w-full" onClick={() => onTrack(order)}>
-            <MapPin className="mr-2 h-4 w-4" /> Voir la position du livreur
-          </Button>
-        )}
-
       {actions.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {actions.map((action) => (
@@ -348,7 +422,11 @@ export function OrderCard({
                   : "h-11 flex-1"
               }
               disabled={busy}
-              onClick={() => (action.nextStatus === "cancelled" ? onReject(order) : onAdvance(order, action.nextStatus))}
+              onClick={() =>
+                action.nextStatus === "cancelled"
+                  ? onReject(order)
+                  : onAdvance(order, action.nextStatus)
+              }
             >
               {action.label}
             </Button>

@@ -4,13 +4,7 @@ import type { Json } from "@/integrations/supabase/types";
 export type FulfillmentType = "delivery" | "pickup";
 
 export type OrderStatus =
-  | "pending"
-  | "confirmed"
-  | "preparing"
-  | "ready"
-  | "out_for_delivery"
-  | "delivered"
-  | "cancelled";
+  "pending" | "confirmed" | "preparing" | "ready" | "out_for_delivery" | "delivered" | "cancelled";
 
 export type CreateOrderItemInput = {
   product_id: string;
@@ -21,7 +15,8 @@ export type CreateOrderItemInput = {
 
 export type OrderSource = "direct" | "marketplace" | "qr_code" | "unknown";
 
-export type PaymentStatus = "pending" | "authorized" | "paid" | "failed" | "refunded" | "partially_refunded" | "cash_pending";
+export type PaymentStatus =
+  "pending" | "authorized" | "paid" | "failed" | "refunded" | "partially_refunded" | "cash_pending";
 export type PaymentMethod = "cash" | "mobile_money" | "card" | "online" | "unknown";
 
 export type CreateOrderInput = {
@@ -99,7 +94,9 @@ export async function updateOrderStatus(
  * only (the RPC checks has_restaurant_access) -- a customer can never mark
  * their own cash order as paid.
  */
-export async function markCashPaymentReceived(orderId: string): Promise<{ order_id: string; payment_status: PaymentStatus }> {
+export async function markCashPaymentReceived(
+  orderId: string,
+): Promise<{ order_id: string; payment_status: PaymentStatus }> {
   const { data, error } = await supabase.rpc("mark_cash_payment_received", { p_order_id: orderId });
   if (error) throw error;
   return data as unknown as { order_id: string; payment_status: PaymentStatus };
@@ -113,11 +110,18 @@ export async function markCashPaymentReceived(orderId: string): Promise<{ order_
 type PaymentRow = { amount: number; status: PaymentStatus };
 
 /** Refundable remainder = sum(paid) - sum(refunded | partially_refunded), read-only hint for the UI -- the RPC is the actual authority on the bound. */
-export async function fetchOrderPaymentSummary(orderId: string): Promise<{ paid: number; refunded: number; remaining: number }> {
-  const { data, error } = await supabase.from("payments").select("amount,status").eq("order_id", orderId);
+export async function fetchOrderPaymentSummary(
+  orderId: string,
+): Promise<{ paid: number; refunded: number; remaining: number }> {
+  const { data, error } = await supabase
+    .from("payments")
+    .select("amount,status")
+    .eq("order_id", orderId);
   if (error) throw error;
   const rows = (data ?? []) as unknown as PaymentRow[];
-  const paid = rows.filter((r) => r.status === "paid").reduce((sum, r) => sum + Number(r.amount), 0);
+  const paid = rows
+    .filter((r) => r.status === "paid")
+    .reduce((sum, r) => sum + Number(r.amount), 0);
   const refunded = rows
     .filter((r) => r.status === "refunded" || r.status === "partially_refunded")
     .reduce((sum, r) => sum + Number(r.amount), 0);
@@ -157,8 +161,12 @@ export type OrderFinancialBreakdown = {
   payments: OrderPaymentRow[];
 };
 
-export async function fetchOrderFinancialBreakdown(orderId: string): Promise<OrderFinancialBreakdown> {
-  const { data, error } = await supabase.rpc("get_order_financial_breakdown", { p_order_id: orderId });
+export async function fetchOrderFinancialBreakdown(
+  orderId: string,
+): Promise<OrderFinancialBreakdown> {
+  const { data, error } = await supabase.rpc("get_order_financial_breakdown", {
+    p_order_id: orderId,
+  });
   if (error) throw error;
   return data as unknown as OrderFinancialBreakdown;
 }
@@ -168,9 +176,17 @@ export async function createRefund(
   amount: number,
   reason?: string,
 ): Promise<{ order_id: string; payment_status: PaymentStatus; refunded_amount: number }> {
-  const { data, error } = await supabase.rpc("create_refund", { p_order_id: orderId, p_amount: amount, p_reason: reason ?? null });
+  const { data, error } = await supabase.rpc("create_refund", {
+    p_order_id: orderId,
+    p_amount: amount,
+    p_reason: reason ?? null,
+  });
   if (error) throw error;
-  return data as unknown as { order_id: string; payment_status: PaymentStatus; refunded_amount: number };
+  return data as unknown as {
+    order_id: string;
+    payment_status: PaymentStatus;
+    refunded_amount: number;
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -180,7 +196,8 @@ export async function createRefund(
 // defense-in-depth and to keep query plans tenant-scoped.
 // ---------------------------------------------------------------------------
 
-export type DeliveryDispatchStatus = "not_started" | "searching" | "assigned" | "no_driver_available";
+export type DeliveryDispatchStatus =
+  "not_started" | "searching" | "assigned" | "no_driver_available";
 export type DriverDeliveryStatus =
   | "assigned"
   | "going_to_pickup"
@@ -322,6 +339,93 @@ export async function fetchRestaurantOrders(restaurantId: string): Promise<Order
   return (data ?? []) as unknown as Order[];
 }
 
+export const ORDERS_HISTORY_PAGE_SIZE = 20;
+
+/**
+ * Paginated, server-filtered order history for the mobile Commandes screen's
+ * period picker (any range beyond the rolling 24h window `fetchRestaurantOrders`
+ * covers -- Hier / Cette semaine / Ce mois / une période personnalisée).
+ * Unlike the live board above, this never joins Realtime: it's a point-in-time
+ * query re-run on every filter/page change, the same shape as `fetchCustomers`.
+ */
+export async function fetchOrdersHistory(
+  restaurantId: string,
+  options: { from: Date; to: Date; status?: OrderStatus | "all"; search?: string; page?: number },
+): Promise<{ orders: Order[]; total: number }> {
+  const page = options.page ?? 0;
+  const from = page * ORDERS_HISTORY_PAGE_SIZE;
+  const to = from + ORDERS_HISTORY_PAGE_SIZE - 1;
+
+  let query = supabase
+    .from("orders")
+    .select("*, items_summary:order_items(id,product_name_snapshot,quantity)", { count: "exact" })
+    .eq("restaurant_id", restaurantId)
+    .gte("created_at", options.from.toISOString())
+    .lte("created_at", options.to.toISOString())
+    .order("created_at", { ascending: false });
+
+  if (options.status && options.status !== "all") {
+    query = query.eq("status", options.status);
+  }
+
+  const search = options.search?.trim();
+  if (search) {
+    const digits = search.replace(/[^0-9]/g, "");
+    const orParts = [
+      `customer_name.ilike.%${search}%`,
+      `customer_phone.ilike.%${digits || search}%`,
+    ];
+    if (/^\d+$/.test(search)) orParts.push(`order_number.eq.${search}`);
+    query = query.or(orParts.join(","));
+  }
+
+  const { data, error, count } = await query.range(from, to);
+  if (error) throw error;
+  return { orders: (data ?? []) as unknown as Order[], total: count ?? 0 };
+}
+
+const ALL_ORDER_STATUSES: OrderStatus[] = [
+  "pending",
+  "confirmed",
+  "preparing",
+  "ready",
+  "out_for_delivery",
+  "delivered",
+  "cancelled",
+];
+
+/**
+ * Per-status order counts for a date range, for the history view's status
+ * chips -- deliberately not derived from `fetchOrdersHistory`'s (paginated,
+ * single-status) result set. Each status is a `head: true` exact count
+ * (COUNT(*), no rows transferred), run in parallel, so this stays cheap even
+ * for a period with thousands of orders.
+ */
+export async function fetchOrderStatusCounts(
+  restaurantId: string,
+  from: Date,
+  to: Date,
+): Promise<Record<OrderStatus, number>> {
+  const results = await Promise.all(
+    ALL_ORDER_STATUSES.map((status) =>
+      supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("restaurant_id", restaurantId)
+        .eq("status", status)
+        .gte("created_at", from.toISOString())
+        .lte("created_at", to.toISOString()),
+    ),
+  );
+  const counts = {} as Record<OrderStatus, number>;
+  ALL_ORDER_STATUSES.forEach((status, index) => {
+    const result = results[index]!;
+    if (result.error) throw result.error;
+    counts[status] = result.count ?? 0;
+  });
+  return counts;
+}
+
 /**
  * Back-fills `items_summary` for a single order -- used when Realtime
  * delivers a bare `orders` INSERT payload (no joined rows) so the dashboard
@@ -361,7 +465,9 @@ export async function fetchOrderDetail(orderId: string): Promise<OrderDetail> {
     supabase.from("orders").select("*").eq("id", orderId).maybeSingle(),
     supabase
       .from("order_items")
-      .select("id,product_id,product_name_snapshot,unit_price_snapshot,options_price_snapshot,quantity,line_total,item_notes")
+      .select(
+        "id,product_id,product_name_snapshot,unit_price_snapshot,options_price_snapshot,quantity,line_total,item_notes",
+      )
       .eq("order_id", orderId)
       .order("created_at", { ascending: true }),
     supabase
@@ -383,7 +489,9 @@ export async function fetchOrderDetail(orderId: string): Promise<OrderDetail> {
   const optionsRes = itemIds.length
     ? await supabase
         .from("order_item_options")
-        .select("id,order_item_id,option_group_name_snapshot,option_name_snapshot,extra_price_snapshot")
+        .select(
+          "id,order_item_id,option_group_name_snapshot,option_name_snapshot,extra_price_snapshot",
+        )
         .in("order_item_id", itemIds)
     : { data: [] as OrderItemOptionRow[], error: null };
   if (optionsRes.error) throw optionsRes.error;
@@ -470,8 +578,16 @@ export type OperationalMetrics = {
   avg_total_minutes: number | null;
 };
 
-export type PaymentBreakdownRow = { payment_status: PaymentStatus; orders_count: number; amount: number };
-export type MethodBreakdownRow = { payment_method: PaymentMethod; orders_count: number; amount: number };
+export type PaymentBreakdownRow = {
+  payment_status: PaymentStatus;
+  orders_count: number;
+  amount: number;
+};
+export type MethodBreakdownRow = {
+  payment_method: PaymentMethod;
+  orders_count: number;
+  amount: number;
+};
 
 /**
  * Restaurant-only revenue (delivery fee excluded) vs. Saovia commission,
@@ -524,7 +640,11 @@ function toDateInputValue(date: Date): string {
  * the caller's own restaurant exactly as before -- every existing call site
  * (the tenant's own Statistiques/Finances panels) is unaffected.
  */
-export async function fetchDashboardStats(startDate: Date, endDate: Date, restaurantId?: string): Promise<DashboardStats> {
+export async function fetchDashboardStats(
+  startDate: Date,
+  endDate: Date,
+  restaurantId?: string,
+): Promise<DashboardStats> {
   const { data, error } = await supabase.rpc("get_restaurant_dashboard_stats", {
     p_start_date: toDateInputValue(startDate),
     p_end_date: toDateInputValue(endDate),
@@ -554,7 +674,10 @@ export type AppNotification = {
   created_at: string;
 };
 
-export async function fetchNotifications(restaurantId: string, limit = 30): Promise<AppNotification[]> {
+export async function fetchNotifications(
+  restaurantId: string,
+  limit = 30,
+): Promise<AppNotification[]> {
   const { data, error } = await supabase
     .from("notifications")
     .select("*")
@@ -566,12 +689,19 @@ export async function fetchNotifications(restaurantId: string, limit = 30): Prom
 }
 
 export async function markNotificationRead(notificationId: string): Promise<void> {
-  const { error } = await supabase.from("notifications").update({ is_read: true }).eq("id", notificationId);
+  const { error } = await supabase
+    .from("notifications")
+    .update({ is_read: true })
+    .eq("id", notificationId);
   if (error) throw error;
 }
 
 export async function markAllNotificationsRead(restaurantId: string): Promise<void> {
-  const { error } = await supabase.from("notifications").update({ is_read: true }).eq("restaurant_id", restaurantId).eq("is_read", false);
+  const { error } = await supabase
+    .from("notifications")
+    .update({ is_read: true })
+    .eq("restaurant_id", restaurantId)
+    .eq("is_read", false);
   if (error) throw error;
 }
 
@@ -599,7 +729,9 @@ export type RestaurantSubscription = {
   current_period_end: string | null;
 };
 
-export async function fetchRestaurantSubscription(restaurantId: string): Promise<{ subscription: RestaurantSubscription; plan: Plan } | null> {
+export async function fetchRestaurantSubscription(
+  restaurantId: string,
+): Promise<{ subscription: RestaurantSubscription; plan: Plan } | null> {
   const { data: sub, error: subError } = await supabase
     .from("restaurant_subscriptions")
     .select("*")
@@ -608,7 +740,11 @@ export async function fetchRestaurantSubscription(restaurantId: string): Promise
   if (subError) throw subError;
   if (!sub) return null;
   const subscription = sub as unknown as RestaurantSubscription;
-  const { data: plan, error: planError } = await supabase.from("plans").select("*").eq("id", subscription.plan_id).maybeSingle();
+  const { data: plan, error: planError } = await supabase
+    .from("plans")
+    .select("*")
+    .eq("id", subscription.plan_id)
+    .maybeSingle();
   if (planError) throw planError;
   if (!plan) return null;
   return { subscription, plan: plan as unknown as Plan };
