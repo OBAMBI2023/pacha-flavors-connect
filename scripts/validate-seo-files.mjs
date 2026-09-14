@@ -36,6 +36,15 @@ const DISALLOWED_PATH_PREFIXES = [
   "/delivery",
 ];
 
+// Routes that exist only as a permanent redirect to another indexable page
+// (never a page of their own) -- a sitemap <loc> must always be the final,
+// 200-rendering destination, never a redirecting URL (Search Console audit,
+// 2026-09-14: /food's 301 to "/" made Google report "ne reconnaît pas cette
+// URL" instead of indexing it). Exact-match, not a prefix: legitimate child
+// routes like /food/conseils and /food-signup are real pages and must stay
+// out of this list.
+const REDIRECTING_PATHS = ["/food"];
+
 const errors = [];
 const passed = [];
 
@@ -98,6 +107,9 @@ async function validateXmlFile(publicDir, relPath, { checkLocsExist }) {
     );
     if (badPath) {
       fail(relPath, `<loc> references a private route "${badPath}": "${loc}"`);
+    }
+    if (REDIRECTING_PATHS.includes(url.pathname)) {
+      fail(relPath, `<loc> references "${url.pathname}", which only redirects -- point the sitemap at its actual destination instead: "${loc}"`);
     }
     // Only URLs on our own canonical origin are checked for on-disk
     // existence -- a tenant custom-domain <loc> (a different origin,

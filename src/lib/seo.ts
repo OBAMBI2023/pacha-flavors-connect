@@ -140,7 +140,13 @@ export function buildTenantHeadMeta({
   const meta: MetaTag[] = [
     { title },
     { name: "description", content: description },
-    { name: "robots", content: "index, follow" },
+    // Explicitly-flagged test/diagnostic tenants (restaurants.is_test --
+    // see supabase/migrations/20260914200000_seo_test_restaurant_exclusion.sql)
+    // are already omitted from every sitemap, but the page itself must also
+    // say noindex: it's still a real, reachable URL, so a search engine that
+    // finds it any other way (a backlink, a cached link, manual guessing)
+    // must not index it either.
+    { name: "robots", content: restaurant.is_test ? "noindex" : "index, follow" },
     { property: "og:type", content: "restaurant.restaurant" },
     { property: "og:site_name", content: restaurant.name },
     { property: "og:locale", content: SOCIAL_LOCALE },
@@ -320,13 +326,13 @@ export function buildOrganizationJsonLd(): Record<string, unknown> {
   };
 }
 
-/** WebSite structured data for the SAOVIA Food marketing site (siteOrigin()/food and its subpages). */
+/** WebSite structured data for the SAOVIA Food marketing site. Since Phase 3U the B2B homepage lives at siteOrigin() itself, not /food (see src/routes/food.tsx, a pure 301 to "/") -- this must name the real, indexable resource. */
 export function buildWebSiteJsonLd(): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: "SAOVIA Food",
-    url: `${siteOrigin()}/food`,
+    url: siteOrigin(),
   };
 }
 

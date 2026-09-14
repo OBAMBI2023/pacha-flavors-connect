@@ -55,7 +55,15 @@ const SITE_URL = (process.env.VITE_SITE_URL || "https://food.saovia.net").replac
 // robots.txt/sitemap-food.xml/sitemap.xml files below) must be written
 // unconditionally, never gated behind Supabase being configured. Only the
 // per-tenant storefront sitemaps further down genuinely need Supabase.
-const STATIC_MARKETING_PATHS = ["/food", "/food-signup", "/food/conseils"];
+//
+// /food is deliberately absent: since Phase 3U (see src/routes/food.tsx) it
+// permanently 301-redirects to "/", the real indexable B2B homepage -- kept
+// as a redirect stub only so old links/bookmarks still work. A redirecting
+// URL must never be the <loc> of a sitemap entry (Search Console audit,
+// 2026-09-14, flagged this exact case as "Google ne reconnaît pas cette
+// URL"): the sitemap should only ever point at the page actually meant to be
+// indexed, i.e. "/" itself (already covered by STATIC_MARKETPLACE_PATHS).
+const STATIC_MARKETING_PATHS = ["/food-signup", "/food/conseils"];
 
 // The marketplace/homepage surface (src/routes/index.tsx, restaurants.tsx,
 // rechercher.tsx) is indexable but was previously absent from every

@@ -50,6 +50,8 @@ export type PublicRestaurant = {
   lng: number | null;
   /** Used as the sitemap/structured-data lastmod signal -- never shown in the UI. */
   updated_at: string | null;
+  /** Explicit, human-set test/diagnostic flag (never inferred from slug/name) -- already excluded from get_public_sitemap_index(), and used by src/lib/seo.ts's buildTenantHeadMeta to render `noindex` on the tenant's own page as defense in depth. */
+  is_test: boolean;
 };
 
 export type OpeningHoursSpec = Record<string, { open: string; close: string; closed?: boolean } | null>;
