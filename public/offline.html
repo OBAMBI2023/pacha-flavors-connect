@@ -75,6 +75,36 @@
     </div>
     <script>
       window.addEventListener("online", () => location.reload());
+
+      // Self-heal: this page must only ever appear when there is genuinely
+      // no network. If the browser disagrees (or a real request actually
+      // succeeds), an old/broken service worker is almost certainly
+      // intercepting navigation and serving this fallback unconditionally --
+      // a fixed worker no longer does that (see scripts/generate-sw.mjs), but
+      // a visitor stuck on an already-installed broken one can never reach
+      // the real app to pick up that fix on its own, since this static page
+      // -- not the React app -- is the only thing that ever actually loads
+      // for them. Unregistering + clearing every cache here lets the very
+      // next load fetch the current, fixed worker instead, with no DevTools
+      // or manual "clear site data" step required from the visitor.
+      (async () => {
+        if (!navigator.onLine) return;
+        try {
+          const probe = await fetch("/manifest.webmanifest", { cache: "no-store", method: "HEAD" });
+          if (!probe.ok) return;
+        } catch {
+          return; // genuinely offline (or a transient network error) -- let the visitor retry manually.
+        }
+        if ("serviceWorker" in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map((r) => r.unregister()));
+        }
+        if ("caches" in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map((key) => caches.delete(key)));
+        }
+        location.reload();
+      })();
     </script>
   </body>
 </html>

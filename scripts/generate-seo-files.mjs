@@ -1,8 +1,16 @@
-// Generates .output/public/robots.txt, .output/public/sitemap-food.xml (the
+// Generates <publicDir>/robots.txt, <publicDir>/sitemap-food.xml (the
 // static SAOVIA Food marketing pages + every /food/conseils article),
-// .output/public/sitemap.xml (a sitemap index referencing sitemap-food.xml
-// plus one .output/public/sitemaps/<slug>.xml per public tenant), after
+// <publicDir>/sitemap.xml (a sitemap index referencing sitemap-food.xml
+// plus one <publicDir>/sitemaps/<slug>.xml per public tenant), after
 // `vite build` -- automatic on every deploy, no manual step.
+//
+// <publicDir> is resolved from Nitro's own build bookkeeping (see
+// scripts/lib/nitro-output.mjs), never hardcoded -- Nitro's preset changes
+// the output layout entirely depending on where the build runs (locally:
+// `.output/public/`; on Vercel: `.vercel/output/static/`), and a hardcoded
+// path here previously meant every write in production landed in a
+// directory Vercel never deploys, silently leaving the placeholder files
+// committed under public/ (see git history) as what actually shipped.
 //
 // robots.txt and sitemap-food.xml have no Supabase dependency and are
 // always written, even when Supabase env vars aren't configured (e.g. local
@@ -30,9 +38,17 @@
 // resolve the app's `@/` path aliases or import .ts source.
 import { createClient } from "@supabase/supabase-js";
 import { mkdir, writeFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
+import { resolveNitroPublicDir } from "./lib/nitro-output.mjs";
+
+const ROOT_DIR = resolve(fileURLToPath(import.meta.url), "../..");
+const { publicDir: PUBLIC_DIR, preset } = await resolveNitroPublicDir(ROOT_DIR);
+console.log(`[generate-seo-files] Nitro preset "${preset}" -- writing SEO files to ${PUBLIC_DIR}`);
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
+const SUPABASE_KEY =
+  process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
 const SITE_URL = (process.env.VITE_SITE_URL || "https://food.saovia.net").replace(/\/+$/, "");
 
 // Static SAOVIA Food marketing pages -- no DB dependency, so these (and the
@@ -120,7 +136,8 @@ const robotsLines = [
 // written, even when Supabase env vars aren't configured (e.g. local dev).
 function staticMarketingSitemapXml() {
   const staticEntries = STATIC_MARKETING_PATHS.map(
-    (path) => `  <url>\n    <loc>${xmlEscape(`${SITE_URL}${path}`)}</loc>\n    <changefreq>weekly</changefreq>\n  </url>`,
+    (path) =>
+      `  <url>\n    <loc>${xmlEscape(`${SITE_URL}${path}`)}</loc>\n    <changefreq>weekly</changefreq>\n  </url>`,
   );
   const articleEntries = CONSEIL_ARTICLE_SLUGS.map(
     ({ slug, updatedAt }) =>
@@ -132,7 +149,8 @@ function staticMarketingSitemapXml() {
 // --- static marketplace sitemap (sitemap-marketplace.xml) -----------------
 function staticMarketplaceSitemapXml() {
   const entries = STATIC_MARKETPLACE_PATHS.map(
-    (path) => `  <url>\n    <loc>${xmlEscape(`${SITE_URL}${path}`)}</loc>\n    <changefreq>daily</changefreq>\n  </url>`,
+    (path) =>
+      `  <url>\n    <loc>${xmlEscape(`${SITE_URL}${path}`)}</loc>\n    <changefreq>daily</changefreq>\n  </url>`,
   );
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries.join("\n")}\n</urlset>\n`;
 }
@@ -156,24 +174,35 @@ async function writeTenantSitemap(tenant) {
     .join("\n");
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urlEntry}\n</urlset>\n`;
-  await writeFile(`.output/public/sitemaps/${tenant.slug}.xml`, xml, "utf8");
+  await writeFile(resolve(PUBLIC_DIR, "sitemaps", `${tenant.slug}.xml`), xml, "utf8");
 }
 
 // --- sitemap index --------------------------------------------------------
 function sitemapIndexEntry(tenant) {
   const origin = tenantOrigin(tenant);
-  const loc = tenant.custom_domain ? `${origin}/sitemap.xml` : `${SITE_URL}/sitemaps/${tenant.slug}.xml`;
+  const loc = tenant.custom_domain
+    ? `${origin}/sitemap.xml`
+    : `${SITE_URL}/sitemaps/${tenant.slug}.xml`;
   const lastmod = lastmodOf(tenant);
-  return ["  <sitemap>", `    <loc>${xmlEscape(loc)}</loc>`, lastmod ? `    <lastmod>${lastmod}</lastmod>` : null, "  </sitemap>"]
+  return [
+    "  <sitemap>",
+    `    <loc>${xmlEscape(loc)}</loc>`,
+    lastmod ? `    <lastmod>${lastmod}</lastmod>` : null,
+    "  </sitemap>",
+  ]
     .filter(Boolean)
     .join("\n");
 }
 
 // --- always-on static output (no Supabase needed) -------------------------
-await mkdir(".output/public/sitemaps", { recursive: true });
-await writeFile(".output/public/robots.txt", robotsLines.join("\n"), "utf8");
-await writeFile(".output/public/sitemap-food.xml", staticMarketingSitemapXml(), "utf8");
-await writeFile(".output/public/sitemap-marketplace.xml", staticMarketplaceSitemapXml(), "utf8");
+await mkdir(resolve(PUBLIC_DIR, "sitemaps"), { recursive: true });
+await writeFile(resolve(PUBLIC_DIR, "robots.txt"), robotsLines.join("\n"), "utf8");
+await writeFile(resolve(PUBLIC_DIR, "sitemap-food.xml"), staticMarketingSitemapXml(), "utf8");
+await writeFile(
+  resolve(PUBLIC_DIR, "sitemap-marketplace.xml"),
+  staticMarketplaceSitemapXml(),
+  "utf8",
+);
 
 // --- per-tenant output (needs Supabase; degrades gracefully without it) ---
 let tenants = [];
@@ -189,7 +218,11 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
   }
 }
 
-const foodSitemapEntry = ["  <sitemap>", `    <loc>${xmlEscape(`${SITE_URL}/sitemap-food.xml`)}</loc>`, "  </sitemap>"].join("\n");
+const foodSitemapEntry = [
+  "  <sitemap>",
+  `    <loc>${xmlEscape(`${SITE_URL}/sitemap-food.xml`)}</loc>`,
+  "  </sitemap>",
+].join("\n");
 const marketplaceSitemapEntry = [
   "  <sitemap>",
   `    <loc>${xmlEscape(`${SITE_URL}/sitemap-marketplace.xml`)}</loc>`,
@@ -200,10 +233,10 @@ const indexXml = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="h
   marketplaceSitemapEntry,
   ...tenants.map(sitemapIndexEntry),
 ].join("\n")}\n</sitemapindex>\n`;
-await writeFile(".output/public/sitemap.xml", indexXml, "utf8");
+await writeFile(resolve(PUBLIC_DIR, "sitemap.xml"), indexXml, "utf8");
 
 await Promise.all(tenants.map(writeTenantSitemap));
 
 console.log(
-  `[generate-seo-files] wrote .output/public/robots.txt, .output/public/sitemap.xml, .output/public/sitemap-food.xml, .output/public/sitemap-marketplace.xml, and ${tenants.length} tenant sitemap(s).`,
+  `[generate-seo-files] wrote ${PUBLIC_DIR}/robots.txt, sitemap.xml, sitemap-food.xml, sitemap-marketplace.xml, and ${tenants.length} tenant sitemap(s).`,
 );

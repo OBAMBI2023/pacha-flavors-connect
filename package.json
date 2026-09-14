@@ -5,11 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "node scripts/vendor-maplibre-worker.mjs && vite build && node scripts/generate-sw.mjs && node scripts/generate-seo-files.mjs",
-    "build:dev": "node scripts/vendor-maplibre-worker.mjs && vite build --mode development && node scripts/generate-sw.mjs && node scripts/generate-seo-files.mjs",
+    "build": "node scripts/vendor-maplibre-worker.mjs && vite build && node scripts/dependency-health.mjs && node scripts/generate-sw.mjs && node scripts/verify-sw.mjs && node scripts/generate-seo-files.mjs && node scripts/validate-seo-files.mjs",
+    "build:dev": "node scripts/vendor-maplibre-worker.mjs && vite build --mode development && node scripts/dependency-health.mjs && node scripts/generate-sw.mjs && node scripts/verify-sw.mjs && node scripts/generate-seo-files.mjs && node scripts/validate-seo-files.mjs",
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
+    "seo:validate": "node scripts/validate-seo-files.mjs",
+    "verify-sw": "node scripts/verify-sw.mjs",
+    "dependency:health": "node scripts/dependency-health.mjs",
     "postinstall": "patch-package"
   },
   "dependencies": {

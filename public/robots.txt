@@ -9,4 +9,4 @@ Disallow: /livreur
 Disallow: /deliver
 Disallow: /delivery
 
-Sitemap: https://saoviafood.com/sitemap.xml
+Sitemap: https://food.saovia.net/sitemap.xml
