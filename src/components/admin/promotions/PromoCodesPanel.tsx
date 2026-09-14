@@ -23,6 +23,7 @@ import { CustomerMultiSelect } from "@/components/admin/promotions/CustomerMulti
 import type { Customer } from "@/lib/customers-db";
 import type { PromotionType } from "@/lib/promotions";
 import { currencySymbol, formatMoney } from "@/lib/currency";
+import { fetchCampaignsByPromoCodeIds, type CampaignStatus } from "@/lib/marketing";
 import {
   createPromoCode,
   deletePromoCode,
@@ -98,11 +99,14 @@ export function PromoCodesPanel({
   const [form, setForm] = useState<PromoCodeInput>(() => emptyForm());
   const [targets, setTargets] = useState<Customer[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<PromoCode | null>(null);
+  const [campaignsByPromoId, setCampaignsByPromoId] = useState<Map<string, { id: string; name: string; status: CampaignStatus }[]>>(new Map());
 
   async function refresh() {
     setLoading(true);
     try {
-      setPromoCodes(await fetchPromoCodes(restaurantId));
+      const rows = await fetchPromoCodes(restaurantId);
+      setPromoCodes(rows);
+      setCampaignsByPromoId(await fetchCampaignsByPromoCodeIds(rows.map((r) => r.id)));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Impossible de charger les codes promo.");
     } finally {
@@ -276,6 +280,11 @@ export function PromoCodesPanel({
                     Du {new Date(promo.starts_at).toLocaleString("fr-FR")} au {new Date(promo.ends_at).toLocaleString("fr-FR")} · Limite globale{" "}
                     {promo.max_total_uses ?? "illimitée"} · Limite par client {promo.max_uses_per_customer}
                   </p>
+                  {(campaignsByPromoId.get(promo.id)?.length ?? 0) > 0 && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Campagnes associées : {campaignsByPromoId.get(promo.id)!.map((c) => c.name).join(", ")}
+                    </p>
+                  )}
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <Switch

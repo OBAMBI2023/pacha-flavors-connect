@@ -21,6 +21,7 @@ import {
   type CampaignObjective,
 } from "@/lib/marketing";
 import { useMarketingContext } from "@/hooks/useMarketingContext";
+import { RequireOneRestaurant } from "@/components/superadmin/marketing/RequireOneRestaurant";
 
 type SearchParams = { segment?: AudienceSegmentKey; param?: number };
 
@@ -28,7 +29,8 @@ export const Route = createFileRoute("/super-admin/marketing/campagnes_/nouvelle
   ssr: false,
   validateSearch: (search: Record<string, unknown>): SearchParams => {
     const result: SearchParams = {};
-    if (typeof search["segment"] === "string") result.segment = search["segment"] as AudienceSegmentKey;
+    if (typeof search["segment"] === "string")
+      result.segment = search["segment"] as AudienceSegmentKey;
     if (typeof search["param"] === "number") result.param = search["param"];
     return result;
   },
@@ -36,16 +38,56 @@ export const Route = createFileRoute("/super-admin/marketing/campagnes_/nouvelle
 });
 
 const OBJECTIVES: { id: CampaignObjective; recommendedMessage: string }[] = [
-  { id: "reactivation", recommendedMessage: "Bonjour {{prenom}} 👋 Vous nous manquez ! Revenez commander chez {{nom_restaurant}} et profitez de {{montant_promo}} avec le code {{code_promo}}." },
-  { id: "vip", recommendedMessage: "Bonjour {{prenom}} ⭐ Merci pour votre fidélité ! Une offre spéciale vous attend chez {{nom_restaurant}} : {{montant_promo}} avec le code {{code_promo}}." },
-  { id: "new_customer", recommendedMessage: "Merci pour votre première commande chez {{nom_restaurant}} {{prenom}} 🎉 Revenez vite avec {{montant_promo}} grâce au code {{code_promo}}." },
-  { id: "promotion", recommendedMessage: "Bonjour {{prenom}}, {{nom_restaurant}} vous propose {{montant_promo}} avec le code {{code_promo}}. Offre valable jusqu'au {{date_expiration}}." },
-  { id: "menu", recommendedMessage: "Bonjour {{prenom}} 👋 {{nom_restaurant}} vient d'ajouter de nouveaux plats à sa carte, venez découvrir !" },
-  { id: "loyalty", recommendedMessage: "Merci {{prenom}} pour votre fidélité à {{nom_restaurant}} ! Voici {{montant_promo}} avec le code {{code_promo}} pour vous remercier." },
+  {
+    id: "reactivation",
+    recommendedMessage:
+      "Bonjour {{prenom}} 👋 Vous nous manquez ! Revenez commander chez {{nom_restaurant}} et profitez de {{montant_promo}} avec le code {{code_promo}}.",
+  },
+  {
+    id: "vip",
+    recommendedMessage:
+      "Bonjour {{prenom}} ⭐ Merci pour votre fidélité ! Une offre spéciale vous attend chez {{nom_restaurant}} : {{montant_promo}} avec le code {{code_promo}}.",
+  },
+  {
+    id: "new_customer",
+    recommendedMessage:
+      "Merci pour votre première commande chez {{nom_restaurant}} {{prenom}} 🎉 Revenez vite avec {{montant_promo}} grâce au code {{code_promo}}.",
+  },
+  {
+    id: "promotion",
+    recommendedMessage:
+      "Bonjour {{prenom}}, {{nom_restaurant}} vous propose {{montant_promo}} avec le code {{code_promo}}. Offre valable jusqu'au {{date_expiration}}.",
+  },
+  {
+    id: "menu",
+    recommendedMessage:
+      "Bonjour {{prenom}} 👋 {{nom_restaurant}} vient d'ajouter de nouveaux plats à sa carte, venez découvrir !",
+  },
+  {
+    id: "loyalty",
+    recommendedMessage:
+      "Merci {{prenom}} pour votre fidélité à {{nom_restaurant}} ! Voici {{montant_promo}} avec le code {{code_promo}} pour vous remercier.",
+  },
 ] as const;
 
-const SEGMENT_KEYS: AudienceSegmentKey[] = ["inactive", "vip", "new_customer", "regular", "high_value", "promo_users", "custom"];
-const STEPS = ["Objectif", "Audience", "Message", "Offre", "Aperçu", "Confirmation"] as const;
+const SEGMENT_KEYS: AudienceSegmentKey[] = [
+  "inactive",
+  "vip",
+  "new_customer",
+  "regular",
+  "high_value",
+  "promo_users",
+  "custom",
+];
+const STEPS = [
+  "Objectif",
+  "Audience",
+  "Message",
+  "Offre",
+  "Programmation",
+  "Aperçu",
+  "Confirmation",
+] as const;
 
 type PromoChoice = "none" | "new" | "existing";
 
@@ -63,13 +105,19 @@ function segmentParamFilters(segment: AudienceSegmentKey, param: number | null):
 function NewCampaignPage() {
   const search = Route.useSearch();
   const navigate = useNavigate();
-  const { restaurantId, restaurant } = useMarketingContext();
+  const { restaurantId: contextRestaurantId, restaurant } = useMarketingContext();
+  const restaurantId =
+    contextRestaurantId && contextRestaurantId !== "all" ? contextRestaurantId : null;
 
   const [step, setStep] = useState(0);
   const [objective, setObjective] = useState<CampaignObjective>("reactivation");
   const [segment, setSegment] = useState<AudienceSegmentKey>(search.segment ?? "inactive");
   const [segmentParam, setSegmentParam] = useState<number | null>(
-    search.param ?? AUDIENCE_SEGMENT_DEFAULTS[(search.segment ?? "inactive") as Exclude<AudienceSegmentKey, "custom">]?.inactiveSinceDays ?? 14,
+    search.param ??
+      AUDIENCE_SEGMENT_DEFAULTS[
+        (search.segment ?? "inactive") as Exclude<AudienceSegmentKey, "custom">
+      ]?.inactiveSinceDays ??
+      14,
   );
   const [customFilters, setCustomFilters] = useState<AudienceFilters>({});
   const [preview, setPreview] = useState<AudiencePreview | null>(null);
@@ -77,6 +125,13 @@ function NewCampaignPage() {
 
   const [campaignName, setCampaignName] = useState("");
   const [message, setMessage] = useState(OBJECTIVES[0]!.recommendedMessage);
+
+  const [sendTiming, setSendTiming] = useState<"now" | "scheduled">("now");
+  const [scheduledForInput, setScheduledForInput] = useState("");
+  const scheduledForIso =
+    sendTiming === "scheduled" && scheduledForInput
+      ? new Date(scheduledForInput).toISOString()
+      : null;
 
   const [promoChoice, setPromoChoice] = useState<PromoChoice>("none");
   const [existingPromoCodes, setExistingPromoCodes] = useState<PromoCode[]>([]);
@@ -116,12 +171,18 @@ function NewCampaignPage() {
 
   useEffect(() => {
     if (!restaurantId) return;
-    void fetchPromoCodes(restaurantId).then(setExistingPromoCodes).catch(() => {});
+    void fetchPromoCodes(restaurantId)
+      .then(setExistingPromoCodes)
+      .catch(() => {});
   }, [restaurantId]);
 
   const selectedExistingPromo = existingPromoCodes.find((p) => p.id === existingPromoId) ?? null;
   const activePromoCode =
-    promoChoice === "existing" ? selectedExistingPromo : promoChoice === "new" && createdPromoId ? { id: createdPromoId, code: newPromo.code } : null;
+    promoChoice === "existing"
+      ? selectedExistingPromo
+      : promoChoice === "new" && createdPromoId
+        ? { id: createdPromoId, code: newPromo.code }
+        : null;
 
   const promoDiscountLabel = (() => {
     if (promoChoice === "existing" && selectedExistingPromo) {
@@ -144,7 +205,12 @@ function NewCampaignPage() {
   const messagePreview = renderMessageTemplate(message, {
     prenom: "Awa",
     nom_restaurant: restaurant?.name ?? "votre restaurant",
-    code_promo: promoChoice === "none" ? "" : promoChoice === "existing" ? selectedExistingPromo?.code ?? "" : newPromo.code || "CODE",
+    code_promo:
+      promoChoice === "none"
+        ? ""
+        : promoChoice === "existing"
+          ? (selectedExistingPromo?.code ?? "")
+          : newPromo.code || "CODE",
     montant_promo: promoDiscountLabel,
     date_expiration:
       promoChoice === "existing" && selectedExistingPromo?.ends_at
@@ -170,7 +236,9 @@ function NewCampaignPage() {
         max_total_uses: null,
         max_uses_per_customer: 1,
         starts_at: new Date().toISOString(),
-        ends_at: newPromo.ends_at ? new Date(newPromo.ends_at).toISOString() : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        ends_at: newPromo.ends_at
+          ? new Date(newPromo.ends_at).toISOString()
+          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         is_active: true,
       });
       setCreatedPromoId(id);
@@ -188,7 +256,7 @@ function NewCampaignPage() {
     try {
       const rows = await fetchAudienceCustomers(restaurantId, filters);
       setRecipients(rows);
-      setStep(4);
+      setStep(5);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Impossible de charger l'audience.");
     } finally {
@@ -206,9 +274,19 @@ function NewCampaignPage() {
     try {
       const promo =
         promoChoice === "existing" && selectedExistingPromo
-          ? { id: selectedExistingPromo.id, code: selectedExistingPromo.code, discountLabel: promoDiscountLabel, expiresAt: selectedExistingPromo.ends_at }
+          ? {
+              id: selectedExistingPromo.id,
+              code: selectedExistingPromo.code,
+              discountLabel: promoDiscountLabel,
+              expiresAt: selectedExistingPromo.ends_at,
+            }
           : promoChoice === "new" && createdPromoId
-            ? { id: createdPromoId, code: newPromo.code.toUpperCase(), discountLabel: promoDiscountLabel, expiresAt: newPromo.ends_at || null }
+            ? {
+                id: createdPromoId,
+                code: newPromo.code.toUpperCase(),
+                discountLabel: promoDiscountLabel,
+                expiresAt: newPromo.ends_at || null,
+              }
             : null;
       const id = await createCampaign({
         restaurantId,
@@ -220,6 +298,7 @@ function NewCampaignPage() {
         audienceSegment: segment,
         audienceFilters: filters,
         recipients,
+        scheduledFor: scheduledForIso,
       });
       toast.success("Campagne créée -- liens WhatsApp générés");
       void navigate({ to: "/super-admin/marketing/campagnes", search: undefined as never });
@@ -242,7 +321,8 @@ function NewCampaignPage() {
     });
   }
 
-  if (!restaurantId) return null;
+  if (!restaurantId)
+    return <RequireOneRestaurant restaurantId={contextRestaurantId}>{null}</RequireOneRestaurant>;
 
   return (
     <div className="space-y-6">
@@ -314,9 +394,18 @@ function NewCampaignPage() {
           {segment !== "custom" && segment !== "new_customer" && segment !== "promo_users" && (
             <label className="block max-w-xs space-y-1.5">
               <span className="text-sm font-medium text-slate-700">
-                {segment === "inactive" ? "Jours d'inactivité" : segment === "high_value" ? "Montant minimum (XOF)" : "Nombre minimum de commandes"}
+                {segment === "inactive"
+                  ? "Jours d'inactivité"
+                  : segment === "high_value"
+                    ? "Montant minimum (XOF)"
+                    : "Nombre minimum de commandes"}
               </span>
-              <Input type="number" min={0} value={segmentParam ?? 0} onChange={(e) => setSegmentParam(Number(e.target.value) || 0)} />
+              <Input
+                type="number"
+                min={0}
+                value={segmentParam ?? 0}
+                onChange={(e) => setSegmentParam(Number(e.target.value) || 0)}
+              />
             </label>
           )}
 
@@ -324,15 +413,30 @@ function NewCampaignPage() {
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="space-y-1.5">
                 <span className="text-sm font-medium text-slate-700">Commandes min.</span>
-                <Input type="number" min={0} value={customFilters.minOrders ?? ""} onChange={(e) => setCustomFilterField("minOrders", e.target.value)} />
+                <Input
+                  type="number"
+                  min={0}
+                  value={customFilters.minOrders ?? ""}
+                  onChange={(e) => setCustomFilterField("minOrders", e.target.value)}
+                />
               </label>
               <label className="space-y-1.5">
                 <span className="text-sm font-medium text-slate-700">Dépenses min. (XOF)</span>
-                <Input type="number" min={0} value={customFilters.minSpend ?? ""} onChange={(e) => setCustomFilterField("minSpend", e.target.value)} />
+                <Input
+                  type="number"
+                  min={0}
+                  value={customFilters.minSpend ?? ""}
+                  onChange={(e) => setCustomFilterField("minSpend", e.target.value)}
+                />
               </label>
               <label className="space-y-1.5">
                 <span className="text-sm font-medium text-slate-700">Inactif depuis (jours)</span>
-                <Input type="number" min={0} value={customFilters.inactiveSinceDays ?? ""} onChange={(e) => setCustomFilterField("inactiveSinceDays", e.target.value)} />
+                <Input
+                  type="number"
+                  min={0}
+                  value={customFilters.inactiveSinceDays ?? ""}
+                  onChange={(e) => setCustomFilterField("inactiveSinceDays", e.target.value)}
+                />
               </label>
             </div>
           )}
@@ -342,18 +446,27 @@ function NewCampaignPage() {
               <p className="text-sm text-slate-500">Calcul de l'audience...</p>
             ) : (
               <>
-                <p className="font-display text-2xl font-semibold text-slate-900">{preview.eligible} client{preview.eligible > 1 ? "s" : ""} ciblé{preview.eligible > 1 ? "s" : ""}</p>
+                <p className="font-display text-2xl font-semibold text-slate-900">
+                  {preview.eligible} client{preview.eligible > 1 ? "s" : ""} ciblé
+                  {preview.eligible > 1 ? "s" : ""}
+                </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  {preview.matched} correspondent au filtre sur {preview.totalBase} au total · {preview.excludedOptOut} désinscrits exclus
-                  {preview.excludedRecentlyMessaged > 0 && ` · ${preview.excludedRecentlyMessaged} déjà contactés récemment (anti-spam 7j)`}
+                  {preview.matched} correspondent au filtre sur {preview.totalBase} au total ·{" "}
+                  {preview.excludedOptOut} désinscrits exclus
+                  {preview.excludedRecentlyMessaged > 0 &&
+                    ` · ${preview.excludedRecentlyMessaged} déjà contactés récemment (anti-spam 7j)`}
                 </p>
               </>
             )}
           </div>
 
           <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setStep(0)}>Précédent</Button>
-            <Button onClick={() => setStep(2)} disabled={!preview || preview.eligible === 0}>Suivant</Button>
+            <Button variant="outline" onClick={() => setStep(0)}>
+              Précédent
+            </Button>
+            <Button onClick={() => setStep(2)} disabled={!preview || preview.eligible === 0}>
+              Suivant
+            </Button>
           </div>
         </div>
       )}
@@ -362,10 +475,19 @@ function NewCampaignPage() {
         <div className="space-y-3">
           <h2 className="font-semibold text-slate-900">Message WhatsApp</h2>
           <Textarea rows={5} value={message} onChange={(e) => setMessage(e.target.value)} />
-          <p className="text-xs text-slate-500">{message.length} caractères · Variables : {"{{prenom}} {{nom_restaurant}} {{code_promo}} {{montant_promo}} {{date_expiration}}"}</p>
+          <p className="text-xs text-slate-500">
+            {message.length} caractères · Variables :{" "}
+            {
+              "{{prenom}} {{nom_restaurant}} {{code_promo}} {{montant_promo}} {{date_expiration}} {{derniere_commande}} {{montant_panier}}"
+            }
+          </p>
           <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setStep(1)}>Précédent</Button>
-            <Button onClick={() => setStep(3)} disabled={!message.trim()}>Suivant</Button>
+            <Button variant="outline" onClick={() => setStep(1)}>
+              Précédent
+            </Button>
+            <Button onClick={() => setStep(3)} disabled={!message.trim()}>
+              Suivant
+            </Button>
           </div>
         </div>
       )}
@@ -381,13 +503,21 @@ function NewCampaignPage() {
                 onClick={() => setPromoChoice(c)}
                 className={`rounded-full border px-3.5 py-1.5 text-sm font-medium ${promoChoice === c ? "border-primary bg-primary text-primary-foreground" : "border-slate-200 bg-white text-slate-600"}`}
               >
-                {c === "none" ? "Aucun code promo" : c === "new" ? "Créer un nouveau code" : "Utiliser un code existant"}
+                {c === "none"
+                  ? "Aucun code promo"
+                  : c === "new"
+                    ? "Créer un nouveau code"
+                    : "Utiliser un code existant"}
               </button>
             ))}
           </div>
 
           {promoChoice === "existing" && (
-            <select value={existingPromoId ?? ""} onChange={(e) => setExistingPromoId(e.target.value || null)} className="h-11 w-full max-w-sm rounded-xl border border-slate-200 bg-white px-3 text-sm">
+            <select
+              value={existingPromoId ?? ""}
+              onChange={(e) => setExistingPromoId(e.target.value || null)}
+              className="h-11 w-full max-w-sm rounded-xl border border-slate-200 bg-white px-3 text-sm"
+            >
               <option value="">Choisir un code...</option>
               {existingPromoCodes.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -401,17 +531,30 @@ function NewCampaignPage() {
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="space-y-1.5">
                 <Label>Nom</Label>
-                <Input value={newPromo.name} onChange={(e) => setNewPromo((c) => ({ ...c, name: e.target.value }))} />
+                <Input
+                  value={newPromo.name}
+                  onChange={(e) => setNewPromo((c) => ({ ...c, name: e.target.value }))}
+                />
               </label>
               <label className="space-y-1.5">
                 <Label>Code</Label>
-                <Input value={newPromo.code} onChange={(e) => setNewPromo((c) => ({ ...c, code: e.target.value.toUpperCase() }))} />
+                <Input
+                  value={newPromo.code}
+                  onChange={(e) =>
+                    setNewPromo((c) => ({ ...c, code: e.target.value.toUpperCase() }))
+                  }
+                />
               </label>
               <label className="space-y-1.5">
                 <Label>Type</Label>
                 <select
                   value={newPromo.discount_type}
-                  onChange={(e) => setNewPromo((c) => ({ ...c, discount_type: e.target.value as typeof c.discount_type }))}
+                  onChange={(e) =>
+                    setNewPromo((c) => ({
+                      ...c,
+                      discount_type: e.target.value as typeof c.discount_type,
+                    }))
+                  }
                   className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm"
                 >
                   <option value="percentage">Pourcentage</option>
@@ -422,15 +565,30 @@ function NewCampaignPage() {
               {newPromo.discount_type !== "free_delivery" && (
                 <label className="space-y-1.5">
                   <Label>Valeur</Label>
-                  <Input type="number" value={newPromo.discount_value} onChange={(e) => setNewPromo((c) => ({ ...c, discount_value: Number(e.target.value) || 0 }))} />
+                  <Input
+                    type="number"
+                    value={newPromo.discount_value}
+                    onChange={(e) =>
+                      setNewPromo((c) => ({ ...c, discount_value: Number(e.target.value) || 0 }))
+                    }
+                  />
                 </label>
               )}
               <label className="space-y-1.5">
                 <Label>Expire le</Label>
-                <Input type="date" value={newPromo.ends_at} onChange={(e) => setNewPromo((c) => ({ ...c, ends_at: e.target.value }))} />
+                <Input
+                  type="date"
+                  value={newPromo.ends_at}
+                  onChange={(e) => setNewPromo((c) => ({ ...c, ends_at: e.target.value }))}
+                />
               </label>
               <div className="flex items-end">
-                <Button type="button" variant="outline" onClick={() => void handleCreatePromo()} disabled={creatingPromo || Boolean(createdPromoId)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void handleCreatePromo()}
+                  disabled={creatingPromo || Boolean(createdPromoId)}
+                >
                   {createdPromoId ? "Code créé ✓" : creatingPromo ? "Création..." : "Créer ce code"}
                 </Button>
               </div>
@@ -438,9 +596,11 @@ function NewCampaignPage() {
           )}
 
           <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setStep(2)}>Précédent</Button>
-            <Button onClick={() => void goToPreviewStep()} disabled={loadingRecipients || (promoChoice === "new" && !createdPromoId)}>
-              {loadingRecipients ? "Chargement..." : "Suivant"}
+            <Button variant="outline" onClick={() => setStep(2)}>
+              Précédent
+            </Button>
+            <Button onClick={() => setStep(4)} disabled={promoChoice === "new" && !createdPromoId}>
+              Suivant
             </Button>
           </div>
         </div>
@@ -448,13 +608,62 @@ function NewCampaignPage() {
 
       {step === 4 && (
         <div className="space-y-4">
+          <h2 className="font-semibold text-slate-900">Programmation</h2>
+          <div className="flex flex-wrap gap-2">
+            {(["now", "scheduled"] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setSendTiming(t)}
+                className={`rounded-full border px-3.5 py-1.5 text-sm font-medium ${sendTiming === t ? "border-primary bg-primary text-primary-foreground" : "border-slate-200 bg-white text-slate-600"}`}
+              >
+                {t === "now" ? "Envoyer dès que possible" : "Programmer pour plus tard"}
+              </button>
+            ))}
+          </div>
+          {sendTiming === "scheduled" && (
+            <label className="block max-w-xs space-y-1.5">
+              <Label>Date et heure</Label>
+              <Input
+                type="datetime-local"
+                value={scheduledForInput}
+                onChange={(e) => setScheduledForInput(e.target.value)}
+              />
+              <p className="text-xs text-slate-500">
+                Aucun moteur d'envoi automatique n'existe encore : la campagne sera créée au statut
+                "Programmée" et l'équipe devra tout de même ouvrir les liens WhatsApp un par un le
+                moment venu.
+              </p>
+            </label>
+          )}
+          <div className="flex justify-between">
+            <Button variant="outline" onClick={() => setStep(3)}>
+              Précédent
+            </Button>
+            <Button
+              onClick={() => void goToPreviewStep()}
+              disabled={loadingRecipients || (sendTiming === "scheduled" && !scheduledForInput)}
+            >
+              {loadingRecipients ? "Chargement..." : "Suivant"}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {step === 5 && (
+        <div className="space-y-4">
           <h2 className="font-semibold text-slate-900">Aperçu</h2>
           <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
             <div className="mx-auto max-w-xs rounded-2xl bg-[#e5ddd5] p-3">
-              <div className="rounded-lg bg-[#dcf8c6] p-2.5 text-sm text-slate-800 shadow">{messagePreview}</div>
+              <div className="rounded-lg bg-[#dcf8c6] p-2.5 text-sm text-slate-800 shadow">
+                {messagePreview}
+              </div>
             </div>
           </div>
-          <p className="text-sm text-slate-600">{recipients.length} destinataire{recipients.length > 1 ? "s" : ""} réel{recipients.length > 1 ? "s" : ""}, aperçu des 5 premiers :</p>
+          <p className="text-sm text-slate-600">
+            {recipients.length} destinataire{recipients.length > 1 ? "s" : ""} réel
+            {recipients.length > 1 ? "s" : ""}, aperçu des 5 premiers :
+          </p>
           <ul className="space-y-1 text-sm text-slate-600">
             {sample.map((c) => (
               <li key={c.id} className="rounded-xl border border-slate-200 px-3 py-2">
@@ -464,29 +673,48 @@ function NewCampaignPage() {
           </ul>
           <label className="block max-w-sm space-y-1.5">
             <Label>Nom de la campagne</Label>
-            <Input value={campaignName} onChange={(e) => setCampaignName(e.target.value)} placeholder="Ex : Relance inactifs août" />
+            <Input
+              value={campaignName}
+              onChange={(e) => setCampaignName(e.target.value)}
+              placeholder="Ex : Relance inactifs août"
+            />
           </label>
           <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setStep(3)}>Précédent</Button>
-            <Button onClick={() => setStep(5)} disabled={!campaignName.trim()}>Suivant</Button>
+            <Button variant="outline" onClick={() => setStep(4)}>
+              Précédent
+            </Button>
+            <Button onClick={() => setStep(6)} disabled={!campaignName.trim()}>
+              Suivant
+            </Button>
           </div>
         </div>
       )}
 
-      {step === 5 && (
+      {step === 6 && (
         <div className="space-y-4">
-          <h2 className="font-semibold text-slate-900">Confirmation</h2>
+          <h2 className="font-semibold text-slate-900">Vérification et envoi</h2>
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-            <p><strong>{campaignName}</strong> · {CAMPAIGN_OBJECTIVE_LABELS[objective]}</p>
-            <p className="mt-1">{recipients.length} destinataires · {restaurant?.name}</p>
+            <p>
+              <strong>{campaignName}</strong> · {CAMPAIGN_OBJECTIVE_LABELS[objective]}
+            </p>
+            <p className="mt-1">
+              {recipients.length} destinataires · {restaurant?.name}
+            </p>
             {activePromoCode && <p className="mt-1">Code promo : {activePromoCode.code}</p>}
+            <p className="mt-1">
+              {scheduledForIso
+                ? `Programmée pour le ${new Date(scheduledForIso).toLocaleString("fr-FR")}`
+                : "Envoi dès que possible"}
+            </p>
             <p className="mt-2 text-xs text-slate-500">
-              Aucune API WhatsApp n'étant branchée, la campagne génère un lien wa.me par client. Vous les ouvrirez et confirmerez
-              l'envoi un par un depuis la liste des campagnes.
+              Aucune API WhatsApp n'étant branchée, la campagne génère un lien wa.me par client.
+              Vous les ouvrirez et confirmerez l'envoi un par un depuis la liste des campagnes.
             </p>
           </div>
           <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setStep(4)}>Précédent</Button>
+            <Button variant="outline" onClick={() => setStep(5)}>
+              Précédent
+            </Button>
             <Button onClick={() => void handleCreateCampaign()} disabled={submitting}>
               {submitting ? "Création..." : "Créer la campagne"}
             </Button>

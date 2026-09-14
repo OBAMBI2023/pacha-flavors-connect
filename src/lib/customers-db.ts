@@ -18,6 +18,9 @@ export type Customer = {
   /** 'website' = created by a real order placed through the storefront (create_order's find-or-create). 'restaurant' = added manually from the admin -- see createCustomer. */
   source: CustomerSource;
   internal_note: string | null;
+  marketing_opt_out: boolean;
+  /** Free-form CRM labels (e.g. "allergique", "anniversaire proche") -- distinct from internal_note, which is a single free-text field. */
+  tags: string[];
 };
 
 export type CustomerOrderSummary = {
@@ -42,7 +45,10 @@ const PAGE_SIZE = 25;
  */
 export async function lookupCustomerName(slug: string, phone: string): Promise<string | null> {
   try {
-    const { data, error } = await supabase.rpc("lookup_customer_name", { p_slug: slug, p_phone: phone });
+    const { data, error } = await supabase.rpc("lookup_customer_name", {
+      p_slug: slug,
+      p_phone: phone,
+    });
     if (error) return null;
     return (data as string | null) ?? null;
   } catch {
@@ -54,9 +60,14 @@ export async function lookupCustomerName(slug: string, phone: string): Promise<s
  * RLS (customers_select_members, via has_restaurant_access) is the actual
  * security boundary; restaurant_id here is defense-in-depth and keeps the
  * query plan tenant-scoped, matching fetchRestaurantOrders's own pattern.
+ *
+ * `restaurantId: null` omits that filter entirely -- has_restaurant_access()
+ * already grants a Super Admin every restaurant's rows, so this is what
+ * powers the CRM's cross-tenant "Tous les restaurants" Clients view. Every
+ * existing (tenant-scoped) call site keeps passing a real id, unaffected.
  */
 export async function fetchCustomers(
-  restaurantId: string,
+  restaurantId: string | null,
   options: { search?: string; page?: number; source?: CustomerSource | "all" } = {},
 ): Promise<{ customers: Customer[]; total: number }> {
   const page = options.page ?? 0;
@@ -66,8 +77,8 @@ export async function fetchCustomers(
   let query = supabase
     .from("customers")
     .select("*", { count: "exact" })
-    .eq("restaurant_id", restaurantId)
     .order("last_order_at", { ascending: false, nullsFirst: false });
+  if (restaurantId) query = query.eq("restaurant_id", restaurantId);
 
   if (options.source && options.source !== "all") {
     query = query.eq("source", options.source);
@@ -108,7 +119,10 @@ export type CreateCustomerInput = {
  * see isDuplicateCustomerPhoneError -- rather than silently creating a
  * second row for the same person.
  */
-export async function createCustomer(restaurantId: string, input: CreateCustomerInput): Promise<string> {
+export async function createCustomer(
+  restaurantId: string,
+  input: CreateCustomerInput,
+): Promise<string> {
   const { data, error } = await supabase
     .from("customers")
     .insert({
@@ -131,12 +145,18 @@ export function isDuplicateCustomerPhoneError(error: unknown): boolean {
 }
 
 export async function fetchCustomer(customerId: string): Promise<Customer | null> {
-  const { data, error } = await supabase.from("customers").select("*").eq("id", customerId).maybeSingle();
+  const { data, error } = await supabase
+    .from("customers")
+    .select("*")
+    .eq("id", customerId)
+    .maybeSingle();
   if (error) throw error;
   return (data as unknown as Customer | null) ?? null;
 }
 
-export async function fetchCustomerOrderHistory(customerId: string): Promise<CustomerOrderSummary[]> {
+export async function fetchCustomerOrderHistory(
+  customerId: string,
+): Promise<CustomerOrderSummary[]> {
   const { data, error } = await supabase
     .from("orders")
     .select("id,order_number,created_at,status,total_amount,currency,item_count")
@@ -157,15 +177,28 @@ export async function fetchCustomerOrderHistory(customerId: string): Promise<Cus
 
 export async function updateCustomer(
   customerId: string,
-  input: { full_name?: string; email?: string | null; address?: string | null; internal_note?: string | null },
+  input: {
+    full_name?: string;
+    email?: string | null;
+    address?: string | null;
+    internal_note?: string | null;
+  },
 ): Promise<void> {
   const { error } = await supabase.from("customers").update(input).eq("id", customerId);
   if (error) throw error;
 }
 
+export async function updateCustomerTags(customerId: string, tags: string[]): Promise<void> {
+  const { error } = await supabase.from("customers").update({ tags }).eq("id", customerId);
+  if (error) throw error;
+}
+
 /** Reassigns every order from sourceId onto targetId, folds the stats together, and deletes sourceId -- see merge_customers. */
 export async function mergeCustomers(sourceId: string, targetId: string): Promise<void> {
-  const { error } = await supabase.rpc("merge_customers", { p_source_id: sourceId, p_target_id: targetId });
+  const { error } = await supabase.rpc("merge_customers", {
+    p_source_id: sourceId,
+    p_target_id: targetId,
+  });
   if (error) throw error;
 }
 

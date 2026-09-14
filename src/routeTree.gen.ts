@@ -48,8 +48,14 @@ import { Route as CommandeOrderIdConfirmationRouteImport } from './routes/comman
 import { Route as FoodConseilsSlugRouteImport } from './routes/food_.conseils_.$slug'
 import { Route as RestaurantsCategorieCategorySlugRouteImport } from './routes/restaurants.categorie.$categorySlug'
 import { Route as SuperAdminMarketingIndexRouteImport } from './routes/super-admin.marketing.index'
+import { Route as SuperAdminMarketingAnalyticsRouteImport } from './routes/super-admin.marketing.analytics'
 import { Route as SuperAdminMarketingAudiencesRouteImport } from './routes/super-admin.marketing.audiences'
+import { Route as SuperAdminMarketingAutomatisationsRouteImport } from './routes/super-admin.marketing.automatisations'
 import { Route as SuperAdminMarketingCampagnesRouteImport } from './routes/super-admin.marketing.campagnes'
+import { Route as SuperAdminMarketingClientsRouteImport } from './routes/super-admin.marketing.clients'
+import { Route as SuperAdminMarketingParametresRouteImport } from './routes/super-admin.marketing.parametres'
+import { Route as SuperAdminMarketingPromotionsRouteImport } from './routes/super-admin.marketing.promotions'
+import { Route as SuperAdminMarketingWhatsappRouteImport } from './routes/super-admin.marketing.whatsapp'
 import { Route as SuperAdminRestaurantsRestaurantIdRouteImport } from './routes/super-admin.restaurants.$restaurantId'
 import { Route as SuperAdminMarketingCampagnesNouvelleRouteImport } from './routes/super-admin.marketing.campagnes_.nouvelle'
 
@@ -253,16 +259,52 @@ const SuperAdminMarketingIndexRoute =
     path: '/',
     getParentRoute: () => SuperAdminMarketingRoute,
   } as any)
+const SuperAdminMarketingAnalyticsRoute =
+  SuperAdminMarketingAnalyticsRouteImport.update({
+    id: '/analytics',
+    path: '/analytics',
+    getParentRoute: () => SuperAdminMarketingRoute,
+  } as any)
 const SuperAdminMarketingAudiencesRoute =
   SuperAdminMarketingAudiencesRouteImport.update({
     id: '/audiences',
     path: '/audiences',
     getParentRoute: () => SuperAdminMarketingRoute,
   } as any)
+const SuperAdminMarketingAutomatisationsRoute =
+  SuperAdminMarketingAutomatisationsRouteImport.update({
+    id: '/automatisations',
+    path: '/automatisations',
+    getParentRoute: () => SuperAdminMarketingRoute,
+  } as any)
 const SuperAdminMarketingCampagnesRoute =
   SuperAdminMarketingCampagnesRouteImport.update({
     id: '/campagnes',
     path: '/campagnes',
+    getParentRoute: () => SuperAdminMarketingRoute,
+  } as any)
+const SuperAdminMarketingClientsRoute =
+  SuperAdminMarketingClientsRouteImport.update({
+    id: '/clients',
+    path: '/clients',
+    getParentRoute: () => SuperAdminMarketingRoute,
+  } as any)
+const SuperAdminMarketingParametresRoute =
+  SuperAdminMarketingParametresRouteImport.update({
+    id: '/parametres',
+    path: '/parametres',
+    getParentRoute: () => SuperAdminMarketingRoute,
+  } as any)
+const SuperAdminMarketingPromotionsRoute =
+  SuperAdminMarketingPromotionsRouteImport.update({
+    id: '/promotions',
+    path: '/promotions',
+    getParentRoute: () => SuperAdminMarketingRoute,
+  } as any)
+const SuperAdminMarketingWhatsappRoute =
+  SuperAdminMarketingWhatsappRouteImport.update({
+    id: '/whatsapp',
+    path: '/whatsapp',
     getParentRoute: () => SuperAdminMarketingRoute,
   } as any)
 const SuperAdminRestaurantsRestaurantIdRoute =
@@ -317,8 +359,14 @@ export interface FileRoutesByFullPath {
   '/commande/$orderId/confirmation': typeof CommandeOrderIdConfirmationRoute
   '/food/conseils/$slug': typeof FoodConseilsSlugRoute
   '/restaurants/categorie/$categorySlug': typeof RestaurantsCategorieCategorySlugRoute
+  '/super-admin/marketing/analytics': typeof SuperAdminMarketingAnalyticsRoute
   '/super-admin/marketing/audiences': typeof SuperAdminMarketingAudiencesRoute
+  '/super-admin/marketing/automatisations': typeof SuperAdminMarketingAutomatisationsRoute
   '/super-admin/marketing/campagnes': typeof SuperAdminMarketingCampagnesRoute
+  '/super-admin/marketing/clients': typeof SuperAdminMarketingClientsRoute
+  '/super-admin/marketing/parametres': typeof SuperAdminMarketingParametresRoute
+  '/super-admin/marketing/promotions': typeof SuperAdminMarketingPromotionsRoute
+  '/super-admin/marketing/whatsapp': typeof SuperAdminMarketingWhatsappRoute
   '/super-admin/restaurants/$restaurantId': typeof SuperAdminRestaurantsRestaurantIdRoute
   '/super-admin/marketing/': typeof SuperAdminMarketingIndexRoute
   '/super-admin/marketing/campagnes/nouvelle': typeof SuperAdminMarketingCampagnesNouvelleRoute
@@ -359,8 +407,14 @@ export interface FileRoutesByTo {
   '/commande/$orderId/confirmation': typeof CommandeOrderIdConfirmationRoute
   '/food/conseils/$slug': typeof FoodConseilsSlugRoute
   '/restaurants/categorie/$categorySlug': typeof RestaurantsCategorieCategorySlugRoute
+  '/super-admin/marketing/analytics': typeof SuperAdminMarketingAnalyticsRoute
   '/super-admin/marketing/audiences': typeof SuperAdminMarketingAudiencesRoute
+  '/super-admin/marketing/automatisations': typeof SuperAdminMarketingAutomatisationsRoute
   '/super-admin/marketing/campagnes': typeof SuperAdminMarketingCampagnesRoute
+  '/super-admin/marketing/clients': typeof SuperAdminMarketingClientsRoute
+  '/super-admin/marketing/parametres': typeof SuperAdminMarketingParametresRoute
+  '/super-admin/marketing/promotions': typeof SuperAdminMarketingPromotionsRoute
+  '/super-admin/marketing/whatsapp': typeof SuperAdminMarketingWhatsappRoute
   '/super-admin/restaurants/$restaurantId': typeof SuperAdminRestaurantsRestaurantIdRoute
   '/super-admin/marketing': typeof SuperAdminMarketingIndexRoute
   '/super-admin/marketing/campagnes/nouvelle': typeof SuperAdminMarketingCampagnesNouvelleRoute
@@ -405,8 +459,14 @@ export interface FileRoutesById {
   '/commande/$orderId/confirmation': typeof CommandeOrderIdConfirmationRoute
   '/food_/conseils_/$slug': typeof FoodConseilsSlugRoute
   '/restaurants/categorie/$categorySlug': typeof RestaurantsCategorieCategorySlugRoute
+  '/super-admin/marketing/analytics': typeof SuperAdminMarketingAnalyticsRoute
   '/super-admin/marketing/audiences': typeof SuperAdminMarketingAudiencesRoute
+  '/super-admin/marketing/automatisations': typeof SuperAdminMarketingAutomatisationsRoute
   '/super-admin/marketing/campagnes': typeof SuperAdminMarketingCampagnesRoute
+  '/super-admin/marketing/clients': typeof SuperAdminMarketingClientsRoute
+  '/super-admin/marketing/parametres': typeof SuperAdminMarketingParametresRoute
+  '/super-admin/marketing/promotions': typeof SuperAdminMarketingPromotionsRoute
+  '/super-admin/marketing/whatsapp': typeof SuperAdminMarketingWhatsappRoute
   '/super-admin/restaurants/$restaurantId': typeof SuperAdminRestaurantsRestaurantIdRoute
   '/super-admin/marketing/': typeof SuperAdminMarketingIndexRoute
   '/super-admin/marketing/campagnes_/nouvelle': typeof SuperAdminMarketingCampagnesNouvelleRoute
@@ -452,8 +512,14 @@ export interface FileRouteTypes {
     | '/commande/$orderId/confirmation'
     | '/food/conseils/$slug'
     | '/restaurants/categorie/$categorySlug'
+    | '/super-admin/marketing/analytics'
     | '/super-admin/marketing/audiences'
+    | '/super-admin/marketing/automatisations'
     | '/super-admin/marketing/campagnes'
+    | '/super-admin/marketing/clients'
+    | '/super-admin/marketing/parametres'
+    | '/super-admin/marketing/promotions'
+    | '/super-admin/marketing/whatsapp'
     | '/super-admin/restaurants/$restaurantId'
     | '/super-admin/marketing/'
     | '/super-admin/marketing/campagnes/nouvelle'
@@ -494,8 +560,14 @@ export interface FileRouteTypes {
     | '/commande/$orderId/confirmation'
     | '/food/conseils/$slug'
     | '/restaurants/categorie/$categorySlug'
+    | '/super-admin/marketing/analytics'
     | '/super-admin/marketing/audiences'
+    | '/super-admin/marketing/automatisations'
     | '/super-admin/marketing/campagnes'
+    | '/super-admin/marketing/clients'
+    | '/super-admin/marketing/parametres'
+    | '/super-admin/marketing/promotions'
+    | '/super-admin/marketing/whatsapp'
     | '/super-admin/restaurants/$restaurantId'
     | '/super-admin/marketing'
     | '/super-admin/marketing/campagnes/nouvelle'
@@ -539,8 +611,14 @@ export interface FileRouteTypes {
     | '/commande/$orderId/confirmation'
     | '/food_/conseils_/$slug'
     | '/restaurants/categorie/$categorySlug'
+    | '/super-admin/marketing/analytics'
     | '/super-admin/marketing/audiences'
+    | '/super-admin/marketing/automatisations'
     | '/super-admin/marketing/campagnes'
+    | '/super-admin/marketing/clients'
+    | '/super-admin/marketing/parametres'
+    | '/super-admin/marketing/promotions'
+    | '/super-admin/marketing/whatsapp'
     | '/super-admin/restaurants/$restaurantId'
     | '/super-admin/marketing/'
     | '/super-admin/marketing/campagnes_/nouvelle'
@@ -841,6 +919,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuperAdminMarketingIndexRouteImport
       parentRoute: typeof SuperAdminMarketingRoute
     }
+    '/super-admin/marketing/analytics': {
+      id: '/super-admin/marketing/analytics'
+      path: '/analytics'
+      fullPath: '/super-admin/marketing/analytics'
+      preLoaderRoute: typeof SuperAdminMarketingAnalyticsRouteImport
+      parentRoute: typeof SuperAdminMarketingRoute
+    }
     '/super-admin/marketing/audiences': {
       id: '/super-admin/marketing/audiences'
       path: '/audiences'
@@ -848,11 +933,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuperAdminMarketingAudiencesRouteImport
       parentRoute: typeof SuperAdminMarketingRoute
     }
+    '/super-admin/marketing/automatisations': {
+      id: '/super-admin/marketing/automatisations'
+      path: '/automatisations'
+      fullPath: '/super-admin/marketing/automatisations'
+      preLoaderRoute: typeof SuperAdminMarketingAutomatisationsRouteImport
+      parentRoute: typeof SuperAdminMarketingRoute
+    }
     '/super-admin/marketing/campagnes': {
       id: '/super-admin/marketing/campagnes'
       path: '/campagnes'
       fullPath: '/super-admin/marketing/campagnes'
       preLoaderRoute: typeof SuperAdminMarketingCampagnesRouteImport
+      parentRoute: typeof SuperAdminMarketingRoute
+    }
+    '/super-admin/marketing/clients': {
+      id: '/super-admin/marketing/clients'
+      path: '/clients'
+      fullPath: '/super-admin/marketing/clients'
+      preLoaderRoute: typeof SuperAdminMarketingClientsRouteImport
+      parentRoute: typeof SuperAdminMarketingRoute
+    }
+    '/super-admin/marketing/parametres': {
+      id: '/super-admin/marketing/parametres'
+      path: '/parametres'
+      fullPath: '/super-admin/marketing/parametres'
+      preLoaderRoute: typeof SuperAdminMarketingParametresRouteImport
+      parentRoute: typeof SuperAdminMarketingRoute
+    }
+    '/super-admin/marketing/promotions': {
+      id: '/super-admin/marketing/promotions'
+      path: '/promotions'
+      fullPath: '/super-admin/marketing/promotions'
+      preLoaderRoute: typeof SuperAdminMarketingPromotionsRouteImport
+      parentRoute: typeof SuperAdminMarketingRoute
+    }
+    '/super-admin/marketing/whatsapp': {
+      id: '/super-admin/marketing/whatsapp'
+      path: '/whatsapp'
+      fullPath: '/super-admin/marketing/whatsapp'
+      preLoaderRoute: typeof SuperAdminMarketingWhatsappRouteImport
       parentRoute: typeof SuperAdminMarketingRoute
     }
     '/super-admin/restaurants/$restaurantId': {
@@ -918,15 +1038,28 @@ const RestaurantsRouteWithChildren = RestaurantsRoute._addFileChildren(
 )
 
 interface SuperAdminMarketingRouteChildren {
+  SuperAdminMarketingAnalyticsRoute: typeof SuperAdminMarketingAnalyticsRoute
   SuperAdminMarketingAudiencesRoute: typeof SuperAdminMarketingAudiencesRoute
+  SuperAdminMarketingAutomatisationsRoute: typeof SuperAdminMarketingAutomatisationsRoute
   SuperAdminMarketingCampagnesRoute: typeof SuperAdminMarketingCampagnesRoute
+  SuperAdminMarketingClientsRoute: typeof SuperAdminMarketingClientsRoute
+  SuperAdminMarketingParametresRoute: typeof SuperAdminMarketingParametresRoute
+  SuperAdminMarketingPromotionsRoute: typeof SuperAdminMarketingPromotionsRoute
+  SuperAdminMarketingWhatsappRoute: typeof SuperAdminMarketingWhatsappRoute
   SuperAdminMarketingIndexRoute: typeof SuperAdminMarketingIndexRoute
   SuperAdminMarketingCampagnesNouvelleRoute: typeof SuperAdminMarketingCampagnesNouvelleRoute
 }
 
 const SuperAdminMarketingRouteChildren: SuperAdminMarketingRouteChildren = {
+  SuperAdminMarketingAnalyticsRoute: SuperAdminMarketingAnalyticsRoute,
   SuperAdminMarketingAudiencesRoute: SuperAdminMarketingAudiencesRoute,
+  SuperAdminMarketingAutomatisationsRoute:
+    SuperAdminMarketingAutomatisationsRoute,
   SuperAdminMarketingCampagnesRoute: SuperAdminMarketingCampagnesRoute,
+  SuperAdminMarketingClientsRoute: SuperAdminMarketingClientsRoute,
+  SuperAdminMarketingParametresRoute: SuperAdminMarketingParametresRoute,
+  SuperAdminMarketingPromotionsRoute: SuperAdminMarketingPromotionsRoute,
+  SuperAdminMarketingWhatsappRoute: SuperAdminMarketingWhatsappRoute,
   SuperAdminMarketingIndexRoute: SuperAdminMarketingIndexRoute,
   SuperAdminMarketingCampagnesNouvelleRoute:
     SuperAdminMarketingCampagnesNouvelleRoute,

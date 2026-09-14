@@ -1,11 +1,27 @@
 import { createContext, useContext } from "react";
 
-export type MarketingRestaurantOption = { id: string; name: string; slug: string; currency: string };
+export type MarketingRestaurantOption = {
+  id: string;
+  name: string;
+  slug: string;
+  currency: string;
+};
 
+/**
+ * `restaurantId`:
+ * - a real id -- one restaurant selected (the only mode most pages support:
+ *   creating/targeting a campaign, building an audience, managing promo
+ *   codes all fundamentally need exactly one restaurant's data).
+ * - `"all"` -- the Super Admin's cross-tenant view, only meaningful for
+ *   pages that aggregate across restaurants (Dashboard, Clients, Analytics).
+ *   Convert to the lib layer's `restaurantId: string | null` convention with
+ *   `restaurantId === "all" ? null : restaurantId`.
+ * - `null` -- still loading, or no active restaurant exists yet.
+ */
 export type MarketingContextValue = {
   restaurants: MarketingRestaurantOption[];
-  restaurantId: string | null;
-  setRestaurantId: (id: string) => void;
+  restaurantId: string | "all" | null;
+  setRestaurantId: (id: string | "all") => void;
   restaurant: MarketingRestaurantOption | null;
   loading: boolean;
 };
@@ -21,6 +37,7 @@ export const MarketingContext = createContext<MarketingContextValue | null>(null
 
 export function useMarketingContext(): MarketingContextValue {
   const ctx = useContext(MarketingContext);
-  if (!ctx) throw new Error("useMarketingContext must be used within the /super-admin/marketing layout");
+  if (!ctx)
+    throw new Error("useMarketingContext must be used within the /super-admin/marketing layout");
   return ctx;
 }

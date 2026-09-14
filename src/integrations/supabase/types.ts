@@ -266,6 +266,7 @@ export type Database = {
           phone: string
           restaurant_id: string
           source: string
+          tags: string[]
           total_spent: number
           updated_at: string
         }
@@ -283,6 +284,7 @@ export type Database = {
           phone: string
           restaurant_id: string
           source?: string
+          tags?: string[]
           total_spent?: number
           updated_at?: string
         }
@@ -300,6 +302,7 @@ export type Database = {
           phone?: string
           restaurant_id?: string
           source?: string
+          tags?: string[]
           total_spent?: number
           updated_at?: string
         }
@@ -1045,6 +1048,53 @@ export type Database = {
           },
           {
             foreignKeyName: "inventory_movements_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_automations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          restaurant_id: string
+          status: string
+          steps: Json
+          trigger_config: Json
+          trigger_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          restaurant_id: string
+          status?: string
+          steps?: Json
+          trigger_config?: Json
+          trigger_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          restaurant_id?: string
+          status?: string
+          steps?: Json
+          trigger_config?: Json
+          trigger_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_automations_restaurant_id_fkey"
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "restaurants"

@@ -10,7 +10,7 @@ import {
 } from "@/lib/marketing";
 import { useMarketingContext } from "@/hooks/useMarketingContext";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { RequireOneRestaurant } from "@/components/superadmin/marketing/RequireOneRestaurant";
 
 const SEGMENT_DESCRIPTIONS: Record<AudienceSegmentKey, string> = {
   inactive: "Dernière commande il y a plus de N jours.",
@@ -22,9 +22,20 @@ const SEGMENT_DESCRIPTIONS: Record<AudienceSegmentKey, string> = {
   custom: "Filtres combinés librement.",
 };
 
-const ADJUSTABLE_SEGMENTS: Exclude<AudienceSegmentKey, "custom">[] = ["inactive", "vip", "regular", "high_value"];
+const ADJUSTABLE_SEGMENTS: Exclude<AudienceSegmentKey, "custom">[] = [
+  "inactive",
+  "vip",
+  "regular",
+  "high_value",
+];
 
-function SegmentCard({ segmentKey, restaurantId }: { segmentKey: Exclude<AudienceSegmentKey, "custom">; restaurantId: string }) {
+function SegmentCard({
+  segmentKey,
+  restaurantId,
+}: {
+  segmentKey: Exclude<AudienceSegmentKey, "custom">;
+  restaurantId: string;
+}) {
   const [param, setParam] = useState<number>(() => {
     const d = AUDIENCE_SEGMENT_DEFAULTS[segmentKey];
     return d.inactiveSinceDays ?? d.minOrders ?? d.minSpend ?? 0;
@@ -59,7 +70,8 @@ function SegmentCard({ segmentKey, restaurantId }: { segmentKey: Exclude<Audienc
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurantId, param, segmentKey]);
 
-  const pct = preview && preview.totalBase > 0 ? Math.round((preview.eligible / preview.totalBase) * 100) : 0;
+  const pct =
+    preview && preview.totalBase > 0 ? Math.round((preview.eligible / preview.totalBase) * 100) : 0;
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -69,9 +81,19 @@ function SegmentCard({ segmentKey, restaurantId }: { segmentKey: Exclude<Audienc
       {adjustable && (
         <label className="mt-3 block space-y-1">
           <span className="text-xs font-medium text-slate-600">
-            {segmentKey === "inactive" ? "Jours d'inactivité" : segmentKey === "high_value" ? "Montant minimum dépensé" : "Nombre minimum de commandes"}
+            {segmentKey === "inactive"
+              ? "Jours d'inactivité"
+              : segmentKey === "high_value"
+                ? "Montant minimum dépensé"
+                : "Nombre minimum de commandes"}
           </span>
-          <Input type="number" min={0} value={param} onChange={(e) => setParam(Number(e.target.value) || 0)} className="h-9" />
+          <Input
+            type="number"
+            min={0}
+            value={param}
+            onChange={(e) => setParam(Number(e.target.value) || 0)}
+            className="h-9"
+          />
         </label>
       )}
 
@@ -82,8 +104,10 @@ function SegmentCard({ segmentKey, restaurantId }: { segmentKey: Exclude<Audienc
           <>
             <p className="font-display text-2xl font-semibold text-slate-900">{preview.eligible}</p>
             <p className="text-xs text-slate-500">
-              {pct}% de la base ({preview.totalBase} clients) · {preview.excludedOptOut} désinscrits exclus
-              {preview.excludedRecentlyMessaged > 0 && ` · ${preview.excludedRecentlyMessaged} déjà contactés récemment`}
+              {pct}% de la base ({preview.totalBase} clients) · {preview.excludedOptOut} désinscrits
+              exclus
+              {preview.excludedRecentlyMessaged > 0 &&
+                ` · ${preview.excludedRecentlyMessaged} déjà contactés récemment`}
             </p>
           </>
         )}
@@ -100,22 +124,136 @@ function SegmentCard({ segmentKey, restaurantId }: { segmentKey: Exclude<Audienc
   );
 }
 
-function MarketingAudiencesPage() {
-  const { restaurantId } = useMarketingContext();
-  if (!restaurantId) return null;
+/** Freely combined AND conditions (e.g. "commandes >= 3 ET dernière commande > 14 jours ET CA > 50 000") -- the exact same AudienceFilters/applyAudienceFilters engine as the preset cards, just with every field editable at once instead of one preset parameter. */
+function CustomSegmentBuilder({ restaurantId }: { restaurantId: string }) {
+  const [filters, setFilters] = useState<AudienceFilters>({});
+  const [preview, setPreview] = useState<AudiencePreview | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    fetchAudiencePreview(restaurantId, filters)
+      .then((result) => {
+        if (!cancelled) setPreview(result);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restaurantId, JSON.stringify(filters)]);
+
+  function setField(key: "minOrders" | "minSpend" | "inactiveSinceDays", raw: string) {
+    setFilters((f) => {
+      const next = { ...f };
+      if (raw) next[key] = Number(raw);
+      else delete next[key];
+      return next;
+    });
+  }
+
+  const activeConditions = Object.keys(filters).length;
+  const pct =
+    preview && preview.totalBase > 0 ? Math.round((preview.eligible / preview.totalBase) * 100) : 0;
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-slate-500">
-        Chaque compteur ci-dessous est calculé en direct sur les vraies commandes de ce restaurant -- ajustez les seuils pour voir
-        l'audience changer immédiatement.
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h3 className="font-semibold text-slate-900">Audience personnalisée</h3>
+      <p className="mt-1 text-xs text-slate-500">
+        Combinez librement plusieurs conditions (toutes doivent être vraies).
       </p>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {(["inactive", "vip", "new_customer", "regular", "high_value", "promo_users"] as const).map((key) => (
-          <SegmentCard key={key} segmentKey={key} restaurantId={restaurantId} />
-        ))}
+
+      <div className="mt-3 grid gap-3 sm:grid-cols-3">
+        <label className="space-y-1">
+          <span className="text-xs font-medium text-slate-600">Commandes min.</span>
+          <Input
+            type="number"
+            min={0}
+            value={filters.minOrders ?? ""}
+            onChange={(e) => setField("minOrders", e.target.value)}
+            className="h-9"
+          />
+        </label>
+        <label className="space-y-1">
+          <span className="text-xs font-medium text-slate-600">Dépenses min. (XOF)</span>
+          <Input
+            type="number"
+            min={0}
+            value={filters.minSpend ?? ""}
+            onChange={(e) => setField("minSpend", e.target.value)}
+            className="h-9"
+          />
+        </label>
+        <label className="space-y-1">
+          <span className="text-xs font-medium text-slate-600">Inactif depuis (jours)</span>
+          <Input
+            type="number"
+            min={0}
+            value={filters.inactiveSinceDays ?? ""}
+            onChange={(e) => setField("inactiveSinceDays", e.target.value)}
+            className="h-9"
+          />
+        </label>
       </div>
+
+      <div className="mt-4">
+        {activeConditions === 0 ? (
+          <p className="text-sm text-slate-400">
+            Ajoutez au moins une condition pour voir l'audience.
+          </p>
+        ) : loading || !preview ? (
+          <p className="text-sm text-slate-400">Calcul...</p>
+        ) : (
+          <>
+            <p className="font-display text-2xl font-semibold text-slate-900">
+              {preview.eligible} client{preview.eligible > 1 ? "s" : ""}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              {pct}% de la base ({preview.totalBase} clients) · {preview.excludedOptOut} désinscrits
+              exclus
+              {preview.excludedRecentlyMessaged > 0 &&
+                ` · ${preview.excludedRecentlyMessaged} déjà contactés récemment`}
+            </p>
+          </>
+        )}
+      </div>
+
+      <Link
+        to="/super-admin/marketing/campagnes/nouvelle"
+        search={{ segment: "custom" }}
+        className="mt-3 inline-flex h-9 items-center justify-center rounded-full border border-primary/30 bg-primary/5 px-4 text-sm font-medium text-primary hover:bg-primary/10"
+      >
+        Créer une campagne pour cette audience
+      </Link>
     </div>
+  );
+}
+
+function MarketingAudiencesPage() {
+  const { restaurantId } = useMarketingContext();
+
+  return (
+    <RequireOneRestaurant restaurantId={restaurantId}>
+      {restaurantId && restaurantId !== "all" && (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-500">
+            Chaque compteur ci-dessous est calculé en direct sur les vraies commandes de ce
+            restaurant -- ajustez les seuils pour voir l'audience changer immédiatement.
+          </p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {(
+              ["inactive", "vip", "new_customer", "regular", "high_value", "promo_users"] as const
+            ).map((key) => (
+              <SegmentCard key={key} segmentKey={key} restaurantId={restaurantId} />
+            ))}
+          </div>
+          <CustomSegmentBuilder restaurantId={restaurantId} />
+        </div>
+      )}
+    </RequireOneRestaurant>
   );
 }
 

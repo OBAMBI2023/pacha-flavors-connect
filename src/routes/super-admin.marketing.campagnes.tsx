@@ -4,7 +4,13 @@ import { toast } from "sonner";
 import { ArrowRight, Send, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { formatMoney } from "@/lib/currency";
 import {
   CAMPAIGN_OBJECTIVE_LABELS,
@@ -32,7 +38,15 @@ const STATUS_BADGE_CLASS: Record<CampaignStatus, string> = {
   failed: "bg-destructive/10 text-destructive",
 };
 
-function CampaignDetailSheet({ campaignId, onClose, onChanged }: { campaignId: string | null; onClose: () => void; onChanged: () => void }) {
+function CampaignDetailSheet({
+  campaignId,
+  onClose,
+  onChanged,
+}: {
+  campaignId: string | null;
+  onClose: () => void;
+  onChanged: () => void;
+}) {
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [recipients, setRecipients] = useState<CampaignRecipient[]>([]);
   const [attribution, setAttribution] = useState<CampaignAttribution | null>(null);
@@ -43,7 +57,10 @@ function CampaignDetailSheet({ campaignId, onClose, onChanged }: { campaignId: s
     if (!campaignId) return;
     setLoading(true);
     try {
-      const [c, r] = await Promise.all([fetchCampaign(campaignId), fetchCampaignRecipients(campaignId)]);
+      const [c, r] = await Promise.all([
+        fetchCampaign(campaignId),
+        fetchCampaignRecipients(campaignId),
+      ]);
       setCampaign(c);
       setRecipients(r);
       setAttribution(c ? await fetchCampaignAttribution(c) : null);
@@ -113,7 +130,9 @@ function CampaignDetailSheet({ campaignId, onClose, onChanged }: { campaignId: s
             <SheetHeader>
               <SheetTitle className="flex flex-wrap items-center gap-2">
                 {campaign.name}
-                <Badge className={STATUS_BADGE_CLASS[campaign.status]}>{CAMPAIGN_STATUS_LABELS[campaign.status]}</Badge>
+                <Badge className={STATUS_BADGE_CLASS[campaign.status]}>
+                  {CAMPAIGN_STATUS_LABELS[campaign.status]}
+                </Badge>
               </SheetTitle>
               <SheetDescription>
                 {CAMPAIGN_OBJECTIVE_LABELS[campaign.objective]} · {campaign.restaurant?.name}
@@ -123,20 +142,32 @@ function CampaignDetailSheet({ campaignId, onClose, onChanged }: { campaignId: s
             <div className="mt-5 space-y-5 text-sm">
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <div className="rounded-2xl border border-border p-3">
-                  <p className="text-[0.65rem] font-medium uppercase text-muted-foreground">Ciblés</p>
+                  <p className="text-[0.65rem] font-medium uppercase text-muted-foreground">
+                    Ciblés
+                  </p>
                   <p className="mt-1 font-display text-xl font-semibold">{recipients.length}</p>
                 </div>
                 <div className="rounded-2xl border border-border p-3">
-                  <p className="text-[0.65rem] font-medium uppercase text-muted-foreground">Envoyés</p>
+                  <p className="text-[0.65rem] font-medium uppercase text-muted-foreground">
+                    Envoyés
+                  </p>
                   <p className="mt-1 font-display text-xl font-semibold">{sentCount}</p>
                 </div>
                 <div className="rounded-2xl border border-border p-3">
-                  <p className="text-[0.65rem] font-medium uppercase text-muted-foreground">Commandes</p>
-                  <p className="mt-1 font-display text-xl font-semibold">{attribution?.ordersGenerated ?? 0}</p>
+                  <p className="text-[0.65rem] font-medium uppercase text-muted-foreground">
+                    Commandes
+                  </p>
+                  <p className="mt-1 font-display text-xl font-semibold">
+                    {attribution?.ordersGenerated ?? 0}
+                  </p>
                 </div>
                 <div className="rounded-2xl border border-border p-3">
-                  <p className="text-[0.65rem] font-medium uppercase text-muted-foreground">CA généré</p>
-                  <p className="mt-1 font-display text-lg font-semibold">{formatMoney(attribution?.revenueGenerated ?? 0, "XOF")}</p>
+                  <p className="text-[0.65rem] font-medium uppercase text-muted-foreground">
+                    CA généré
+                  </p>
+                  <p className="mt-1 font-display text-lg font-semibold">
+                    {formatMoney(attribution?.revenueGenerated ?? 0, "XOF")}
+                  </p>
                 </div>
               </div>
 
@@ -150,7 +181,12 @@ function CampaignDetailSheet({ campaignId, onClose, onChanged }: { campaignId: s
                   <Button size="sm" onClick={() => void handleFinish()} disabled={busy}>
                     <Send className="mr-1.5 h-3.5 w-3.5" /> Marquer la campagne comme terminée
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => void handleCancel()} disabled={busy}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => void handleCancel()}
+                    disabled={busy}
+                  >
                     <X className="mr-1.5 h-3.5 w-3.5" /> Annuler la campagne
                   </Button>
                 </div>
@@ -160,7 +196,10 @@ function CampaignDetailSheet({ campaignId, onClose, onChanged }: { campaignId: s
                 <h3 className="font-semibold">Destinataires ({recipients.length})</h3>
                 <ul className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
                   {recipients.map((r) => (
-                    <li key={r.id} className="flex items-center justify-between gap-2 rounded-xl border border-border p-3">
+                    <li
+                      key={r.id}
+                      className="flex items-center justify-between gap-2 rounded-xl border border-border p-3"
+                    >
                       <div className="min-w-0">
                         <p className="truncate font-medium">{r.name_snapshot}</p>
                         <p className="truncate text-xs text-muted-foreground">{r.phone_snapshot}</p>
@@ -178,7 +217,12 @@ function CampaignDetailSheet({ campaignId, onClose, onChanged }: { campaignId: s
                             >
                               Ouvrir WhatsApp
                             </a>
-                            <Button size="sm" variant="outline" disabled={busy} onClick={() => void handleMarkSent(r.id)}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={busy}
+                              onClick={() => void handleMarkSent(r.id)}
+                            >
                               Marquer envoyé
                             </Button>
                           </>
@@ -200,6 +244,7 @@ function CampaignDetailSheet({ campaignId, onClose, onChanged }: { campaignId: s
 
 function MarketingCampaignsPage() {
   const { restaurantId } = useMarketingContext();
+  const scopeId = restaurantId === "all" ? null : restaurantId;
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [attributions, setAttributions] = useState<Record<string, CampaignAttribution>>({});
   const [loading, setLoading] = useState(true);
@@ -209,9 +254,11 @@ function MarketingCampaignsPage() {
     if (!restaurantId) return;
     setLoading(true);
     try {
-      const rows = await fetchCampaigns(restaurantId);
+      const rows = await fetchCampaigns(scopeId);
       setCampaigns(rows);
-      const entries = await Promise.all(rows.map(async (c) => [c.id, await fetchCampaignAttribution(c)] as const));
+      const entries = await Promise.all(
+        rows.map(async (c) => [c.id, await fetchCampaignAttribution(c)] as const),
+      );
       setAttributions(Object.fromEntries(entries));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Impossible de charger les campagnes.");
@@ -230,7 +277,9 @@ function MarketingCampaignsPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-slate-500">{campaigns.length} campagne{campaigns.length > 1 ? "s" : ""}</p>
+        <p className="text-sm text-slate-500">
+          {campaigns.length} campagne{campaigns.length > 1 ? "s" : ""}
+        </p>
         <Link
           to="/super-admin/marketing/campagnes/nouvelle"
           className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:opacity-90"
@@ -251,6 +300,7 @@ function MarketingCampaignsPage() {
             <thead className="bg-slate-50 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">Campagne</th>
+                {scopeId === null && <th className="px-4 py-3">Restaurant</th>}
                 <th className="px-4 py-3">Objectif</th>
                 <th className="px-4 py-3">Ciblés</th>
                 <th className="px-4 py-3">Commandes</th>
@@ -264,14 +314,27 @@ function MarketingCampaignsPage() {
               {campaigns.map((c) => (
                 <tr key={c.id} className="hover:bg-slate-50">
                   <td className="px-4 py-3 font-medium text-slate-900">{c.name}</td>
-                  <td className="px-4 py-3 text-slate-600">{CAMPAIGN_OBJECTIVE_LABELS[c.objective]}</td>
-                  <td className="px-4 py-3 text-slate-600">{c.recipient_count}</td>
-                  <td className="px-4 py-3 text-slate-600">{attributions[c.id]?.ordersGenerated ?? 0}</td>
-                  <td className="px-4 py-3 text-slate-600">{formatMoney(attributions[c.id]?.revenueGenerated ?? 0, "XOF")}</td>
-                  <td className="px-4 py-3">
-                    <Badge className={STATUS_BADGE_CLASS[c.status]}>{CAMPAIGN_STATUS_LABELS[c.status]}</Badge>
+                  {scopeId === null && (
+                    <td className="px-4 py-3 text-slate-600">{c.restaurant?.name ?? "--"}</td>
+                  )}
+                  <td className="px-4 py-3 text-slate-600">
+                    {CAMPAIGN_OBJECTIVE_LABELS[c.objective]}
                   </td>
-                  <td className="px-4 py-3 text-slate-500">{new Date(c.created_at).toLocaleDateString("fr-FR")}</td>
+                  <td className="px-4 py-3 text-slate-600">{c.recipient_count}</td>
+                  <td className="px-4 py-3 text-slate-600">
+                    {attributions[c.id]?.ordersGenerated ?? 0}
+                  </td>
+                  <td className="px-4 py-3 text-slate-600">
+                    {formatMoney(attributions[c.id]?.revenueGenerated ?? 0, "XOF")}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge className={STATUS_BADGE_CLASS[c.status]}>
+                      {CAMPAIGN_STATUS_LABELS[c.status]}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3 text-slate-500">
+                    {new Date(c.created_at).toLocaleDateString("fr-FR")}
+                  </td>
                   <td className="px-4 py-3">
                     <button
                       onClick={() => setDetailId(c.id)}
@@ -287,7 +350,11 @@ function MarketingCampaignsPage() {
         </div>
       )}
 
-      <CampaignDetailSheet campaignId={detailId} onClose={() => setDetailId(null)} onChanged={() => void refresh()} />
+      <CampaignDetailSheet
+        campaignId={detailId}
+        onClose={() => setDetailId(null)}
+        onChanged={() => void refresh()}
+      />
     </div>
   );
 }
