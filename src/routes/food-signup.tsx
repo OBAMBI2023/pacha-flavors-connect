@@ -547,6 +547,13 @@ function FoodSignupPage() {
               En créant votre compte, vous acceptez les Conditions d'utilisation et la Politique de
               confidentialité de SAOVIA Food.
             </p>
+
+            {/* Reserved slot for the PWA install banner (see InstallPrompt.tsx):
+                this page's primary CTA already sits at the fold on mobile, so
+                the banner renders in normal flow here instead of floating
+                fixed over the bottom of the screen, guaranteeing it can never
+                cover the "Créer mon compte" button. */}
+            <div id="pwa-install-slot" className="mx-auto mt-4 w-full max-w-[640px]" />
           </section>
         </div>
       </div>
