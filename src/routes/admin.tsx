@@ -34,6 +34,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { MENU_BUCKET, type DbMenuItem, useAdminMenuData } from "@/lib/menu-db";
+import { tenantCanonicalUrl } from "@/lib/seo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -354,7 +355,11 @@ export default function AdminPage() {
       await queryClient.invalidateQueries({ queryKey: ["menu-data", data.restaurant.slug] });
   };
   const restaurant = data?.restaurant ?? null;
-  const publicHref = restaurant?.slug ? `/r/${restaurant.slug}` : "/";
+  // Reuses the same slug/custom-domain resolution as the storefront's own SEO
+  // canonical URL (src/lib/seo.ts) instead of a hand-rolled path, and never
+  // falls back to "/" (the SAOVIA Food B2B homepage since Phase 3U) when a
+  // tenant has no usable slug yet -- null means "no public storefront to show".
+  const publicHref = restaurant?.slug ? tenantCanonicalUrl(restaurant, null) : null;
   const mapPreview = mapsUrl(restaurantForm);
 
   const categoryCounts = useMemo(() => {
@@ -869,7 +874,13 @@ export default function AdminPage() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    onClick={() => window.open(publicHref, "_blank", "noopener,noreferrer")}
+                    onClick={() => {
+                      if (!publicHref) {
+                        toast.error("Aucune vitrine publique n'est encore configurée pour ce restaurant.");
+                        return;
+                      }
+                      window.open(publicHref, "_blank", "noopener,noreferrer");
+                    }}
                   >
                     Voir mon site
                   </DropdownMenuItem>
@@ -1659,7 +1670,7 @@ function SimpleAccess({
   title: string;
   message: string;
   email: string;
-  publicHref?: string;
+  publicHref?: string | null;
   onLogout: () => Promise<void>;
 }) {
   return (

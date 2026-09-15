@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
+import { toast } from "sonner";
 import {
   ArrowRight,
   Bike,
@@ -138,7 +139,7 @@ export function DashboardHome({
 }: {
   restaurantId: string | null;
   currency: string;
-  publicHref: string;
+  publicHref: string | null;
   menuItems: DbMenuItem[];
   onNavigateTab: (tab: string) => void;
 }) {
@@ -425,7 +426,13 @@ export function DashboardHome({
 
       <p className="text-center text-xs text-muted-foreground">
         <button
-          onClick={() => window.open(publicHref, "_blank", "noopener,noreferrer")}
+          onClick={() => {
+            if (!publicHref) {
+              toast.error("Aucune vitrine publique n'est encore configurée pour ce restaurant.");
+              return;
+            }
+            window.open(publicHref, "_blank", "noopener,noreferrer");
+          }}
           className="underline underline-offset-4 hover:text-foreground"
         >
           Voir la vitrine publique
