@@ -7,7 +7,8 @@
      only job is to exist at build time so Nitro registers the /sitemap.xml
      route; the postbuild step then overwrites this file in place, in
      whichever directory the active preset actually deploys (see
-     scripts/lib/nitro-output.mjs), with the real, tenant-aware sitemap
-     index. -->
+     scripts/lib/nitro-output.mjs), with the real, 3-entry index (food,
+     marketplace, and the dynamic restaurants sub-sitemap -- see
+     server/sitemap-restaurants.ts, served live, never written here). -->
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 </sitemapindex>

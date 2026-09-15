@@ -6,11 +6,21 @@
 // (and a robots.txt pointing at the wrong domain) to production because
 // nothing checked what actually landed in the deployed output directory.
 //
+// sitemap-restaurants.xml is the one deliberate exception to "must exist on
+// disk": it's served at request time by server/sitemap-restaurants.ts, not
+// written by generate-seo-files.mjs (see that script's own header comment
+// for why). This validator both excuses that one file from the on-disk
+// check and actively fails the build if a *static* file ever appears at
+// that exact path -- e.g. from a future edit to generate-seo-files.mjs --
+// since a static file there would silently shadow the dynamic route on
+// Vercel and reintroduce the "frozen until next deploy" problem this
+// architecture exists to remove. See DYNAMIC_SITEMAPS below.
+//
 // Resolves the directory to check the exact same way generate-seo-files.mjs
 // resolves where to write (see scripts/lib/nitro-output.mjs) -- so this
 // always validates the files Vercel will actually deploy, not a directory
 // that happens to exist locally.
-import { readFile, readdir } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import { resolveNitroPublicDir } from "./lib/nitro-output.mjs";
@@ -44,6 +54,11 @@ const DISALLOWED_PATH_PREFIXES = [
 // routes like /food/conseils and /food-signup are real pages and must stay
 // out of this list.
 const REDIRECTING_PATHS = ["/food"];
+
+// Sub-sitemaps that are served dynamically (server/sitemap-restaurants.ts),
+// never written to the static build output. Relative to CANONICAL_ORIGIN,
+// matching how <loc> values are checked below.
+const DYNAMIC_SITEMAPS = ["sitemap-restaurants.xml"];
 
 const errors = [];
 const passed = [];
@@ -116,7 +131,7 @@ async function validateXmlFile(publicDir, relPath, { checkLocsExist }) {
     // deployed by a different project) is intentionally out of scope.
     if (checkLocsExist && loc.startsWith(`${CANONICAL_ORIGIN}/`)) {
       const relTarget = loc.slice(CANONICAL_ORIGIN.length + 1);
-      if (relTarget.endsWith(".xml")) {
+      if (relTarget.endsWith(".xml") && !DYNAMIC_SITEMAPS.includes(relTarget)) {
         const exists = await fileExists(resolve(publicDir, relTarget));
         if (!exists)
           fail(relPath, `references "${relTarget}", which does not exist in the build output`);
@@ -172,31 +187,33 @@ if (!indexLocs.some((loc) => loc === `${CANONICAL_ORIGIN}/sitemap-food.xml`)) {
 if (!indexLocs.some((loc) => loc === `${CANONICAL_ORIGIN}/sitemap-marketplace.xml`)) {
   fail("sitemap.xml", `does not reference "${CANONICAL_ORIGIN}/sitemap-marketplace.xml"`);
 }
+if (!indexLocs.some((loc) => loc === `${CANONICAL_ORIGIN}/sitemap-restaurants.xml`)) {
+  fail("sitemap.xml", `does not reference "${CANONICAL_ORIGIN}/sitemap-restaurants.xml"`);
+}
 
-// Every tenant sitemap actually written to disk must itself be valid --
-// not just the ones sitemap.xml happens to reference (a sitemap.xml write
-// failure shouldn't hide an invalid tenant file, and vice versa).
-let tenantSitemapCount = 0;
-try {
-  const entries = await readdir(resolve(publicDir, "sitemaps"));
-  const xmlFiles = entries.filter((f) => f.endsWith(".xml"));
-  tenantSitemapCount = xmlFiles.length;
-  for (const file of xmlFiles) {
-    await validateXmlFile(publicDir, `sitemaps/${file}`, { checkLocsExist: false });
+// The single-source-of-truth guard: restaurant tenants are served live by
+// server/sitemap-restaurants.ts. If a static file ever reappears at this
+// exact path (e.g. a future edit to generate-seo-files.mjs reintroducing
+// per-tenant generation), it would silently shadow the dynamic route on
+// Vercel's static-asset routing -- the sitemap would look fine but freeze
+// back to build-time content, defeating the whole point of this
+// architecture. Fail loudly instead of letting that regress silently.
+for (const relPath of DYNAMIC_SITEMAPS) {
+  if (await fileExists(resolve(publicDir, relPath))) {
+    fail(
+      relPath,
+      "exists as a STATIC file in the build output, but this path must only ever be served dynamically by server/sitemap-restaurants.ts -- a static file here would shadow the live route on Vercel and freeze tenant listings until the next deploy.",
+    );
+  } else {
+    ok(relPath, "correctly absent from the static build output (served dynamically instead)");
   }
-} catch {
-  // No sitemaps/ directory at all is only a problem if sitemap.xml claims
-  // tenant entries that would live there -- already caught above via the
-  // per-<loc> existence check.
 }
 
 console.log("");
 for (const line of passed) console.log(`  PASS  ${line}`);
 for (const line of errors) console.log(`  FAIL  ${line}`);
 console.log("");
-console.log(
-  `[seo:validate] ${passed.length} check(s) passed, ${errors.length} failed, ${tenantSitemapCount} tenant sitemap(s) found.`,
-);
+console.log(`[seo:validate] ${passed.length} check(s) passed, ${errors.length} failed.`);
 
 if (errors.length > 0) {
   console.error("[seo:validate] SEO file validation failed -- see FAIL lines above.");

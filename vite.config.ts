@@ -101,6 +101,29 @@ export default defineConfig({
   plugins: [
     tanstackStart(),
     nitro({
+      // Dynamic sitemap sub-file for tenant restaurants -- see
+      // server/sitemap-restaurants.ts's own header comment for the full
+      // reasoning. Registered programmatically (not filesystem-scanned:
+      // this integration's route-directory scanning is opt-in and left off)
+      // at a path public/ has never served a static file at, so there is no
+      // ambiguity with Vercel's static-asset routing for this exact URL.
+      routes: {
+        "/sitemap-restaurants.xml": "./server/sitemap-restaurants.ts",
+      },
+      // This is the mechanism actually relied on for propagation speed --
+      // verified against a real `VERCEL=1 npm run build`: it compiles into a
+      // genuine Vercel ISR function (.vercel/output/functions/sitemap-
+      // restaurants.xml-isr.func, prerender-config.json's "expiration": 600),
+      // not just an in-process Nitro cache. Using the numeric `isr` rule
+      // specifically -- an earlier `swr: 600` attempt compiled to
+      // "expiration": false (cache-until-manually-revalidated, no
+      // mechanism does that here), which would have frozen the sitemap
+      // after its first request instead of refreshing it. The handler's own
+      // Cache-Control header is a second, standard-HTTP layer on top of
+      // this, redundant with it by design.
+      routeRules: {
+        "/sitemap-restaurants.xml": { isr: 600 },
+      },
       rolldownConfig: {
         output: {
           preserveModules: true,
