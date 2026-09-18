@@ -90,10 +90,15 @@ export function OrdersPanel({
   enableVibration,
   disableVibration,
   onBack,
+  initialDetailOrderId,
+  onInitialDetailHandled,
 }: OrdersAlert & {
   restaurantId: string | null;
   restaurant: DbRestaurant | null;
   onBack?: () => void;
+  /** One-shot request to open an order's detail sheet directly on mount/update -- set by RealtimeOrdersBubble's "Voir la commande" (admin.tsx owns the state and clears it via onInitialDetailHandled once consumed, so revisiting this tab later never reopens it on its own). */
+  initialDetailOrderId?: string | null;
+  onInitialDetailHandled?: () => void;
 }) {
   const [filter, setFilter] = useState<"all" | OrderStatus>("all");
   const [period, setPeriod] = useState<PeriodPreset>("today");
@@ -134,6 +139,17 @@ export function OrdersPanel({
     if (!restaurantId) return;
     void fetchDriverLocationFreshnessMinutes(restaurantId).then(setFreshnessMinutes);
   }, [restaurantId]);
+
+  useEffect(() => {
+    if (!initialDetailOrderId) return;
+    acknowledgeOrder(initialDetailOrderId);
+    setDetailOrderId(initialDetailOrderId);
+    onInitialDetailHandled?.();
+    // onInitialDetailHandled is expected to clear initialDetailOrderId on the
+    // caller's side (admin.tsx) -- omitted from deps so this effect keys only
+    // off the id itself, not the callback's identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialDetailOrderId, acknowledgeOrder]);
 
   // Debounced search -- 300ms of silence before it takes effect, so typing
   // "BINO" doesn't fire a server query (history mode) or re-filter the whole

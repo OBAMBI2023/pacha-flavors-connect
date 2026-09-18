@@ -26,11 +26,22 @@ import {
  * care whether an order has been opened/viewed, and it restarts on mount if
  * a pending order is already there (a page refresh must not silence it).
  */
-export function useOrdersAlert(restaurantId: string | null, options?: { onViewOrder?: (orderId: string) => void }) {
+export function useOrdersAlert(
+  restaurantId: string | null,
+  options?: { onViewOrder?: (orderId: string) => void; notificationsEnabled?: boolean },
+) {
   const [soundEnabled, setSoundEnabledState] = useState(false);
   const [vibrationEnabled, setVibrationEnabledState] = useState(false);
   const onViewOrderRef = useRef(options?.onViewOrder);
   onViewOrderRef.current = options?.onViewOrder;
+  // Tenant-level master switch (Paramètres -> "Notifications de commandes"),
+  // defaulting to on while the setting is still loading -- matches the
+  // column's own DB default and this hook's pre-existing always-on
+  // behavior, so there's no regression during the brief fetch window. A ref
+  // (not a dependency) because it's read from callbacks/effects that must
+  // never re-subscribe realtime just because this flag flipped.
+  const notificationsEnabledRef = useRef(options?.notificationsEnabled ?? true);
+  notificationsEnabledRef.current = options?.notificationsEnabled ?? true;
 
   useEffect(() => {
     setSoundEnabledState(getSoundPreference());
@@ -50,6 +61,7 @@ export function useOrdersAlert(restaurantId: string | null, options?: { onViewOr
   }, []);
 
   const onNewOrder = useCallback((order: Order) => {
+    if (!notificationsEnabledRef.current) return;
     const onViewOrder = onViewOrderRef.current;
     toast(`Nouvelle commande #${order.order_number}`, {
       description: `${order.customer_name} · ${order.total_amount.toLocaleString("fr-FR")} ${order.currency}`,
@@ -59,17 +71,22 @@ export function useOrdersAlert(restaurantId: string | null, options?: { onViewOr
     vibrateNewOrder();
   }, []);
 
-  const { orders, connectionState, newOrderIds, acknowledgeOrder, patchOrder, loading } = useRealtimeOrders(
-    restaurantId,
-    onNewOrder,
-  );
+  const { orders, connectionState, newOrderIds, acknowledgeOrder, patchOrder, loading } =
+    useRealtimeOrders(restaurantId, onNewOrder);
 
   const pendingCount = useMemo(() => orders.filter((o) => o.status === "pending").length, [orders]);
 
   useEffect(() => {
+    if (options?.notificationsEnabled === false) {
+      // Covers the setting being switched off mid-chime, not just the
+      // steady state -- a looping chime must stop immediately, never ride
+      // out until pendingCount naturally drops to 0.
+      stopOrderChime();
+      return;
+    }
     if (pendingCount > 0) playNewOrderChime();
     else stopOrderChime();
-  }, [pendingCount]);
+  }, [pendingCount, options?.notificationsEnabled]);
 
   // This hook only lives while the tenant is inside /admin (it sits above
   // the tabs precisely so tab switches don't unmount it); if /admin itself

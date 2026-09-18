@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MENU_BUCKET, type AboutSection } from "@/lib/menu-db";
 
@@ -56,7 +57,10 @@ export async function fetchFulfillmentModes(restaurantId: string): Promise<Fulfi
     .eq("restaurant_id", restaurantId)
     .maybeSingle();
   if (error) throw error;
-  return { delivery_enabled: data?.delivery_enabled ?? true, pickup_enabled: data?.pickup_enabled ?? true };
+  return {
+    delivery_enabled: data?.delivery_enabled ?? true,
+    pickup_enabled: data?.pickup_enabled ?? true,
+  };
 }
 
 /**
@@ -65,13 +69,60 @@ export async function fetchFulfillmentModes(restaurantId: string): Promise<Fulfi
  * enforcement -- this call can still fail server-side even if the caller
  * already validated "at least one enabled" client-side.
  */
-export async function updateFulfillmentModes(restaurantId: string, modes: FulfillmentModes): Promise<void> {
-  const { error } = await supabase.from("restaurant_settings").update(modes).eq("restaurant_id", restaurantId);
+export async function updateFulfillmentModes(
+  restaurantId: string,
+  modes: FulfillmentModes,
+): Promise<void> {
+  const { error } = await supabase
+    .from("restaurant_settings")
+    .update(modes)
+    .eq("restaurant_id", restaurantId);
   if (error) throw error;
 }
 
+/** Same targeted-column read as fetchFulfillmentModes -- restaurant_settings always has exactly one row per restaurant, so the column's own default (true) is the only "not configured yet" case. */
+export async function fetchOrderNotificationsEnabled(restaurantId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("restaurant_settings")
+    .select("order_notifications_enabled")
+    .eq("restaurant_id", restaurantId)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.order_notifications_enabled ?? true;
+}
+
+/** Same RLS boundary as updateFulfillmentModes (settings_manage_owner_manager). Gates the whole tenant-side "nouvelle commande" alert pipeline -- see notify_restaurant_new_order() server-side and useOrdersAlert client-side. */
+export async function updateOrderNotificationsEnabled(
+  restaurantId: string,
+  enabled: boolean,
+): Promise<void> {
+  const { error } = await supabase
+    .from("restaurant_settings")
+    .update({ order_notifications_enabled: enabled })
+    .eq("restaurant_id", restaurantId);
+  if (error) throw error;
+}
+
+/**
+ * Shared React Query cache so /admin (gating RealtimeOrdersBubble and
+ * useOrdersAlert's toast/sound/vibration) and the settings card (rendering +
+ * toggling the switch) always agree without prop-drilling between them --
+ * a successful toggle in the settings card updates this same cache entry, so
+ * the bubble reacts immediately, no page refresh needed.
+ */
+export function useOrderNotificationsEnabled(restaurantId: string | null) {
+  return useQuery({
+    queryKey: ["order-notifications-enabled", restaurantId],
+    queryFn: () => fetchOrderNotificationsEnabled(restaurantId as string),
+    enabled: Boolean(restaurantId),
+  });
+}
+
 /** Active (non-terminal) order count for a given fulfillment type -- surfaced in the disable-confirmation dialog so the tenant knows if the mode is currently in use. */
-export async function countActiveOrdersByFulfillmentType(restaurantId: string, fulfillmentType: "delivery" | "pickup"): Promise<number> {
+export async function countActiveOrdersByFulfillmentType(
+  restaurantId: string,
+  fulfillmentType: "delivery" | "pickup",
+): Promise<number> {
   const { count, error } = await supabase
     .from("orders")
     .select("id", { count: "exact", head: true })

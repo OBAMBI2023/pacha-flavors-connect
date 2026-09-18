@@ -2850,6 +2850,7 @@ export type Database = {
           meta_pixel_id: string | null
           minimum_order: number
           opening_hours: Json
+          order_notifications_enabled: boolean
           pickup_enabled: boolean
           primary_color: string | null
           reservation_enabled: boolean
@@ -2893,6 +2894,7 @@ export type Database = {
           meta_pixel_id?: string | null
           minimum_order?: number
           opening_hours?: Json
+          order_notifications_enabled?: boolean
           pickup_enabled?: boolean
           primary_color?: string | null
           reservation_enabled?: boolean
@@ -2936,6 +2938,7 @@ export type Database = {
           meta_pixel_id?: string | null
           minimum_order?: number
           opening_hours?: Json
+          order_notifications_enabled?: boolean
           pickup_enabled?: boolean
           primary_color?: string | null
           reservation_enabled?: boolean

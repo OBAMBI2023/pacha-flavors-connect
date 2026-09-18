@@ -72,6 +72,7 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { fetchAvailability, setManualOverride, type RestaurantAvailability } from "@/lib/businessHours";
 import { OrdersPanel } from "@/components/admin/orders/OrdersPanel";
+import { RealtimeOrdersBubble } from "@/components/admin/RealtimeOrdersBubble";
 import { useOrdersAlert } from "@/hooks/useOrdersAlert";
 import { DashboardHome } from "@/components/admin/home/DashboardHome";
 import { StatisticsPanel } from "@/components/admin/stats/StatisticsPanel";
@@ -96,6 +97,8 @@ import { NotificationBell } from "@/components/admin/notifications/NotificationB
 import { SubscriptionCard } from "@/components/admin/settings/SubscriptionCard";
 import { SecurityCard } from "@/components/admin/settings/SecurityCard";
 import { FulfillmentSettingsCard } from "@/components/admin/settings/FulfillmentSettingsCard";
+import { OrderNotificationsCard } from "@/components/admin/settings/OrderNotificationsCard";
+import { useOrderNotificationsEnabled } from "@/lib/restaurantSettings";
 import { CurrencyCard } from "@/components/admin/settings/CurrencyCard";
 import { SeoSettingsCard } from "@/components/admin/settings/SeoSettingsCard";
 import { QrCodeCard } from "@/components/admin/settings/QrCodeCard";
@@ -297,7 +300,12 @@ export default function AdminPage() {
     if (nextOpen) void applyManualOverride("open");
     else setCloseConfirmOpen(true);
   }
-  const ordersAlert = useOrdersAlert(restaurantId, { onViewOrder: () => setTab("commandes") });
+  const { data: orderNotificationsEnabled } = useOrderNotificationsEnabled(restaurantId);
+  const [pendingOrderDetailId, setPendingOrderDetailId] = useState<string | null>(null);
+  const ordersAlert = useOrdersAlert(restaurantId, {
+    onViewOrder: () => setTab("commandes"),
+    notificationsEnabled: orderNotificationsEnabled ?? true,
+  });
   const [busy, setBusy] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [addSheetOpen, setAddSheetOpen] = useState(false);
@@ -780,6 +788,18 @@ export default function AdminPage() {
   return (
     <main className="mx-auto max-w-7xl px-4 pb-[calc(76px+env(safe-area-inset-bottom))] pt-6 sm:px-6 lg:py-8 lg:pb-8">
       <Toaster />
+      {orderNotificationsEnabled && (
+        <RealtimeOrdersBubble
+          orders={ordersAlert.orders}
+          newOrderIds={ordersAlert.newOrderIds}
+          acknowledgeOrder={ordersAlert.acknowledgeOrder}
+          connectionState={ordersAlert.connectionState}
+          onOpenOrders={(orderId) => {
+            setTab("commandes");
+            if (orderId) setPendingOrderDetailId(orderId);
+          }}
+        />
+      )}
       <div>
         <AdminSidebar
           items={ADMIN_NAV_ITEMS}
@@ -909,7 +929,14 @@ export default function AdminPage() {
               />
             </TabsContent>
             <TabsContent value="commandes">
-              <OrdersPanel restaurantId={restaurantId} restaurant={restaurant} onBack={() => setTab("accueil")} {...ordersAlert} />
+              <OrdersPanel
+                restaurantId={restaurantId}
+                restaurant={restaurant}
+                onBack={() => setTab("accueil")}
+                initialDetailOrderId={pendingOrderDetailId}
+                onInitialDetailHandled={() => setPendingOrderDetailId(null)}
+                {...ordersAlert}
+              />
             </TabsContent>
             <TabsContent value="clients">
               <CustomersPanel restaurantId={restaurantId} currency={restaurant?.currency ?? DEFAULT_CURRENCY_CODE} />
@@ -1084,6 +1111,7 @@ export default function AdminPage() {
                     </p>
                   </Card>
                   <FulfillmentSettingsCard restaurantId={restaurantId} />
+                  <OrderNotificationsCard restaurantId={restaurantId} />
                   <CurrencyCard
                     restaurantId={restaurantId}
                     currentCurrency={restaurant?.currency ?? DEFAULT_CURRENCY_CODE}
