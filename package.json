@@ -1,7 +1,9 @@
 {
   "name": "tanstack_start_ts",
   "private": true,
-  "sideEffects": ["src/lib/maplibreWorkerUrl.ts"],
+  "sideEffects": [
+    "src/lib/maplibreWorkerUrl.ts"
+  ],
   "type": "module",
   "scripts": {
     "dev": "vite dev",
@@ -16,6 +18,10 @@
     "postinstall": "patch-package"
   },
   "dependencies": {
+    "@capacitor-firebase/messaging": "^8.5.2",
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/core": "^8.5.2",
     "@hookform/resolvers": "^5.2.2",
     "@lovable.dev/cloud-auth-js": "^1.0.0",
     "@radix-ui/react-accordion": "^1.2.12",
@@ -55,6 +61,7 @@
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.6.0",
+    "firebase": "^12.19.0",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.575.0",
     "maplibre-gl": "^6.5.0",
@@ -74,6 +81,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.2",
     "@eslint/js": "^9.32.0",
     "@lovable.dev/vite-tanstack-config": "2.13.1",
     "@types/node": "^22.16.5",
