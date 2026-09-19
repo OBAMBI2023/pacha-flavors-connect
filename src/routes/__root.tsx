@@ -15,6 +15,7 @@ import { OfflineBanner } from "@/components/pwa/OfflineBanner";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { PwaUpdatePrompt } from "@/components/pwa/PwaUpdatePrompt";
 import { SaoviaSplashScreen } from "@/components/SaoviaSplashScreen";
+import { initNativePush } from "@/lib/nativePush";
 
 function NotFoundComponent() {
   return (
@@ -156,6 +157,10 @@ function RootComponent() {
     if (hasOAuthCallbackParams) {
       window.location.replace(`/auth${window.location.search}${window.location.hash}`);
     }
+  }, []);
+
+  useEffect(() => {
+    initNativePush();
   }, []);
 
   return (

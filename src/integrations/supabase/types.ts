@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       api_keys: {
@@ -935,6 +960,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      fcm_device_tokens: {
+        Row: {
+          created_at: string
+          device_name: string | null
+          id: string
+          is_active: boolean
+          last_seen_at: string
+          platform: string
+          token: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_name?: string | null
+          id?: string
+          is_active?: boolean
+          last_seen_at?: string
+          platform?: string
+          token: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_name?: string | null
+          id?: string
+          is_active?: boolean
+          last_seen_at?: string
+          platform?: string
+          token?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       inventory: {
         Row: {
@@ -3023,6 +3081,7 @@ export type Database = {
           favicon_url: string | null
           id: string
           is_public: boolean
+          is_test: boolean
           lat: number | null
           legal_name: string | null
           lng: number | null
@@ -3049,6 +3108,7 @@ export type Database = {
           favicon_url?: string | null
           id?: string
           is_public?: boolean
+          is_test?: boolean
           lat?: number | null
           legal_name?: string | null
           lng?: number | null
@@ -3075,6 +3135,7 @@ export type Database = {
           favicon_url?: string | null
           id?: string
           is_public?: boolean
+          is_test?: boolean
           lat?: number | null
           legal_name?: string | null
           lng?: number | null
@@ -4287,6 +4348,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      register_fcm_token: {
+        Args: { p_device_name?: string; p_platform?: string; p_token: string }
+        Returns: undefined
+      }
       register_push_subscription: {
         Args: {
           p_auth: string
@@ -4485,6 +4550,7 @@ export type Database = {
         Args: { p_slug: string; p_source?: string; p_visitor_id: string }
         Returns: undefined
       }
+      unregister_fcm_token: { Args: { p_token: string }; Returns: undefined }
       unregister_push_subscription: {
         Args: { p_endpoint: string; p_visitor_id?: string }
         Returns: undefined
@@ -4779,6 +4845,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       delivery_assignment_role: ["pickup", "delivery"],
