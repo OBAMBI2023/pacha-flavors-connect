@@ -149,7 +149,7 @@ export function OrderCard({
 
   return (
     <article
-      className={`flex flex-col gap-2.5 rounded-2xl border bg-card p-3.5 shadow-sm transition-colors ${
+      className={`flex min-w-0 flex-col gap-2.5 rounded-2xl border bg-card p-3.5 shadow-sm transition-colors ${
         isNew ? "border-primary ring-2 ring-primary/40" : "border-border"
       }`}
     >
