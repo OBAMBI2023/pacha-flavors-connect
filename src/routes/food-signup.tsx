@@ -305,7 +305,7 @@ function FoodSignupPage() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#1B120C]">
+    <main className="relative min-h-dvh overflow-hidden bg-[#1B120C]">
       {/* Ambient page background (warm restaurant glow) behind both panels
           and the header -- the hero photo itself lives only inside the
           image panel's own container below, never blended into this. */}
@@ -316,23 +316,29 @@ function FoodSignupPage() {
         <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/50 to-transparent" />
       </div>
 
-      <div className="relative z-10 flex min-h-screen flex-col">
-        {/* --------------------------------------------------------- Top nav */}
-        <div className="flex items-center justify-between px-5 py-5 sm:px-8 lg:px-12 lg:py-5">
-          <Link to="/food" className="inline-flex items-center gap-2.5">
+      <div className="relative z-10 flex min-h-dvh flex-col">
+        {/* --------------------------------------------------------- Top nav
+            Stays in normal flow and starts below the Android status bar:
+            viewport-fit=cover lets the Capacitor WebView draw edge-to-edge,
+            so the top padding adds the safe-area inset. env() covers recent
+            WebViews/browsers; --safe-area-inset-top is the value Capacitor's
+            SystemBars plugin injects (0 when it already pads natively), and
+            max() keeps whichever is real without ever double-counting. */}
+        <div className="flex items-center justify-between gap-3 px-5 pb-5 pt-[calc(1.25rem+max(env(safe-area-inset-top,0px),var(--safe-area-inset-top,0px)))] sm:px-8 lg:px-12">
+          <Link to="/food" className="inline-flex min-w-0 items-center gap-2.5">
             <img
               src={logoMark}
               alt=""
-              className="h-9 w-9 rounded-full object-cover ring-2 ring-white/30"
+              className="h-9 w-9 shrink-0 rounded-full object-cover ring-2 ring-white/30"
             />
-            <span className="font-display text-lg font-bold tracking-tight text-white">
+            <span className="truncate font-display text-lg font-bold tracking-tight text-white">
               SAOVIA
               <span className="ml-1.5 align-middle text-[0.6rem] font-semibold uppercase tracking-[0.3em] text-primary">
                 Food
               </span>
             </span>
           </Link>
-          <p className="shrink-0 text-sm text-white/80">
+          <p className="shrink-0 whitespace-nowrap text-sm text-white/80">
             <span className="hidden sm:inline">Déjà un compte ?{" "}</span>
             <Link
               to="/auth"
@@ -349,7 +355,7 @@ function FoodSignupPage() {
             neither can visually overlap or crop the other, at any
             breakpoint. The image panel is desktop-only (hidden below lg);
             on mobile only the header and the form render. */}
-        <div className="relative mx-auto flex w-full max-w-7xl flex-1 flex-col px-5 pb-10 pt-2 sm:px-8 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(420px,1fr)] lg:items-stretch lg:gap-10 lg:px-12 lg:py-6 xl:px-16">
+        <div className="relative mx-auto flex w-full max-w-7xl flex-1 flex-col px-5 pb-[calc(2.5rem+max(env(safe-area-inset-bottom,0px),var(--safe-area-inset-bottom,0px)))] pt-2 sm:px-8 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(420px,1fr)] lg:items-stretch lg:gap-10 lg:px-12 lg:pb-[calc(1.5rem+max(env(safe-area-inset-bottom,0px),var(--safe-area-inset-bottom,0px)))] lg:pt-6 xl:px-16">
           {/* Image / marketing panel -- desktop only. The photo is never
               written on (no overlaid text/logo/graphics): it renders alone
               in its own rounded container, object-cover, so it can be used
