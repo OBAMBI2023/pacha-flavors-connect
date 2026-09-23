@@ -35,6 +35,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { MENU_BUCKET, type DbMenuItem, useAdminMenuData } from "@/lib/menu-db";
 import { tenantCanonicalUrl } from "@/lib/seo";
+import { useSystemBarsStyle } from "@/lib/systemBars";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -308,6 +309,9 @@ export default function AdminPage() {
   });
   const [busy, setBusy] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  // Light dashboard -> dark system icons; the navy mobile menu drawer
+  // (MobileNavSheet, #071B3A) runs under the status bar -> white icons.
+  useSystemBarsStyle(mobileSidebarOpen ? "dark" : "light");
   const [addSheetOpen, setAddSheetOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -786,7 +790,7 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="mx-auto max-w-7xl px-4 pb-[calc(76px+env(safe-area-inset-bottom))] pt-6 sm:px-6 lg:py-8 lg:pb-8">
+    <main className="mx-auto max-w-7xl px-4 pb-[calc(76px+env(safe-area-inset-bottom))] pt-[calc(1.5rem+max(env(safe-area-inset-top,0px),var(--safe-area-inset-top,0px)))] sm:px-6 lg:pb-8 lg:pt-[calc(2rem+max(env(safe-area-inset-top,0px),var(--safe-area-inset-top,0px)))]">
       <Toaster />
       {orderNotificationsEnabled && (
         <RealtimeOrdersBubble

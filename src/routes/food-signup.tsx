@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import logoMark from "@/assets/saovia-food-logo.png";
 import signupHeroImage from "@/assets/saovia-food-signup-hero.png";
+import { useSystemBarsStyle } from "@/lib/systemBars";
 
 const TITLE = "Créer votre compte — SAOVIA Food";
 const DESCRIPTION =
@@ -91,6 +92,9 @@ const INPUT_CLASS =
 
 function FoodSignupPage() {
   const [view, setView] = useState<View>("form");
+  // The form view sits on the dark brown background (white system icons);
+  // the confirmation-pending and success views are cream (dark icons).
+  useSystemBarsStyle(view === "form" ? "dark" : "light");
 
   const [restaurantName, setRestaurantName] = useState("");
   const [fullName, setFullName] = useState("");

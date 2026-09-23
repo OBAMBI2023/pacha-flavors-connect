@@ -16,6 +16,7 @@ import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { PwaUpdatePrompt } from "@/components/pwa/PwaUpdatePrompt";
 import { SaoviaSplashScreen } from "@/components/SaoviaSplashScreen";
 import { initNativePush } from "@/lib/nativePush";
+import { useSystemBarsDefault } from "@/lib/systemBars";
 
 function NotFoundComponent() {
   return (
@@ -162,6 +163,10 @@ function RootComponent() {
   useEffect(() => {
     initNativePush();
   }, []);
+
+  // Native app only: dark status/navigation bar icons by default (every
+  // page is light), pages with a dark top override it -- see systemBars.ts.
+  useSystemBarsDefault();
 
   return (
     <QueryClientProvider client={queryClient}>
